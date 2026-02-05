@@ -154,14 +154,19 @@ export default function App() {
   const [todayISO, setTodayISO] = useState<ISODate>(() => toISODate(new Date()))
   useEffect(() => {
     let t: number | undefined
+
     const schedule = () => {
       t = window.setTimeout(() => {
         setTodayISO(toISODate(new Date()))
         schedule()
       }, msUntilNextLocalMidnight())
     }
+
     schedule()
-    return () => t && window.clearTimeout(t)
+
+    return () => {
+      if (t !== undefined) window.clearTimeout(t)
+    }
   }, [])
 
   const [cursorMonth, setCursorMonth] = useState<Date>(() => startOfMonth(new Date()))
@@ -607,7 +612,11 @@ export default function App() {
                         <div className="grid gap-3">
                           <div className="grid gap-2">
                             <Label>Titel</Label>
-                            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" />
+                            <Input
+                              value={newTitle}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTitle(e.target.value)}
+                              placeholder="z.B. Lernen"
+                            />
                           </div>
 
                           <div className="grid gap-2">
@@ -692,7 +701,11 @@ export default function App() {
                       <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label>Titel</Label>
-                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" />
+                          <Input
+                            value={editTitle}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditTitle(e.target.value)}
+                            placeholder="Titel"
+                          />
                         </div>
 
                         <div className="grid gap-2">
@@ -735,7 +748,11 @@ export default function App() {
                 <div className="grid gap-2 rounded-2xl border p-3">
                   <Label>Neue Kategorie</Label>
                   <div className="flex gap-2">
-                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="z.B. Sport" />
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCategoryName(e.target.value)}
+                      placeholder="z.B. Sport"
+                    />
                     <Button variant="outline" onClick={addCategoryFromInput}>
                       Hinzufügen
                     </Button>
@@ -795,7 +812,7 @@ export default function App() {
                   <div className="grid gap-2 md:grid-cols-3 md:items-end">
                     <div className="grid gap-1">
                       <Label>Von</Label>
-                      <Select value={renameFrom || "—"} onValueChange={(v) => setRenameFrom(v)}>
+                      <Select value={renameFrom || "—"} onValueChange={(v: string) => setRenameFrom(v)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -812,7 +829,11 @@ export default function App() {
 
                     <div className="grid gap-1">
                       <Label>Nach</Label>
-                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} placeholder="Neuer Name" />
+                      <Input
+                        value={renameTo}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRenameTo(e.target.value)}
+                        placeholder="Neuer Name"
+                      />
                     </div>
 
                     <Button
