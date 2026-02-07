@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil } from "lucide-react"
 
+import { supabase } from "@/lib/supabase"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -10,32 +12,24 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type ISODate = string
 
-type Task = {
+type DbTask = {
   id: string
+  user_id: string
+  date: ISODate
   title: string
-  category: string // "" = ohne Kategorie
+  category: string | null
   done: boolean
-  createdAt: number
+  created_at: string | null
 }
 
-type Store = {
-  categories: string[]
-  tasksByDate: Record<ISODate, Task[]>
-}
-
-const LS_KEY = "task-kalender:v3"
+// Drag payload
+const DND_MIME = "application/x-taskkalender"
+type DragPayload = { taskId: string; fromISO: ISODate }
 
 function pad2(n: number) {
   return String(n).padStart(2, "0")
@@ -70,7 +64,13 @@ function percent(r: number) {
   return Math.round(r * 100)
 }
 
-function dayCompletion(tasks: Task[] | undefined) {
+function msUntilNextLocalMidnight() {
+  const now = new Date()
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1)
+  return next.getTime() - now.getTime()
+}
+
+function dayCompletion(tasks: DbTask[] | undefined) {
   const total = (tasks ?? []).length
   const done = (tasks ?? []).reduce((a, t) => a + (t.done ? 1 : 0), 0)
   const ratio = total === 0 ? 0 : done / total
@@ -81,7 +81,7 @@ function dayCompletion(tasks: Task[] | undefined) {
 function dayStatusClass(
   iso: ISODate,
   todayISO: ISODate,
-  tasks: Task[] | undefined
+  tasks: DbTask[] | undefined
 ): { border: string; bg: string; tone: "none" | "red" | "yellow" | "green" } {
   if (iso >= todayISO) {
     return { border: "border-border", bg: "bg-background", tone: "none" }
@@ -95,61 +95,40 @@ function dayStatusClass(
   return { border: "border-rose-400/70", bg: "bg-rose-400/15", tone: "red" }
 }
 
-function safeGetLS(key: string) {
-  try {
-    if (typeof window === "undefined") return null
-    return window.localStorage.getItem(key)
-  } catch {
-    return null
+function mapTasksByDate(rows: DbTask[]) {
+  const m: Record<ISODate, DbTask[]> = {}
+  for (const t of rows) {
+    const iso = t.date
+    if (!m[iso]) m[iso] = []
+    m[iso].push(t)
   }
+  return m
 }
 
-function safeSetLS(key: string, value: string) {
-  try {
-    if (typeof window === "undefined") return
-    window.localStorage.setItem(key, value)
-  } catch {}
-}
-
-function uuid() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function compactTasksByDate(map: Record<ISODate, Task[]>) {
-  const next: Record<ISODate, Task[]> = {}
-  for (const [iso, tasks] of Object.entries(map)) {
-    if ((tasks ?? []).length > 0) next[iso] = tasks
+function uniqueCategoriesFromTasks(tasksByDate: Record<ISODate, DbTask[]>) {
+  const set = new Set<string>()
+  for (const tasks of Object.values(tasksByDate)) {
+    for (const t of tasks ?? []) {
+      const c = normalizeCategory(t.category ?? "")
+      if (c) set.add(c)
+    }
   }
-  return next
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
-
-function msUntilNextLocalMidnight() {
-  const now = new Date()
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1)
-  return next.getTime() - now.getTime()
-}
-
-function loadStore(): Store {
-  try {
-    const raw = safeGetLS(LS_KEY)
-    if (!raw) return { categories: [], tasksByDate: {} }
-    const parsed = JSON.parse(raw) as Store
-    const cats = (parsed.categories ?? []).map(normalizeCategory).filter(Boolean)
-    const categories = Array.from(new Set(cats))
-    const tasksByDate = parsed.tasksByDate ?? {}
-    return { categories, tasksByDate }
-  } catch {
-    return { categories: [], tasksByDate: {} }
-  }
-}
-
-// Drag payload
-const DND_MIME = "application/x-taskkalender"
-type DragPayload = { taskId: string; fromISO: ISODate }
 
 export default function App() {
-  const [store, setStore] = useState<Store>(() => loadStore())
+  // Auth
+  const [authReady, setAuthReady] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  // Minimal Login UI
+  const [authEmail, setAuthEmail] = useState("")
+  const [authPass, setAuthPass] = useState("")
+  const [authMsg, setAuthMsg] = useState("")
+
+  // Data
+  const [tasksByDate, setTasksByDate] = useState<Record<ISODate, DbTask[]>>({})
+  const [categories, setCategories] = useState<string[]>([])
 
   const [todayISO, setTodayISO] = useState<ISODate>(() => toISODate(new Date()))
   useEffect(() => {
@@ -183,7 +162,7 @@ export default function App() {
   const [editTitle, setEditTitle] = useState("")
   const [editCategory, setEditCategory] = useState<string>("__none__")
 
-  // Category management
+  // Category management UI
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renameFrom, setRenameFrom] = useState<string>("")
   const [renameTo, setRenameTo] = useState<string>("")
@@ -192,191 +171,7 @@ export default function App() {
   const [dragOverISO, setDragOverISO] = useState<ISODate | "">("")
   const dragRef = useRef<DragPayload | null>(null)
 
-  // Debounced save
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      safeSetLS(LS_KEY, JSON.stringify(store))
-    }, 150)
-    return () => window.clearTimeout(t)
-  }, [store])
-
-  function ensureCategory(nameRaw: string) {
-    const name = normalizeCategory(nameRaw)
-    if (!name) return
-    setStore((prev) => {
-      if (prev.categories.includes(name)) return prev
-      return { ...prev, categories: [...prev.categories, name] }
-    })
-  }
-
-  function addTask() {
-    const title = newTitle.trim()
-    if (!title) return
-
-    const cat = newCategory === "__none__" ? "" : normalizeCategory(newCategory)
-    if (cat) ensureCategory(cat)
-
-    const task: Task = {
-      id: uuid(),
-      title,
-      category: cat,
-      done: false,
-      createdAt: Date.now(),
-    }
-
-    setStore((prev) => {
-      const tasks = prev.tasksByDate[selectedISO] ?? []
-      return { ...prev, tasksByDate: { ...prev.tasksByDate, [selectedISO]: [...tasks, task] } }
-    })
-
-    setNewTitle("")
-    setNewCategory("__none__")
-    setAddDialogOpen(false)
-  }
-
-  function toggleTask(taskId: string) {
-    setStore((prev) => {
-      const tasks = prev.tasksByDate[selectedISO] ?? []
-      const next = tasks.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
-      return { ...prev, tasksByDate: { ...prev.tasksByDate, [selectedISO]: next } }
-    })
-  }
-
-  function deleteTask(taskId: string) {
-    setStore((prev) => {
-      const tasks = prev.tasksByDate[selectedISO] ?? []
-      const next = tasks.filter((t) => t.id !== taskId)
-      const map = { ...prev.tasksByDate, [selectedISO]: next }
-      if (next.length === 0) delete map[selectedISO]
-      return { ...prev, tasksByDate: map }
-    })
-  }
-
-  function openEditTask(task: Task) {
-    setEditTaskId(task.id)
-    setEditTitle(task.title)
-    setEditCategory(task.category ? task.category : "__none__")
-    setEditDialogOpen(true)
-  }
-
-  function saveEditTask() {
-    const title = editTitle.trim()
-    if (!title) return
-
-    const cat = editCategory === "__none__" ? "" : normalizeCategory(editCategory)
-    if (cat) ensureCategory(cat)
-
-    setStore((prev) => {
-      const tasks = prev.tasksByDate[selectedISO] ?? []
-      const next = tasks.map((t) => (t.id === editTaskId ? { ...t, title, category: cat } : t))
-      return { ...prev, tasksByDate: { ...prev.tasksByDate, [selectedISO]: next } }
-    })
-
-    setEditDialogOpen(false)
-    setEditTaskId("")
-    setEditTitle("")
-    setEditCategory("__none__")
-  }
-
-  function addCategoryFromInput() {
-    const name = normalizeCategory(newCategoryName)
-    if (!name) return
-    ensureCategory(name)
-    setNewCategoryName("")
-  }
-
-  function deleteCategory(category: string) {
-    const cat = normalizeCategory(category)
-    if (!cat) return
-
-    setStore((prev) => {
-      const remaining = prev.categories.filter((c) => c !== cat)
-
-      const nextTasksByDate: Record<ISODate, Task[]> = {}
-      for (const [iso, tasks] of Object.entries(prev.tasksByDate)) {
-        nextTasksByDate[iso] = (tasks ?? []).map((t) => (t.category === cat ? { ...t, category: "" } : t))
-      }
-
-      return { ...prev, categories: remaining, tasksByDate: compactTasksByDate(nextTasksByDate) }
-    })
-
-    if (newCategory === cat) setNewCategory("__none__")
-    if (editCategory === cat) setEditCategory("__none__")
-  }
-
-  function renameCategory(oldName: string, newNameRaw: string) {
-    const from = normalizeCategory(oldName)
-    const to = normalizeCategory(newNameRaw)
-    if (!from || !to || from === to) return
-
-    setStore((prev) => {
-      const categories = prev.categories.map((c) => (c === from ? to : c))
-      const unique = Array.from(new Set(categories.filter(Boolean)))
-
-      const nextTasksByDate: Record<ISODate, Task[]> = {}
-      for (const [iso, tasks] of Object.entries(prev.tasksByDate)) {
-        nextTasksByDate[iso] = (tasks ?? []).map((t) => (t.category === from ? { ...t, category: to } : t))
-      }
-
-      return { ...prev, categories: unique, tasksByDate: compactTasksByDate(nextTasksByDate) }
-    })
-
-    if (newCategory === from) setNewCategory(to)
-    if (editCategory === from) setEditCategory(to)
-  }
-
-  function moveTask(fromISO: ISODate, toISO: ISODate, taskId: string) {
-    if (!fromISO || !toISO || fromISO === toISO) return
-
-    setStore((prev) => {
-      const fromTasks = prev.tasksByDate[fromISO] ?? []
-      const toTasks = prev.tasksByDate[toISO] ?? []
-
-      const idx = fromTasks.findIndex((t) => t.id === taskId)
-      if (idx < 0) return prev
-
-      const task = fromTasks[idx]
-      const nextFrom = fromTasks.filter((t) => t.id !== taskId)
-      const nextTo = [...toTasks, task]
-
-      const nextMap = { ...prev.tasksByDate, [fromISO]: nextFrom, [toISO]: nextTo }
-      if (nextFrom.length === 0) delete nextMap[fromISO]
-
-      return { ...prev, tasksByDate: nextMap }
-    })
-  }
-
-  function setDragPayload(e: React.DragEvent, payload: DragPayload) {
-    dragRef.current = payload
-
-    try {
-      e.dataTransfer.setData(DND_MIME, JSON.stringify(payload))
-    } catch {}
-    try {
-      e.dataTransfer.setData("text/plain", JSON.stringify(payload))
-    } catch {}
-
-    e.dataTransfer.effectAllowed = "move"
-  }
-
-  function readDragPayload(e: React.DragEvent): DragPayload | null {
-    if (dragRef.current) return dragRef.current
-
-    try {
-      const rawA = e.dataTransfer.getData(DND_MIME)
-      const rawB = e.dataTransfer.getData("text/plain")
-      const raw = rawA || rawB
-      if (!raw) return null
-      const p = JSON.parse(raw) as DragPayload
-      if (!p?.taskId || !p?.fromISO) return null
-      return p
-    } catch {
-      return null
-    }
-  }
-
-  const monthLabel = cursorMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })
-
+  // Month cells
   const monthCells = useMemo(() => {
     const start = startOfMonth(cursorMonth)
     const end = endOfMonth(cursorMonth)
@@ -408,7 +203,17 @@ export default function App() {
     return cells
   }, [cursorMonth])
 
-  const selectedTasks = store.tasksByDate[selectedISO] ?? []
+  const visibleRange = useMemo(() => {
+    if (monthCells.length === 0) {
+      const t = toISODate(new Date())
+      return { from: t, to: t }
+    }
+    return { from: monthCells[0].iso, to: monthCells[monthCells.length - 1].iso }
+  }, [monthCells])
+
+  const monthLabel = cursorMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+  const selectedTasks = tasksByDate[selectedISO] ?? []
+
   const selectedDateLabel = useMemo(() => {
     return parseISODate(selectedISO).toLocaleDateString(undefined, {
       weekday: "long",
@@ -418,14 +223,286 @@ export default function App() {
     })
   }, [selectedISO])
 
+  // Auth bootstrap
+  useEffect(() => {
+    let unsub: { data: { subscription: { unsubscribe: () => void } } } | null = null
+
+    const boot = async () => {
+      const { data } = await supabase.auth.getUser()
+      setUserId(data.user?.id ?? null)
+      setAuthReady(true)
+
+      unsub = supabase.auth.onAuthStateChange((_event, session) => {
+        setUserId(session?.user?.id ?? null)
+      })
+    }
+
+    boot()
+
+    return () => {
+      unsub?.data?.subscription?.unsubscribe?.()
+    }
+  }, [])
+
+  // Load tasks for current visible month range (USER-FILTER!)
+  const loadVisibleTasks = async () => {
+    if (!userId) return
+    const { from, to } = visibleRange
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id,user_id,date,title,category,done,created_at")
+      .eq("user_id", userId) // <<< WICHTIG
+      .gte("date", from)
+      .lte("date", to)
+      .order("created_at", { ascending: true })
+
+    if (error) return
+
+    const rows = (data ?? []) as DbTask[]
+    const mapped = mapTasksByDate(rows)
+    setTasksByDate(mapped)
+    setCategories(uniqueCategoriesFromTasks(mapped))
+  }
+
+  useEffect(() => {
+    if (!userId) {
+      setTasksByDate({})
+      setCategories([])
+      return
+    }
+    loadVisibleTasks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, visibleRange.from, visibleRange.to])
+
+  // Auth actions
+  const signIn = async () => {
+    setAuthMsg("")
+    const email = authEmail.trim()
+    const password = authPass
+    if (!email || !password) return
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) setAuthMsg(error.message)
+  }
+
+  const signUp = async () => {
+    setAuthMsg("")
+    const email = authEmail.trim()
+    const password = authPass
+    if (!email || !password) return
+
+    const { error } = await supabase.auth.signUp({ email, password })
+    if (error) setAuthMsg(error.message)
+    else setAuthMsg("")
+  }
+
+  const signOut = async () => {
+    await supabase.auth.signOut()
+    setAuthEmail("")
+    setAuthPass("")
+    setAuthMsg("")
+  }
+
+  // Task CRUD
+  function ensureCategory(nameRaw: string) {
+    const name = normalizeCategory(nameRaw)
+    if (!name) return
+    setCategories((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b))))
+  }
+
+  const addTask = async () => {
+    if (!userId) return
+    const title = newTitle.trim()
+    if (!title) return
+
+    const cat = newCategory === "__none__" ? null : normalizeCategory(newCategory)
+    if (cat) ensureCategory(cat)
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert([{ user_id: userId, date: selectedISO, title, category: cat, done: false }])
+      .select("id,user_id,date,title,category,done,created_at")
+      .single()
+
+    if (error || !data) return
+
+    const row = data as DbTask
+    setTasksByDate((prev) => {
+      const list = prev[row.date] ?? []
+      return { ...prev, [row.date]: [...list, row] }
+    })
+
+    setNewTitle("")
+    setNewCategory("__none__")
+    setAddDialogOpen(false)
+  }
+
+  const toggleTask = async (taskId: string) => {
+    const dayList = tasksByDate[selectedISO] ?? []
+    const cur = dayList.find((t) => t.id === taskId)
+    if (!cur) return
+
+    const nextDone = !cur.done
+
+    setTasksByDate((prev) => {
+      const list = prev[selectedISO] ?? []
+      return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: nextDone } : t)) }
+    })
+
+    const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId)
+    if (error) {
+      setTasksByDate((prev) => {
+        const list = prev[selectedISO] ?? []
+        return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: !nextDone } : t)) }
+      })
+    }
+  }
+
+  const deleteTask = async (taskId: string) => {
+    const snapshot = tasksByDate[selectedISO] ?? []
+
+    setTasksByDate((prev) => {
+      const list = prev[selectedISO] ?? []
+      const next = list.filter((t) => t.id !== taskId)
+      const m = { ...prev, [selectedISO]: next }
+      if (next.length === 0) delete m[selectedISO]
+      return m
+    })
+
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId)
+    if (error) {
+      setTasksByDate((prev) => ({ ...prev, [selectedISO]: snapshot }))
+    }
+  }
+
+  const openEditTask = (task: DbTask) => {
+    setEditTaskId(task.id)
+    setEditTitle(task.title)
+    setEditCategory(task.category ? task.category : "__none__")
+    setEditDialogOpen(true)
+  }
+
+  const saveEditTask = async () => {
+    const title = editTitle.trim()
+    if (!title) return
+
+    const cat = editCategory === "__none__" ? null : normalizeCategory(editCategory)
+    if (cat) ensureCategory(cat)
+
+    const list = tasksByDate[selectedISO] ?? []
+    const before = list.find((t) => t.id === editTaskId)
+    if (!before) return
+
+    setTasksByDate((prev) => {
+      const l = prev[selectedISO] ?? []
+      return { ...prev, [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat } : t)) }
+    })
+
+    const { error } = await supabase.from("tasks").update({ title, category: cat }).eq("id", editTaskId)
+    if (error) {
+      setTasksByDate((prev) => {
+        const l = prev[selectedISO] ?? []
+        return { ...prev, [selectedISO]: l.map((t) => (t.id === editTaskId ? before : t)) }
+      })
+      return
+    }
+
+    setEditDialogOpen(false)
+    setEditTaskId("")
+    setEditTitle("")
+    setEditCategory("__none__")
+  }
+
+  const moveTask = async (fromISO: ISODate, toISO: ISODate, taskId: string) => {
+    if (!fromISO || !toISO || fromISO === toISO) return
+
+    const fromList = tasksByDate[fromISO] ?? []
+    const task = fromList.find((t) => t.id === taskId)
+    if (!task) return
+
+    setTasksByDate((prev) => {
+      const a = prev[fromISO] ?? []
+      const b = prev[toISO] ?? []
+      const nextFrom = a.filter((t) => t.id !== taskId)
+      const nextTo = [...b, { ...task, date: toISO }]
+      const m = { ...prev, [fromISO]: nextFrom, [toISO]: nextTo }
+      if (nextFrom.length === 0) delete m[fromISO]
+      return m
+    })
+
+    const { error } = await supabase.from("tasks").update({ date: toISO }).eq("id", taskId)
+    if (error) loadVisibleTasks()
+  }
+
+  // Category management (via updating tasks) - USER FILTER!
+  const addCategoryFromInput = () => {
+    const name = normalizeCategory(newCategoryName)
+    if (!name) return
+    ensureCategory(name)
+    setNewCategoryName("")
+  }
+
+  const deleteCategory = async (category: string) => {
+    const cat = normalizeCategory(category)
+    if (!cat || !userId) return
+
+    await supabase.from("tasks").update({ category: null }).eq("user_id", userId).eq("category", cat)
+    await loadVisibleTasks()
+
+    if (newCategory === cat) setNewCategory("__none__")
+    if (editCategory === cat) setEditCategory("__none__")
+  }
+
+  const renameCategory = async (oldName: string, newNameRaw: string) => {
+    const from = normalizeCategory(oldName)
+    const to = normalizeCategory(newNameRaw)
+    if (!from || !to || from === to || !userId) return
+
+    await supabase.from("tasks").update({ category: to }).eq("user_id", userId).eq("category", from)
+    await loadVisibleTasks()
+
+    if (newCategory === from) setNewCategory(to)
+    if (editCategory === from) setEditCategory(to)
+  }
+
+  // Drag helpers
+  function setDragPayload(e: React.DragEvent, payload: DragPayload) {
+    dragRef.current = payload
+    try {
+      e.dataTransfer.setData(DND_MIME, JSON.stringify(payload))
+    } catch {}
+    try {
+      e.dataTransfer.setData("text/plain", JSON.stringify(payload))
+    } catch {}
+    e.dataTransfer.effectAllowed = "move"
+  }
+
+  function readDragPayload(e: React.DragEvent): DragPayload | null {
+    if (dragRef.current) return dragRef.current
+
+    try {
+      const rawA = e.dataTransfer.getData(DND_MIME)
+      const rawB = e.dataTransfer.getData("text/plain")
+      const raw = rawA || rawB
+      if (!raw) return null
+      const p = JSON.parse(raw) as DragPayload
+      if (!p?.taskId || !p?.fromISO) return null
+      return p
+    } catch {
+      return null
+    }
+  }
+
+  // Stats
   const categoryStats = useMemo(() => {
     const acc: Record<string, { total: number; done: number }> = {}
-    for (const c of store.categories) acc[c] = { total: 0, done: 0 }
+    for (const c of categories) acc[c] = { total: 0, done: 0 }
     acc[""] = acc[""] ?? { total: 0, done: 0 }
 
-    for (const tasks of Object.values(store.tasksByDate)) {
+    for (const tasks of Object.values(tasksByDate)) {
       for (const t of tasks ?? []) {
-        const c = normalizeCategory(t.category)
+        const c = normalizeCategory(t.category ?? "")
         if (c !== "" && !acc[c]) acc[c] = { total: 0, done: 0 }
         acc[c].total += 1
         if (t.done) acc[c].done += 1
@@ -444,7 +521,58 @@ export default function App() {
       .sort((a, b) => a.label.localeCompare(b.label))
 
     return { rows }
-  }, [store])
+  }, [tasksByDate, categories])
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen grid place-items-center p-6">
+        <Card className="w-full max-w-md rounded-2xl">
+          <CardHeader>
+            <CardTitle>Task/Kalender</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">Lade…</CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background p-6">
+        <Card className="w-full max-w-md rounded-2xl shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Login</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <div className="grid gap-2">
+              <Label>Email</Label>
+              <Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@email.com" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Passwort</Label>
+              <Input
+                value={authPass}
+                onChange={(e) => setAuthPass(e.target.value)}
+                placeholder="••••••••"
+                type="password"
+              />
+            </div>
+
+            {authMsg ? <div className="text-sm text-rose-600">{authMsg}</div> : null}
+
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={signIn}>
+                Einloggen
+              </Button>
+              <Button className="flex-1" variant="outline" onClick={signUp}>
+                Registrieren
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -461,6 +589,10 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={signOut}>
+              Logout
+            </Button>
+
             <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, -1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -492,12 +624,7 @@ export default function App() {
             <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
               <Card className="rounded-2xl shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
-                    {cursorMonth.toLocaleDateString("de-DE", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </CardTitle>
+                  <CardTitle className="text-base">{cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-7 gap-3 text-xs text-muted-foreground">
@@ -510,7 +637,7 @@ export default function App() {
 
                   <div className="mt-3 grid grid-cols-7 gap-3">
                     {monthCells.map((cell) => {
-                      const tasks = store.tasksByDate[cell.iso]
+                      const tasks = tasksByDate[cell.iso]
                       const { total, done, ratio } = dayCompletion(tasks)
                       const st = dayStatusClass(cell.iso, todayISO, tasks)
                       const isSelected = cell.iso === selectedISO
@@ -612,11 +739,7 @@ export default function App() {
                         <div className="grid gap-3">
                           <div className="grid gap-2">
                             <Label>Titel</Label>
-                            <Input
-                              value={newTitle}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTitle(e.target.value)}
-                              placeholder="z.B. Lernen"
-                            />
+                            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" />
                           </div>
 
                           <div className="grid gap-2">
@@ -627,7 +750,7 @@ export default function App() {
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__none__">Ohne Kategorie</SelectItem>
-                                {store.categories.map((c) => (
+                                {categories.map((c) => (
                                   <SelectItem key={c} value={c}>
                                     {c}
                                   </SelectItem>
@@ -653,7 +776,7 @@ export default function App() {
                       <div className="divide-y">
                         {selectedTasks
                           .slice()
-                          .sort((a, b) => Number(a.done) - Number(b.done) || a.createdAt - b.createdAt)
+                          .sort((a, b) => Number(a.done) - Number(b.done))
                           .map((t) => (
                             <div
                               key={t.id}
@@ -701,11 +824,7 @@ export default function App() {
                       <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label>Titel</Label>
-                          <Input
-                            value={editTitle}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditTitle(e.target.value)}
-                            placeholder="Titel"
-                          />
+                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" />
                         </div>
 
                         <div className="grid gap-2">
@@ -716,7 +835,7 @@ export default function App() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="__none__">Ohne Kategorie</SelectItem>
-                              {store.categories.map((c) => (
+                              {categories.map((c) => (
                                 <SelectItem key={c} value={c}>
                                   {c}
                                 </SelectItem>
@@ -748,11 +867,7 @@ export default function App() {
                 <div className="grid gap-2 rounded-2xl border p-3">
                   <Label>Neue Kategorie</Label>
                   <div className="flex gap-2">
-                    <Input
-                      value={newCategoryName}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCategoryName(e.target.value)}
-                      placeholder="z.B. Sport"
-                    />
+                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="z.B. Sport" />
                     <Button variant="outline" onClick={addCategoryFromInput}>
                       Hinzufügen
                     </Button>
@@ -762,46 +877,43 @@ export default function App() {
                 <div className="grid gap-2 rounded-2xl border p-3">
                   <div className="text-sm font-medium">Vorhanden (löschen / umbenennen)</div>
                   <div className="grid gap-2">
-                    {store.categories.length === 0 ? (
+                    {categories.length === 0 ? (
                       <div className="text-sm text-muted-foreground">Noch keine Kategorien.</div>
                     ) : (
-                      store.categories
-                        .slice()
-                        .sort((a, b) => a.localeCompare(b))
-                        .map((c) => (
-                          <div key={c} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2">
-                            <Badge variant="secondary">{c}</Badge>
+                      categories.map((c) => (
+                        <div key={c} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2">
+                          <Badge variant="secondary">{c}</Badge>
 
-                            <div className="ml-auto flex items-center gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setRenameFrom(c)
-                                  setRenameTo(c)
-                                }}
-                              >
-                                Umbenennen
-                              </Button>
+                          <div className="ml-auto flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setRenameFrom(c)
+                                setRenameTo(c)
+                              }}
+                            >
+                              Umbenennen
+                            </Button>
 
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteCategory(c)}
-                                aria-label="Kategorie löschen"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteCategory(c)}
+                              aria-label="Kategorie löschen"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                        ))
+                        </div>
+                      ))
                     )}
                   </div>
 
                   <div className="mt-2 text-xs text-muted-foreground">
-                    Löschen entfernt nur die Kategorie — Tasks bleiben bestehen und werden zu „Ohne Kategorie“.
+                    Löschen setzt die Kategorie bei allen Tasks auf „Ohne Kategorie“.
                   </div>
                 </div>
 
@@ -812,13 +924,13 @@ export default function App() {
                   <div className="grid gap-2 md:grid-cols-3 md:items-end">
                     <div className="grid gap-1">
                       <Label>Von</Label>
-                      <Select value={renameFrom || "—"} onValueChange={(v: string) => setRenameFrom(v)}>
+                      <Select value={renameFrom || "—"} onValueChange={(v) => setRenameFrom(v)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="—">—</SelectItem>
-                          {store.categories.map((c) => (
+                          {categories.map((c) => (
                             <SelectItem key={c} value={c}>
                               {c}
                             </SelectItem>
@@ -829,11 +941,7 @@ export default function App() {
 
                     <div className="grid gap-1">
                       <Label>Nach</Label>
-                      <Input
-                        value={renameTo}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRenameTo(e.target.value)}
-                        placeholder="Neuer Name"
-                      />
+                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} placeholder="Neuer Name" />
                     </div>
 
                     <Button
