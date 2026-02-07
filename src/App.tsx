@@ -117,7 +117,6 @@ function uniqueCategoriesFromTasks(tasksByDate: Record<ISODate, DbTask[]>) {
 }
 
 function hasRecoveryHash() {
-  // Supabase recovery links often include: #access_token=...&type=recovery
   return typeof window !== "undefined" && window.location.hash.includes("type=recovery")
 }
 
@@ -135,7 +134,7 @@ export default function App() {
   const [resetMode, setResetMode] = useState(false)
   const [resetMsg, setResetMsg] = useState("")
 
-  // NEW: Recovery UI (set new password)
+  // Recovery UI (set new password)
   const [recoveryMode, setRecoveryMode] = useState(false)
   const [newPass1, setNewPass1] = useState("")
   const [newPass2, setNewPass2] = useState("")
@@ -243,11 +242,10 @@ export default function App() {
     let unsub: { data: { subscription: { unsubscribe: () => void } } } | null = null
 
     const boot = async () => {
-      // if URL says recovery, force recovery screen (even if already logged in)
+      // If URL contains recovery hash, show recovery screen immediately.
       if (hasRecoveryHash()) {
         setRecoveryMode(true)
         setAuthReady(true)
-        // do NOT set userId here; recovery screen should take precedence
       }
 
       const { data } = await supabase.auth.getUser()
@@ -255,7 +253,6 @@ export default function App() {
       setAuthReady(true)
 
       unsub = supabase.auth.onAuthStateChange((event, session) => {
-        // if supabase reports password recovery, force recovery screen
         if (event === "PASSWORD_RECOVERY") {
           setRecoveryMode(true)
           setRecoveryMsg("")
@@ -340,6 +337,7 @@ export default function App() {
     const email = authEmail.trim()
     if (!email) return
 
+    // IMPORTANT: force hash so app renders recovery form after clicking the email link
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/#type=recovery`,
     })
@@ -361,6 +359,7 @@ export default function App() {
     setRecoveryMsg("")
     const p1 = newPass1
     const p2 = newPass2
+
     if (!p1 || p1.length < 6) {
       setRecoveryMsg("Passwort zu kurz (min. 6).")
       return
@@ -376,10 +375,10 @@ export default function App() {
       return
     }
 
-    // clear hash so the app doesn't stay stuck in recovery
+    // Clear hash so app doesn't stay in recovery mode
     history.replaceState(null, "", window.location.pathname + window.location.search)
 
-    // optional: sign out to force fresh login with new password
+    // Force fresh login with the new password
     await supabase.auth.signOut()
 
     setRecoveryMode(false)
@@ -622,30 +621,46 @@ export default function App() {
 
   // Recovery screen takes precedence over everything
   if (recoveryMode) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-background p-6">
-        <Card className="w-full max-w-md rounded-2xl shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Neues Passwort setzen</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <div className="grid gap-2">
-              <Label>Neues Passwort</Label>
-              <Input value={newPass1} onChange={(e) => setNewPass1(e.target.value)} type="password" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Neues Passwort повторно</Label>
-              <Input value={newPass2} onChange={(e) => setNewPass2(e.target.value)} type="password" />
-            </div>
+  return (
+    <div className="min-h-screen grid place-items-center bg-background p-6" lang="de" translate="no">
+      <Card className="w-full max-w-md rounded-2xl shadow-sm" translate="no">
+        <CardHeader className="pb-3" translate="no">
+          <CardTitle className="text-base" translate="no">
+            Neues Passwort setzen
+          </CardTitle>
+        </CardHeader>
 
-            {recoveryMsg ? <div className="text-sm text-rose-600">{recoveryMsg}</div> : null}
+        <CardContent className="grid gap-3" translate="no">
+          <div className="grid gap-2" translate="no">
+            <Label translate="no">Neues Passwort</Label>
+            <Input
+              value={newPass1}
+              onChange={(e) => setNewPass1(e.target.value)}
+              type="password"
+            />
+          </div>
 
-            <Button onClick={updatePassword}>Passwort speichern</Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+          <div className="grid gap-2" translate="no">
+            <Label translate="no">Neues Passwort wiederholen</Label>
+            <Input
+              value={newPass2}
+              onChange={(e) => setNewPass2(e.target.value)}
+              type="password"
+            />
+          </div>
+
+          {recoveryMsg ? (
+            <div className="text-sm text-rose-600" translate="no">
+              {recoveryMsg}
+            </div>
+          ) : null}
+
+          <Button onClick={updatePassword}>Passwort speichern</Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
   if (!userId) {
     return (
