@@ -116,6 +116,11 @@ function uniqueCategoriesFromTasks(tasksByDate: Record<ISODate, DbTask[]>) {
   return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
 
+function hasRecoveryHash() {
+  // Supabase recovery links often include: #access_token=...&type=recovery
+  return typeof window !== "undefined" && window.location.hash.includes("type=recovery")
+}
+
 export default function App() {
   // Auth
   const [authReady, setAuthReady] = useState(false)
@@ -125,6 +130,16 @@ export default function App() {
   const [authEmail, setAuthEmail] = useState("")
   const [authPass, setAuthPass] = useState("")
   const [authMsg, setAuthMsg] = useState("")
+
+  // Forgot/reset mail request UI
+  const [resetMode, setResetMode] = useState(false)
+  const [resetMsg, setResetMsg] = useState("")
+
+  // NEW: Recovery UI (set new password)
+  const [recoveryMode, setRecoveryMode] = useState(false)
+  const [newPass1, setNewPass1] = useState("")
+  const [newPass2, setNewPass2] = useState("")
+  const [recoveryMsg, setRecoveryMsg] = useState("")
 
   // Data
   const [tasksByDate, setTasksByDate] = useState<Record<ISODate, DbTask[]>>({})
@@ -223,16 +238,28 @@ export default function App() {
     })
   }, [selectedISO])
 
-  // Auth bootstrap
+  // Auth bootstrap + detect recovery mode
   useEffect(() => {
     let unsub: { data: { subscription: { unsubscribe: () => void } } } | null = null
 
     const boot = async () => {
+      // if URL says recovery, force recovery screen (even if already logged in)
+      if (hasRecoveryHash()) {
+        setRecoveryMode(true)
+        setAuthReady(true)
+        // do NOT set userId here; recovery screen should take precedence
+      }
+
       const { data } = await supabase.auth.getUser()
       setUserId(data.user?.id ?? null)
       setAuthReady(true)
 
-      unsub = supabase.auth.onAuthStateChange((_event, session) => {
+      unsub = supabase.auth.onAuthStateChange((event, session) => {
+        // if supabase reports password recovery, force recovery screen
+        if (event === "PASSWORD_RECOVERY") {
+          setRecoveryMode(true)
+          setRecoveryMsg("")
+        }
         setUserId(session?.user?.id ?? null)
       })
     }
@@ -252,7 +279,7 @@ export default function App() {
     const { data, error } = await supabase
       .from("tasks")
       .select("id,user_id,date,title,category,done,created_at")
-      .eq("user_id", userId) // <<< WICHTIG
+      .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
       .order("created_at", { ascending: true })
@@ -271,13 +298,16 @@ export default function App() {
       setCategories([])
       return
     }
+    if (recoveryMode) return
     loadVisibleTasks()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, visibleRange.from, visibleRange.to])
+  }, [userId, visibleRange.from, visibleRange.to, recoveryMode])
 
   // Auth actions
   const signIn = async () => {
     setAuthMsg("")
+    setResetMsg("")
+    setRecoveryMsg("")
     const email = authEmail.trim()
     const password = authPass
     if (!email || !password) return
@@ -288,13 +318,33 @@ export default function App() {
 
   const signUp = async () => {
     setAuthMsg("")
+    setResetMsg("")
+    setRecoveryMsg("")
     const email = authEmail.trim()
     const password = authPass
     if (!email || !password) return
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    })
     if (error) setAuthMsg(error.message)
-    else setAuthMsg("")
+  }
+
+  // request reset mail
+  const requestPasswordReset = async () => {
+    setAuthMsg("")
+    setResetMsg("")
+    setRecoveryMsg("")
+    const email = authEmail.trim()
+    if (!email) return
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/#type=recovery`,
+    })
+    if (error) setResetMsg(error.message)
+    else setResetMsg("Reset-Mail gesendet. Link öffnen und neues Passwort setzen.")
   }
 
   const signOut = async () => {
@@ -302,6 +352,40 @@ export default function App() {
     setAuthEmail("")
     setAuthPass("")
     setAuthMsg("")
+    setResetMsg("")
+    setResetMode(false)
+  }
+
+  // Recovery: update password
+  const updatePassword = async () => {
+    setRecoveryMsg("")
+    const p1 = newPass1
+    const p2 = newPass2
+    if (!p1 || p1.length < 6) {
+      setRecoveryMsg("Passwort zu kurz (min. 6).")
+      return
+    }
+    if (p1 !== p2) {
+      setRecoveryMsg("Passwörter stimmen nicht überein.")
+      return
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: p1 })
+    if (error) {
+      setRecoveryMsg(error.message)
+      return
+    }
+
+    // clear hash so the app doesn't stay stuck in recovery
+    history.replaceState(null, "", window.location.pathname + window.location.search)
+
+    // optional: sign out to force fresh login with new password
+    await supabase.auth.signOut()
+
+    setRecoveryMode(false)
+    setNewPass1("")
+    setNewPass2("")
+    setRecoveryMsg("Passwort gesetzt. Jetzt einloggen.")
   }
 
   // Task CRUD
@@ -536,38 +620,96 @@ export default function App() {
     )
   }
 
+  // Recovery screen takes precedence over everything
+  if (recoveryMode) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background p-6">
+        <Card className="w-full max-w-md rounded-2xl shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Neues Passwort setzen</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <div className="grid gap-2">
+              <Label>Neues Passwort</Label>
+              <Input value={newPass1} onChange={(e) => setNewPass1(e.target.value)} type="password" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Neues Passwort повторно</Label>
+              <Input value={newPass2} onChange={(e) => setNewPass2(e.target.value)} type="password" />
+            </div>
+
+            {recoveryMsg ? <div className="text-sm text-rose-600">{recoveryMsg}</div> : null}
+
+            <Button onClick={updatePassword}>Passwort speichern</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (!userId) {
     return (
       <div className="min-h-screen grid place-items-center bg-background p-6">
         <Card className="w-full max-w-md rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Login</CardTitle>
+            <CardTitle className="text-base">{resetMode ? "Passwort zurücksetzen" : "Login"}</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             <div className="grid gap-2">
               <Label>Email</Label>
               <Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@email.com" />
             </div>
-            <div className="grid gap-2">
-              <Label>Passwort</Label>
-              <Input
-                value={authPass}
-                onChange={(e) => setAuthPass(e.target.value)}
-                placeholder="••••••••"
-                type="password"
-              />
-            </div>
+
+            {resetMode ? null : (
+              <div className="grid gap-2">
+                <Label>Passwort</Label>
+                <Input value={authPass} onChange={(e) => setAuthPass(e.target.value)} type="password" />
+              </div>
+            )}
 
             {authMsg ? <div className="text-sm text-rose-600">{authMsg}</div> : null}
+            {resetMsg ? <div className="text-sm text-emerald-600">{resetMsg}</div> : null}
 
-            <div className="flex gap-2">
-              <Button className="flex-1" onClick={signIn}>
-                Einloggen
-              </Button>
-              <Button className="flex-1" variant="outline" onClick={signUp}>
-                Registrieren
-              </Button>
-            </div>
+            {resetMode ? (
+              <>
+                <Button onClick={requestPasswordReset} disabled={authEmail.trim().length === 0}>
+                  Reset-Mail senden
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setResetMode(false)
+                    setResetMsg("")
+                    setAuthMsg("")
+                  }}
+                >
+                  Zurück zum Login
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={signIn}>
+                    Einloggen
+                  </Button>
+                  <Button className="flex-1" variant="outline" onClick={signUp}>
+                    Registrieren
+                  </Button>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setResetMode(true)
+                    setResetMsg("")
+                    setAuthMsg("")
+                  }}
+                >
+                  Passwort vergessen?
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -624,7 +766,9 @@ export default function App() {
             <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
               <Card className="rounded-2xl shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}</CardTitle>
+                  <CardTitle className="text-base">
+                    {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-7 gap-3 text-xs text-muted-foreground">
@@ -897,13 +1041,7 @@ export default function App() {
                               Umbenennen
                             </Button>
 
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteCategory(c)}
-                              aria-label="Kategorie löschen"
-                            >
+                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteCategory(c)} aria-label="Kategorie löschen">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -912,9 +1050,7 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Löschen setzt die Kategorie bei allen Tasks auf „Ohne Kategorie“.
-                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">Löschen setzt die Kategorie bei allen Tasks auf „Ohne Kategorie“.</div>
                 </div>
 
                 <Separator />
