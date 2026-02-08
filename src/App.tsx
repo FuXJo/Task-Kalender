@@ -960,7 +960,7 @@ export default function App() {
                           .map((t) => (
                             <div
                               key={t.id}
-                              className="flex items-center gap-3 p-3"
+                              className="flex items-start gap-3 p-3"
                               draggable
                               onDragStart={(e) => setDragPayload(e, { taskId: t.id, fromISO: selectedISO })}
                               onDragEnd={() => {
@@ -969,7 +969,7 @@ export default function App() {
                               }}
                               title="Drag & Drop: Aufgabe auf einen Tag im Kalender ziehen"
                             >
-                              <Checkbox checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                              <Checkbox className="mt-1" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
 
                               <div className="min-w-0 flex-1">
                                 <div
