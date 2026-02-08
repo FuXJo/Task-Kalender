@@ -233,60 +233,65 @@ export default function App() {
     })
   }, [selectedISO])
 
-  // ✅ Auth bootstrap + PKCE recovery (FIX "Auth session missing!")
-    useEffect(() => {
-    let unsub: { data: { subscription: { unsubscribe: () => void } } } | null = null
-
+  // Auth bootstrap + Recovery session takeover (FIX für Redirect/Login auf Vercel)
+  useEffect(() => {
     const boot = async () => {
-      // 0) Wenn wir auf /auth/callback landen: Session aus URL übernehmen
-      if (typeof window !== "undefined" && window.location.pathname === "/auth/callback") {
-        // PKCE: ?code=...
-        const qp = new URLSearchParams(window.location.search)
-        const code = qp.get("code")
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
+      // 1) Recovery-Link (Hash): Tokens übernehmen -> Session setzen
+      if (typeof window !== "undefined") {
+        const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
+        const hp = new URLSearchParams(hash)
+
+        const typeH = hp.get("type")
+        const access_token = hp.get("access_token")
+        const refresh_token = hp.get("refresh_token")
+
+        if (typeH === "recovery" && access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token })
           if (!error) {
-            // zurück auf Root (ohne Query)
-            history.replaceState(null, "", "/")
             setRecoveryMode(true)
+            setRecoveryMsg("")
+            history.replaceState(null, "", window.location.pathname + window.location.search) // Hash weg
           }
         }
 
-        // Implicit: #access_token=...&refresh_token=...
-        const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
-        if (hash) {
-          const hp = new URLSearchParams(hash)
-          const access_token = hp.get("access_token")
-          const refresh_token = hp.get("refresh_token")
-          if (access_token && refresh_token) {
-            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (!error) {
-              history.replaceState(null, "", "/")
+        // 2) PKCE Flow: ?code=... übernehmen
+        // WICHTIG: Recovery nur aktivieren, wenn type=recovery (sonst landet man bei jedem Code im Reset-Screen)
+        const qp = new URLSearchParams(window.location.search)
+        const code = qp.get("code")
+        const typeQ = qp.get("type")
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (!error) {
+            if (typeQ === "recovery") {
               setRecoveryMode(true)
+              setRecoveryMsg("")
             }
+            history.replaceState(null, "", window.location.pathname) // Query weg
           }
         }
       }
 
-      // 1) Session/User normal laden
-      const { data } = await supabase.auth.getSession()
-      setUserId(data.session?.user?.id ?? null)
+      // Session stabil holen (besser als getUser() direkt nach Redirect)
+      const { data: sessionData } = await supabase.auth.getSession()
+      setUserId(sessionData.session?.user?.id ?? null)
       setAuthReady(true)
-
-      // 2) Listener
-      unsub = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setRecoveryMode(true)
-          setRecoveryMsg("")
-        }
-        setUserId(session?.user?.id ?? null)
-      })
     }
 
     boot()
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setRecoveryMode(true)
+        setRecoveryMsg("")
+      }
+      setUserId(session?.user?.id ?? null)
+    })
+
     return () => {
-      unsub?.data?.subscription?.unsubscribe?.()
+      subscription.unsubscribe()
     }
   }, [])
 
@@ -346,25 +351,27 @@ export default function App() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: { emailRedirectTo: window.location.origin },
     })
     if (error) setAuthMsg(error.message)
   }
 
-  // request reset mail (✅ redirectTo = origin root)
+  // request reset mail (empfohlen: klare Route /recovery)
   const requestPasswordReset = async () => {
     setAuthMsg("")
     setResetMsg("")
-    setRecoveryMsg("")
     const email = authEmail.trim()
     if (!email) return
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: `${window.location.origin}/auth/callback`,
-  })
+      redirectTo: `${window.location.origin}`,
+    })
 
-    if (error) setResetMsg(error.message)
-    else setResetMsg("Reset-Mail gesendet. Link öffnen und neues Passwort setzen.")
+    if (error) {
+      setResetMsg(error.message)
+    } else {
+      setResetMsg("E-Mail gesendet! Bitte schau in dein Postfach.")
+    }
   }
 
   const signOut = async () => {
@@ -440,6 +447,7 @@ export default function App() {
   }
 
   const toggleTask = async (taskId: string) => {
+    if (!userId) return
     const dayList = tasksByDate[selectedISO] ?? []
     const cur = dayList.find((t) => t.id === taskId)
     if (!cur) return
@@ -451,7 +459,7 @@ export default function App() {
       return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: nextDone } : t)) }
     })
 
-    const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId)
+    const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId).eq("user_id", userId)
     if (error) {
       setTasksByDate((prev) => {
         const list = prev[selectedISO] ?? []
@@ -461,6 +469,7 @@ export default function App() {
   }
 
   const deleteTask = async (taskId: string) => {
+    if (!userId) return
     const snapshot = tasksByDate[selectedISO] ?? []
 
     setTasksByDate((prev) => {
@@ -471,7 +480,7 @@ export default function App() {
       return m
     })
 
-    const { error } = await supabase.from("tasks").delete().eq("id", taskId)
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", userId)
     if (error) {
       setTasksByDate((prev) => ({ ...prev, [selectedISO]: snapshot }))
     }
@@ -485,6 +494,7 @@ export default function App() {
   }
 
   const saveEditTask = async () => {
+    if (!userId) return
     const title = editTitle.trim()
     if (!title) return
 
@@ -500,7 +510,7 @@ export default function App() {
       return { ...prev, [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat } : t)) }
     })
 
-    const { error } = await supabase.from("tasks").update({ title, category: cat }).eq("id", editTaskId)
+    const { error } = await supabase.from("tasks").update({ title, category: cat }).eq("id", editTaskId).eq("user_id", userId)
     if (error) {
       setTasksByDate((prev) => {
         const l = prev[selectedISO] ?? []
@@ -516,6 +526,7 @@ export default function App() {
   }
 
   const moveTask = async (fromISO: ISODate, toISO: ISODate, taskId: string) => {
+    if (!userId) return
     if (!fromISO || !toISO || fromISO === toISO) return
 
     const fromList = tasksByDate[fromISO] ?? []
@@ -532,7 +543,7 @@ export default function App() {
       return m
     })
 
-    const { error } = await supabase.from("tasks").update({ date: toISO }).eq("id", taskId)
+    const { error } = await supabase.from("tasks").update({ date: toISO }).eq("id", taskId).eq("user_id", userId)
     if (error) loadVisibleTasks()
   }
 

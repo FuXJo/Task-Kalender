@@ -1,14 +1,16 @@
 import { createClient } from "@supabase/supabase-js"
 
-const supabaseUrl = "https://nsjybamzaavgyrowkjbq.supabase.co"
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zanliYW16YWF2Z3lyb3dramJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzg3NzMsImV4cCI6MjA4NTk1NDc3M30.snPdt9bvF2a0w-SB2OYBXu7wTm0OETH9R8vtAQAQn_Q"
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY")
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: "pkce",
   },
 })
