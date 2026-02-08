@@ -799,7 +799,7 @@ export default function App() {
 
           {/* Kalender */}
           <TabsContent value="kalender" className="mt-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)] lg:overflow-hidden">
+            <div className="grid min-h-0 gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)] lg:overflow-hidden">
               <Card className="rounded-2xl shadow-sm h-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">
@@ -895,7 +895,7 @@ export default function App() {
               </Card>
 
               {/* Aufgabenliste rechts */}
-              <Card className="rounded-2xl shadow-sm h-full lg:sticky lg:top-6 flex flex-col">
+              <Card className="rounded-2xl shadow-sm h-full min-h-0 lg:sticky lg:top-6 flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Aufgaben am ausgewählten Tag</CardTitle>
                 </CardHeader>
