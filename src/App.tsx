@@ -972,7 +972,12 @@ export default function App() {
                               <Checkbox checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
 
                               <div className="min-w-0 flex-1">
-                                <div className={"truncate text-sm " + (t.done ? "line-through text-muted-foreground" : "")}>
+                                <div
+                                  className={
+                                    "text-sm break-words whitespace-normal leading-snug " +
+                                    (t.done ? "line-through text-muted-foreground" : "")
+                                  }
+                                >
                                   {t.title}
                                 </div>
                                 <div className="mt-1">
