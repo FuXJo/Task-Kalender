@@ -895,7 +895,7 @@ export default function App() {
               </Card>
 
               {/* Aufgabenliste rechts */}
-              <Card className="rounded-2xl shadow-sm h-full flex flex-col">
+              <Card className="rounded-2xl shadow-sm h-full lg:sticky lg:top-6 flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Aufgaben am ausgewählten Tag</CardTitle>
                 </CardHeader>
