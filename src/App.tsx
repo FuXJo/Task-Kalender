@@ -895,11 +895,11 @@ export default function App() {
               </Card>
 
               {/* Aufgabenliste rechts */}
-              <Card className="rounded-2xl shadow-sm">
+              <Card className="rounded-2xl shadow-sm lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Aufgaben am ausgewählten Tag</CardTitle>
                 </CardHeader>
-                <CardContent className="grid gap-3">
+                <CardContent className="flex h-full flex-col gap-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-sm font-medium">{selectedDateLabel}</div>
 
@@ -949,7 +949,7 @@ export default function App() {
                     </Dialog>
                   </div>
 
-                  <div className="rounded-2xl border">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border">
                     {selectedTasks.length === 0 ? (
                       <div className="p-4 text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
                     ) : (
