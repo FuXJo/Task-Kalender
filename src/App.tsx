@@ -799,8 +799,8 @@ export default function App() {
 
           {/* Kalender */}
           <TabsContent value="kalender" className="mt-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
-              <Card className="rounded-2xl shadow-sm">
+            <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)]">
+              <Card className="rounded-2xl shadow-sm h-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">
                     {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
@@ -895,11 +895,11 @@ export default function App() {
               </Card>
 
               {/* Aufgabenliste rechts */}
-              <Card className="rounded-2xl shadow-sm lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)]">
+              <Card className="rounded-2xl shadow-sm h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Aufgaben am ausgewählten Tag</CardTitle>
                 </CardHeader>
-                <CardContent className="flex h-full flex-col gap-3">
+                <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-sm font-medium">{selectedDateLabel}</div>
 
@@ -949,7 +949,7 @@ export default function App() {
                     </Dialog>
                   </div>
 
-                  <div className="min-h-0 flex-1 max-h-[calc(100vh-260px)] overflow-y-auto rounded-2xl border">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border">
                     {selectedTasks.length === 0 ? (
                       <div className="p-4 text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
                     ) : (
