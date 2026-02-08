@@ -949,7 +949,7 @@ export default function App() {
                     </Dialog>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border">
+                  <div className="min-h-0 flex-1 max-h-[calc(100vh-260px)] overflow-y-auto rounded-2xl border">
                     {selectedTasks.length === 0 ? (
                       <div className="p-4 text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
                     ) : (
