@@ -116,10 +116,6 @@ function uniqueCategoriesFromTasks(tasksByDate: Record<ISODate, DbTask[]>) {
   return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
 
-function hasRecoveryHash() {
-  return typeof window !== "undefined" && window.location.hash.includes("type=recovery")
-}
-
 export default function App() {
   // Auth
   const [authReady, setAuthReady] = useState(false)
@@ -237,21 +233,47 @@ export default function App() {
     })
   }, [selectedISO])
 
-  // Auth bootstrap + detect recovery mode
-  useEffect(() => {
+  // ✅ Auth bootstrap + PKCE recovery (FIX "Auth session missing!")
+    useEffect(() => {
     let unsub: { data: { subscription: { unsubscribe: () => void } } } | null = null
 
     const boot = async () => {
-      // If URL contains recovery hash, show recovery screen immediately.
-      if (hasRecoveryHash()) {
-        setRecoveryMode(true)
-        setAuthReady(true)
+      // 0) Wenn wir auf /auth/callback landen: Session aus URL übernehmen
+      if (typeof window !== "undefined" && window.location.pathname === "/auth/callback") {
+        // PKCE: ?code=...
+        const qp = new URLSearchParams(window.location.search)
+        const code = qp.get("code")
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (!error) {
+            // zurück auf Root (ohne Query)
+            history.replaceState(null, "", "/")
+            setRecoveryMode(true)
+          }
+        }
+
+        // Implicit: #access_token=...&refresh_token=...
+        const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
+        if (hash) {
+          const hp = new URLSearchParams(hash)
+          const access_token = hp.get("access_token")
+          const refresh_token = hp.get("refresh_token")
+          if (access_token && refresh_token) {
+            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
+            if (!error) {
+              history.replaceState(null, "", "/")
+              setRecoveryMode(true)
+            }
+          }
+        }
       }
 
-      const { data } = await supabase.auth.getUser()
-      setUserId(data.user?.id ?? null)
+      // 1) Session/User normal laden
+      const { data } = await supabase.auth.getSession()
+      setUserId(data.session?.user?.id ?? null)
       setAuthReady(true)
 
+      // 2) Listener
       unsub = supabase.auth.onAuthStateChange((event, session) => {
         if (event === "PASSWORD_RECOVERY") {
           setRecoveryMode(true)
@@ -324,12 +346,12 @@ export default function App() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: `${window.location.origin}/` },
     })
     if (error) setAuthMsg(error.message)
   }
 
-  // request reset mail
+  // request reset mail (✅ redirectTo = origin root)
   const requestPasswordReset = async () => {
     setAuthMsg("")
     setResetMsg("")
@@ -337,10 +359,10 @@ export default function App() {
     const email = authEmail.trim()
     if (!email) return
 
-    // IMPORTANT: force hash so app renders recovery form after clicking the email link
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/#type=recovery`,
-    })
+  redirectTo: `${window.location.origin}/auth/callback`,
+  })
+
     if (error) setResetMsg(error.message)
     else setResetMsg("Reset-Mail gesendet. Link öffnen und neues Passwort setzen.")
   }
@@ -375,10 +397,6 @@ export default function App() {
       return
     }
 
-    // Clear hash so app doesn't stay in recovery mode
-    history.replaceState(null, "", window.location.pathname + window.location.search)
-
-    // Force fresh login with the new password
     await supabase.auth.signOut()
 
     setRecoveryMode(false)
@@ -621,46 +639,38 @@ export default function App() {
 
   // Recovery screen takes precedence over everything
   if (recoveryMode) {
-  return (
-    <div className="min-h-screen grid place-items-center bg-background p-6" lang="de" translate="no">
-      <Card className="w-full max-w-md rounded-2xl shadow-sm" translate="no">
-        <CardHeader className="pb-3" translate="no">
-          <CardTitle className="text-base" translate="no">
-            Neues Passwort setzen
-          </CardTitle>
-        </CardHeader>
+    return (
+      <div className="min-h-screen grid place-items-center bg-background p-6" lang="de" translate="no">
+        <Card className="w-full max-w-md rounded-2xl shadow-sm" translate="no">
+          <CardHeader className="pb-3" translate="no">
+            <CardTitle className="text-base" translate="no">
+              Neues Passwort setzen
+            </CardTitle>
+          </CardHeader>
 
-        <CardContent className="grid gap-3" translate="no">
-          <div className="grid gap-2" translate="no">
-            <Label translate="no">Neues Passwort</Label>
-            <Input
-              value={newPass1}
-              onChange={(e) => setNewPass1(e.target.value)}
-              type="password"
-            />
-          </div>
-
-          <div className="grid gap-2" translate="no">
-            <Label translate="no">Neues Passwort wiederholen</Label>
-            <Input
-              value={newPass2}
-              onChange={(e) => setNewPass2(e.target.value)}
-              type="password"
-            />
-          </div>
-
-          {recoveryMsg ? (
-            <div className="text-sm text-rose-600" translate="no">
-              {recoveryMsg}
+          <CardContent className="grid gap-3" translate="no">
+            <div className="grid gap-2" translate="no">
+              <Label translate="no">Neues Passwort</Label>
+              <Input value={newPass1} onChange={(e) => setNewPass1(e.target.value)} type="password" />
             </div>
-          ) : null}
 
-          <Button onClick={updatePassword}>Passwort speichern</Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+            <div className="grid gap-2" translate="no">
+              <Label translate="no">Neues Passwort wiederholen</Label>
+              <Input value={newPass2} onChange={(e) => setNewPass2(e.target.value)} type="password" />
+            </div>
+
+            {recoveryMsg ? (
+              <div className="text-sm text-rose-600" translate="no">
+                {recoveryMsg}
+              </div>
+            ) : null}
+
+            <Button onClick={updatePassword}>Passwort speichern</Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (!userId) {
     return (
