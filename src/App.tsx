@@ -761,8 +761,7 @@ export default function App() {
               <CalendarDays className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-semibold">Task/Kalender</div>
-              <div className="text-sm text-muted-foreground">Monatsübersicht · Kategorien · Fortschritt</div>
+              <div className="text-xl font-semibold">micro manager</div>
             </div>
           </div>
 
@@ -897,7 +896,7 @@ export default function App() {
               {/* Aufgabenliste rechts */}
               <Card className="rounded-2xl shadow-sm h-full min-h-0 lg:sticky lg:top-6 flex flex-col">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Aufgaben am ausgewählten Tag</CardTitle>
+                  <CardTitle className="text-base">To-dos</CardTitle>
                 </CardHeader>
                 <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
                   <div className="flex items-center justify-between gap-2">
