@@ -799,7 +799,7 @@ export default function App() {
 
           {/* Kalender */}
           <TabsContent value="kalender" className="mt-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)]">
+            <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)] lg:overflow-hidden">
               <Card className="rounded-2xl shadow-sm h-full">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">
