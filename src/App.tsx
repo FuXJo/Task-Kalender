@@ -761,7 +761,7 @@ export default function App() {
               <CalendarDays className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-semibold">micro manager</div>
+              <div className="text-xl font-semibold">Study Calendar</div>
             </div>
           </div>
 
