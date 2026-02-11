@@ -1027,45 +1027,47 @@ export default function App() {
                     })}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    {/* Prozent-Legende */}
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-3 w-3 rounded-sm border border-rose-400/70 bg-rose-400/15" /> &lt; 50%
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-3 w-3 rounded-sm border border-amber-400/70 bg-amber-400/15" /> 50–99%
-                      </span>
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-3 w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15" /> 100%
-                      </span>
-                    </div>
+                  {/* Legende + Spendenbox Container */}
+                    <div className="mt-4 flex items-start justify-between">
 
-                    {/* Spendenbox rechts */}
-                    <div className="flex items-center gap-4 rounded-xl border p-3">
-                      <img
-                        src="/revolut-qr.jpg"
-                        alt="Revolut QR Code"
-                        className="w-24 h-24 object-contain"
-                      />
-
-                      <div className="text-right">
-                        <div className="text-sm font-medium">
-                          Projekt unterstützen
-                        </div>
-
-                        <a
-                          href="https://revolut.me/eljoa"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 block text-xs text-primary underline"
-                        >
-                          revolut.me/eljoa
-                        </a>
+                      {/* Prozent-Legende links */}
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm border border-rose-400/70 bg-rose-400/15" /> &lt; 50%
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm border border-amber-400/70 bg-amber-400/15" /> 50–99%
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-3 w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15" /> 100%
+                        </span>
                       </div>
-                      
+
+                      {/* Spendenbox rechts */}
+                      <div className="flex items-center gap-4 rounded-xl border border-border p-3 bg-background">
+                        <img
+                          src="/revolut-qr.jpg"
+                          alt="Revolut QR Code"
+                          className="w-24 h-24 object-contain"
+                        />
+
+                        <div className="text-right">
+                          <div className="text-sm font-medium">
+                            Projekt unterstützen
+                          </div>
+
+                          <a
+                            href="https://revolut.me/eljoa"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 block text-xs text-primary underline"
+                          >
+                            revolut.me/eljoa
+                          </a>
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
                 </CardContent>
               </Card>
 
