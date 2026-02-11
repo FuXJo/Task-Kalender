@@ -241,10 +241,9 @@ export default function App() {
     })
   }, [selectedISO])
 
-  // Auth bootstrap + Recovery session takeover (FIX für Redirect/Login auf Vercel)
+  // Auth bootstrap + Recovery session takeover
   useEffect(() => {
     const boot = async () => {
-      // 1) Recovery-Link (Hash): Tokens übernehmen -> Session setzen
       if (typeof window !== "undefined") {
         const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash
         const hp = new URLSearchParams(hash)
@@ -258,12 +257,10 @@ export default function App() {
           if (!error) {
             setRecoveryMode(true)
             setRecoveryMsg("")
-            history.replaceState(null, "", window.location.pathname + window.location.search) // Hash weg
+            history.replaceState(null, "", window.location.pathname + window.location.search)
           }
         }
 
-        // 2) PKCE Flow: ?code=... übernehmen
-        // WICHTIG: Recovery nur aktivieren, wenn type=recovery (sonst landet man bei jedem Code im Reset-Screen)
         const qp = new URLSearchParams(window.location.search)
         const code = qp.get("code")
         const typeQ = qp.get("type")
@@ -275,12 +272,11 @@ export default function App() {
               setRecoveryMode(true)
               setRecoveryMsg("")
             }
-            history.replaceState(null, "", window.location.pathname) // Query weg
+            history.replaceState(null, "", window.location.pathname)
           }
         }
       }
 
-      // Session stabil holen (besser als getUser() direkt nach Redirect)
       const { data: sessionData } = await supabase.auth.getSession()
       setUserId(sessionData.session?.user?.id ?? null)
       setAuthReady(true)
@@ -298,9 +294,7 @@ export default function App() {
       setUserId(session?.user?.id ?? null)
     })
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
   // Load tasks for current visible month range (USER-FILTER!)
@@ -314,7 +308,11 @@ export default function App() {
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
+      // stabile Reihenfolge innerhalb DB
+      .order("done", { ascending: true })
+      .order("priority", { ascending: false })
       .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
 
     if (error) return
 
@@ -364,22 +362,15 @@ export default function App() {
     if (error) setAuthMsg(error.message)
   }
 
-  // request reset mail (empfohlen: klare Route /recovery)
   const requestPasswordReset = async () => {
     setAuthMsg("")
     setResetMsg("")
     const email = authEmail.trim()
     if (!email) return
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}`,
-    })
-
-    if (error) {
-      setResetMsg(error.message)
-    } else {
-      setResetMsg("E-Mail gesendet! Bitte schau in dein Postfach.")
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}` })
+    if (error) setResetMsg(error.message)
+    else setResetMsg("E-Mail gesendet! Bitte schau in dein Postfach.")
   }
 
   const signOut = async () => {
@@ -420,11 +411,19 @@ export default function App() {
     setRecoveryMsg("Passwort gesetzt. Jetzt einloggen.")
   }
 
-  // Task CRUD
+  // Task helpers
   function ensureCategory(nameRaw: string) {
     const name = normalizeCategory(nameRaw)
     if (!name) return
     setCategories((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b))))
+  }
+
+  // Für neuen Task: sort_order so setzen, dass er am Ende seiner done+priority Gruppe landet
+  const computeNextSortOrder = (dayISO: ISODate, priority: number) => {
+    const list = tasksByDate[dayISO] ?? []
+    const sameGroup = list.filter((t) => Number(t.done) === 0 && (t.priority ?? 1) === priority)
+    const max = sameGroup.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0)
+    return max + 1
   }
 
   const addTask = async () => {
@@ -435,6 +434,9 @@ export default function App() {
     const cat = newCategory === "__none__" ? null : normalizeCategory(newCategory)
     if (cat) ensureCategory(cat)
 
+    const priority = newHighPriority ? 2 : 1
+    const sort_order = computeNextSortOrder(selectedISO, priority)
+
     const { data, error } = await supabase
       .from("tasks")
       .insert([
@@ -444,10 +446,10 @@ export default function App() {
           title,
           category: cat,
           done: false,
-          priority: newHighPriority ? 2 : 1,
+          priority,
           repeat_every_days: null,
           repeat_until: null,
-          sort_order: Date.now(),
+          sort_order,
         },
       ])
       .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
@@ -475,18 +477,26 @@ export default function App() {
 
     const nextDone = !cur.done
 
+    // wenn done wechselt: ans Ende der Zielgruppe hängen
+    const targetGroupMax =
+      dayList
+        .filter((t) => Number(t.done) === Number(nextDone) && (t.priority ?? 1) === (cur.priority ?? 1) && t.id !== cur.id)
+        .reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0) + 1
+
+    const optimistic = { ...cur, done: nextDone, sort_order: targetGroupMax }
+
     setTasksByDate((prev) => {
       const list = prev[selectedISO] ?? []
-      return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: nextDone } : t)) }
+      return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? optimistic : t)) }
     })
 
-    const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId).eq("user_id", userId)
-    if (error) {
-      setTasksByDate((prev) => {
-        const list = prev[selectedISO] ?? []
-        return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: !nextDone } : t)) }
-      })
-    }
+    const { error } = await supabase
+      .from("tasks")
+      .update({ done: nextDone, sort_order: targetGroupMax })
+      .eq("id", taskId)
+      .eq("user_id", userId)
+
+    if (error) loadVisibleTasks()
   }
 
   const deleteTask = async (taskId: string) => {
@@ -502,9 +512,7 @@ export default function App() {
     })
 
     const { error } = await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", userId)
-    if (error) {
-      setTasksByDate((prev) => ({ ...prev, [selectedISO]: snapshot }))
-    }
+    if (error) setTasksByDate((prev) => ({ ...prev, [selectedISO]: snapshot }))
   }
 
   const openEditTask = (task: DbTask) => {
@@ -529,17 +537,24 @@ export default function App() {
 
     const nextPriority = editHighPriority ? 2 : 1
 
+    // wenn Priorität gewechselt: ans Ende der neuen Prioritätsgruppe hängen
+    const nextSort =
+      before.priority === nextPriority
+        ? before.sort_order
+        : list
+            .filter((t) => Number(t.done) === Number(before.done) && (t.priority ?? 1) === nextPriority && t.id !== before.id)
+            .reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0) + 1
+
+    const optimistic = { ...before, title, category: cat, priority: nextPriority, sort_order: nextSort }
+
     setTasksByDate((prev) => {
       const l = prev[selectedISO] ?? []
-      return {
-        ...prev,
-        [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat, priority: nextPriority } : t)),
-      }
+      return { ...prev, [selectedISO]: l.map((t) => (t.id === editTaskId ? optimistic : t)) }
     })
 
     const { error } = await supabase
       .from("tasks")
-      .update({ title, category: cat, priority: nextPriority })
+      .update({ title, category: cat, priority: nextPriority, sort_order: nextSort })
       .eq("id", editTaskId)
       .eq("user_id", userId)
 
@@ -558,12 +573,13 @@ export default function App() {
     setEditHighPriority(false)
   }
 
+  // Reihenfolge hoch/runter (nur innerhalb gleicher done+priority Gruppe)
   const bumpTaskOrder = async (taskId: string, direction: -1 | 1) => {
     if (!userId) return
 
     const list = (tasksByDate[selectedISO] ?? []).slice()
 
-    // Anzeige-Sortierung: done -> priority -> sort_order -> category
+    // gleiche Sortierlogik wie Anzeige / DB
     const sorted = list.sort((a, b) => {
       const dDone = Number(a.done) - Number(b.done)
       if (dDone !== 0) return dDone
@@ -576,9 +592,7 @@ export default function App() {
       const soB = b.sort_order ?? 0
       if (soA !== soB) return soA - soB
 
-      const ca = (a.category ?? "").trim().toLowerCase()
-      const cb = (b.category ?? "").trim().toLowerCase()
-      return ca.localeCompare(cb)
+      return (a.created_at ?? "").localeCompare(b.created_at ?? "")
     })
 
     const idx = sorted.findIndex((t) => t.id === taskId)
@@ -587,7 +601,6 @@ export default function App() {
     const j = idx + direction
     if (j < 0 || j >= sorted.length) return
 
-    // nur innerhalb gleicher done+priority Gruppe verschieben
     const a = sorted[idx]
     const b = sorted[j]
     const sameGroup = Number(a.done) === Number(b.done) && (a.priority ?? 1) === (b.priority ?? 1)
@@ -609,7 +622,6 @@ export default function App() {
     // DB swap
     const { error: e1 } = await supabase.from("tasks").update({ sort_order: bOrder }).eq("id", a.id).eq("user_id", userId)
     const { error: e2 } = await supabase.from("tasks").update({ sort_order: aOrder }).eq("id", b.id).eq("user_id", userId)
-
     if (e1 || e2) loadVisibleTasks()
   }
 
@@ -621,21 +633,34 @@ export default function App() {
     const task = fromList.find((t) => t.id === taskId)
     if (!task) return
 
+    // beim Verschieben: ans Ende der Zielgruppe hängen (done/priority bleiben gleich)
+    const toList = tasksByDate[toISO] ?? []
+    const nextSort =
+      toList
+        .filter((t) => Number(t.done) === Number(task.done) && (t.priority ?? 1) === (task.priority ?? 1))
+        .reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0) + 1
+
+    // optimistic
     setTasksByDate((prev) => {
       const a = prev[fromISO] ?? []
       const b = prev[toISO] ?? []
       const nextFrom = a.filter((t) => t.id !== taskId)
-      const nextTo = [...b, { ...task, date: toISO }]
+      const nextTo = [...b, { ...task, date: toISO, sort_order: nextSort }]
       const m = { ...prev, [fromISO]: nextFrom, [toISO]: nextTo }
       if (nextFrom.length === 0) delete m[fromISO]
       return m
     })
 
-    const { error } = await supabase.from("tasks").update({ date: toISO }).eq("id", taskId).eq("user_id", userId)
+    const { error } = await supabase
+      .from("tasks")
+      .update({ date: toISO, sort_order: nextSort })
+      .eq("id", taskId)
+      .eq("user_id", userId)
+
     if (error) loadVisibleTasks()
   }
 
-  // Category management (via updating tasks) - USER FILTER!
+  // Category management
   const addCategoryFromInput = () => {
     const name = normalizeCategory(newCategoryName)
     if (!name) return
@@ -1060,9 +1085,7 @@ export default function App() {
                             const soB = b.sort_order ?? 0
                             if (soA !== soB) return soA - soB
 
-                            const ca = (a.category ?? "").trim().toLowerCase()
-                            const cb = (b.category ?? "").trim().toLowerCase()
-                            return ca.localeCompare(cb)
+                            return (a.created_at ?? "").localeCompare(b.created_at ?? "")
                           })
                           .map((t) => (
                             <div
