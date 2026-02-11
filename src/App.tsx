@@ -1039,25 +1039,31 @@ export default function App() {
                     </span>
                   </div>
                   {/* Spendenbox */}
-                  <div className="mt-4 rounded-xl border p-3 text-center">
-                    <div className="text-xs font-medium mb-2">
-                      Projekt unterstützen
+                  <div className="mt-4 flex justify-end">
+                    <div className="flex items-center gap-4 rounded-xl border p-3">
+                      
+                      <img
+                        src="/revolut-qr.jpg"
+                        alt="Revolut QR Code"
+                        className="w-24 h-24 object-contain"
+                      />
+
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          Projekt unterstützen
+                        </div>
+
+                        <a
+                          href="https://revolut.me/eljoa"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 block text-xs text-primary underline"
+                        >
+                          revolut.me/eljoa
+                        </a>
+                      </div>
+
                     </div>
-
-                    <img
-                      src="/revolut-qr.jpg"
-                      alt="Revolut QR Code"
-                      className="mx-auto w-24 h-24 object-contain"
-                    />
-
-                    <a
-                      href="https://revolut.me/eljoa"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 block text-xs text-primary underline"
-                    >
-                      revolut.me/eljoa
-                    </a>
                   </div>
                 </CardContent>
               </Card>
