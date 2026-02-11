@@ -25,6 +25,10 @@ type DbTask = {
   category: string | null
   done: boolean
   created_at: string | null
+
+  priority: number
+  repeat_every_days: number | null
+  repeat_until: string | null
 }
 
 // Drag payload
@@ -302,7 +306,7 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .select("id,user_id,date,title,category,done,created_at")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
@@ -429,8 +433,17 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .insert([{ user_id: userId, date: selectedISO, title, category: cat, done: false }])
-      .select("id,user_id,date,title,category,done,created_at")
+      .insert([{
+        user_id: userId,
+        date: selectedISO,
+        title,
+        category: cat,
+        done: false,
+        priority: 1,
+        repeat_every_days: null,
+        repeat_until: null
+      }])
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until")
       .single()
 
     if (error || !data) return
@@ -955,7 +968,13 @@ export default function App() {
                       <div className="divide-y">
                         {selectedTasks
                           .slice()
-                          .sort((a, b) => Number(a.done) - Number(b.done))
+                          .sort((a, b) => {
+                            const d = Number(a.done) - Number(b.done)
+                            if (d !== 0) return d
+                            const pa = a.priority ?? 1
+                            const pb = b.priority ?? 1
+                            return pb - pa
+                          })
                           .map((t) => (
                             <div
                               key={t.id}
