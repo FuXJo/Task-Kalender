@@ -35,7 +35,9 @@ type DbTask = {
 
 // Drag payload
 const DND_MIME = "application/x-taskkalender"
-type DragPayload = { taskId: string; fromISO: ISODate }
+type DragPayload =
+  | { kind: "move"; taskId: string; fromISO: ISODate }
+  | { kind: "reorder"; taskId: string; fromISO: ISODate }
 
 function pad2(n: number) {
   return String(n).padStart(2, "0")
@@ -185,9 +187,12 @@ export default function App() {
   const [renameFrom, setRenameFrom] = useState<string>("")
   const [renameTo, setRenameTo] = useState<string>("")
 
-  // Drag helpers
+  // Drag helpers (calendar move + reorder in list)
   const [dragOverISO, setDragOverISO] = useState<ISODate | "">("")
   const dragRef = useRef<DragPayload | null>(null)
+
+  const [dragOverTaskId, setDragOverTaskId] = useState<string>("")
+  const [dragPos, setDragPos] = useState<"above" | "below">("above")
 
   // Month cells
   const monthCells = useMemo(() => {
@@ -241,7 +246,27 @@ export default function App() {
     })
   }, [selectedISO])
 
-  // Auth bootstrap + Recovery session takeover
+  // Sort helper used for display + reorder logic
+  const sortForDisplay = (a: DbTask, b: DbTask) => {
+    const dDone = Number(a.done) - Number(b.done)
+    if (dDone !== 0) return dDone
+
+    const pa = a.priority ?? 1
+    const pb = b.priority ?? 1
+    if (pb !== pa) return pb - pa
+
+    const soA = a.sort_order ?? 0
+    const soB = b.sort_order ?? 0
+    if (soA !== soB) return soA - soB
+
+    const ca = (a.category ?? "").trim().toLowerCase()
+    const cb = (b.category ?? "").trim().toLowerCase()
+    return ca.localeCompare(cb)
+  }
+
+  const getSortedDayTasks = (iso: ISODate) => (tasksByDate[iso] ?? []).slice().sort(sortForDisplay)
+
+  // Auth bootstrap + Recovery session takeover (FIX für Redirect/Login auf Vercel)
   useEffect(() => {
     const boot = async () => {
       if (typeof window !== "undefined") {
@@ -294,7 +319,9 @@ export default function App() {
       setUserId(session?.user?.id ?? null)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Load tasks for current visible month range (USER-FILTER!)
@@ -308,11 +335,8 @@ export default function App() {
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
-      // stabile Reihenfolge innerhalb DB
-      .order("done", { ascending: true })
-      .order("priority", { ascending: false })
+      .order("date", { ascending: true })
       .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true })
 
     if (error) return
 
@@ -368,7 +392,10 @@ export default function App() {
     const email = authEmail.trim()
     if (!email) return
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}` })
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}`,
+    })
+
     if (error) setResetMsg(error.message)
     else setResetMsg("E-Mail gesendet! Bitte schau in dein Postfach.")
   }
@@ -382,7 +409,6 @@ export default function App() {
     setResetMode(false)
   }
 
-  // Recovery: update password
   const updatePassword = async () => {
     setRecoveryMsg("")
     const p1 = newPass1
@@ -411,19 +437,11 @@ export default function App() {
     setRecoveryMsg("Passwort gesetzt. Jetzt einloggen.")
   }
 
-  // Task helpers
+  // Task CRUD
   function ensureCategory(nameRaw: string) {
     const name = normalizeCategory(nameRaw)
     if (!name) return
     setCategories((prev) => (prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b))))
-  }
-
-  // Für neuen Task: sort_order so setzen, dass er am Ende seiner done+priority Gruppe landet
-  const computeNextSortOrder = (dayISO: ISODate, priority: number) => {
-    const list = tasksByDate[dayISO] ?? []
-    const sameGroup = list.filter((t) => Number(t.done) === 0 && (t.priority ?? 1) === priority)
-    const max = sameGroup.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0)
-    return max + 1
   }
 
   const addTask = async () => {
@@ -434,9 +452,6 @@ export default function App() {
     const cat = newCategory === "__none__" ? null : normalizeCategory(newCategory)
     if (cat) ensureCategory(cat)
 
-    const priority = newHighPriority ? 2 : 1
-    const sort_order = computeNextSortOrder(selectedISO, priority)
-
     const { data, error } = await supabase
       .from("tasks")
       .insert([
@@ -446,10 +461,10 @@ export default function App() {
           title,
           category: cat,
           done: false,
-          priority,
+          priority: newHighPriority ? 2 : 1,
           repeat_every_days: null,
           repeat_until: null,
-          sort_order,
+          sort_order: Date.now(),
         },
       ])
       .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
@@ -477,26 +492,18 @@ export default function App() {
 
     const nextDone = !cur.done
 
-    // wenn done wechselt: ans Ende der Zielgruppe hängen
-    const targetGroupMax =
-      dayList
-        .filter((t) => Number(t.done) === Number(nextDone) && (t.priority ?? 1) === (cur.priority ?? 1) && t.id !== cur.id)
-        .reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0) + 1
-
-    const optimistic = { ...cur, done: nextDone, sort_order: targetGroupMax }
-
     setTasksByDate((prev) => {
       const list = prev[selectedISO] ?? []
-      return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? optimistic : t)) }
+      return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: nextDone } : t)) }
     })
 
-    const { error } = await supabase
-      .from("tasks")
-      .update({ done: nextDone, sort_order: targetGroupMax })
-      .eq("id", taskId)
-      .eq("user_id", userId)
-
-    if (error) loadVisibleTasks()
+    const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId).eq("user_id", userId)
+    if (error) {
+      setTasksByDate((prev) => {
+        const list = prev[selectedISO] ?? []
+        return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: !nextDone } : t)) }
+      })
+    }
   }
 
   const deleteTask = async (taskId: string) => {
@@ -537,24 +544,17 @@ export default function App() {
 
     const nextPriority = editHighPriority ? 2 : 1
 
-    // wenn Priorität gewechselt: ans Ende der neuen Prioritätsgruppe hängen
-    const nextSort =
-      before.priority === nextPriority
-        ? before.sort_order
-        : list
-            .filter((t) => Number(t.done) === Number(before.done) && (t.priority ?? 1) === nextPriority && t.id !== before.id)
-            .reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0) + 1
-
-    const optimistic = { ...before, title, category: cat, priority: nextPriority, sort_order: nextSort }
-
     setTasksByDate((prev) => {
       const l = prev[selectedISO] ?? []
-      return { ...prev, [selectedISO]: l.map((t) => (t.id === editTaskId ? optimistic : t)) }
+      return {
+        ...prev,
+        [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat, priority: nextPriority } : t)),
+      }
     })
 
     const { error } = await supabase
       .from("tasks")
-      .update({ title, category: cat, priority: nextPriority, sort_order: nextSort })
+      .update({ title, category: cat, priority: nextPriority })
       .eq("id", editTaskId)
       .eq("user_id", userId)
 
@@ -573,56 +573,96 @@ export default function App() {
     setEditHighPriority(false)
   }
 
-  // Reihenfolge hoch/runter (nur innerhalb gleicher done+priority Gruppe)
-  const bumpTaskOrder = async (taskId: string, direction: -1 | 1) => {
-    if (!userId) return
+  const renormalizeGroup = async (iso: ISODate, done: boolean, priority: number) => {
+    const day = getSortedDayTasks(iso)
+    const group = day.filter((t) => Number(t.done) === Number(done) && (t.priority ?? 1) === (priority ?? 1))
 
-    const list = (tasksByDate[selectedISO] ?? []).slice()
+    const updates = group.map((t, i) => ({ id: t.id, sort_order: (i + 1) * 1000 }))
 
-    // gleiche Sortierlogik wie Anzeige / DB
-    const sorted = list.sort((a, b) => {
-      const dDone = Number(a.done) - Number(b.done)
-      if (dDone !== 0) return dDone
-
-      const pa = a.priority ?? 1
-      const pb = b.priority ?? 1
-      if (pb !== pa) return pb - pa
-
-      const soA = a.sort_order ?? 0
-      const soB = b.sort_order ?? 0
-      if (soA !== soB) return soA - soB
-
-      return (a.created_at ?? "").localeCompare(b.created_at ?? "")
+    setTasksByDate((prev) => {
+      const list = prev[iso] ?? []
+      const m = new Map(updates.map((u) => [u.id, u.sort_order]))
+      return {
+        ...prev,
+        [iso]: list.map((t) => (m.has(t.id) ? { ...t, sort_order: m.get(t.id)! } : t)),
+      }
     })
 
-    const idx = sorted.findIndex((t) => t.id === taskId)
-    if (idx === -1) return
+    await Promise.all(
+      updates.map((u) => supabase.from("tasks").update({ sort_order: u.sort_order }).eq("id", u.id).eq("user_id", userId!))
+    )
+  }
 
-    const j = idx + direction
-    if (j < 0 || j >= sorted.length) return
+  const applyReorderWithinDay = async (taskId: string, overId: string, pos: "above" | "below") => {
+    if (!userId) return
+    if (!taskId || !overId || taskId === overId) return
 
-    const a = sorted[idx]
-    const b = sorted[j]
-    const sameGroup = Number(a.done) === Number(b.done) && (a.priority ?? 1) === (b.priority ?? 1)
+    const day = getSortedDayTasks(selectedISO)
+    const moved = day.find((t) => t.id === taskId)
+    const over = day.find((t) => t.id === overId)
+    if (!moved || !over) return
+
+    const sameGroup = Number(moved.done) === Number(over.done) && (moved.priority ?? 1) === (over.priority ?? 1)
     if (!sameGroup) return
 
-    const aOrder = a.sort_order ?? 0
-    const bOrder = b.sort_order ?? 0
+    const groupDone = moved.done
+    const groupPriority = moved.priority ?? 1
 
-    // lokal swap
+    const group = day.filter((t) => Number(t.done) === Number(groupDone) && (t.priority ?? 1) === groupPriority)
+
+    const fromIdx = group.findIndex((t) => t.id === taskId)
+    const toIdxRaw = group.findIndex((t) => t.id === overId)
+    if (fromIdx === -1 || toIdxRaw === -1) return
+
+    const groupWithout = group.filter((t) => t.id !== taskId)
+    const baseIdx = groupWithout.findIndex((t) => t.id === overId)
+    const insertIdx = pos === "above" ? baseIdx : baseIdx + 1
+
+    const prev = groupWithout[insertIdx - 1]
+    const next = groupWithout[insertIdx]
+
+    const prevOrder = prev?.sort_order ?? null
+    const nextOrder = next?.sort_order ?? null
+
+    let newOrder: number
+    if (prevOrder === null && nextOrder === null) newOrder = 1000
+    else if (prevOrder === null) newOrder = (nextOrder as number) - 1000
+    else if (nextOrder === null) newOrder = prevOrder + 1000
+    else {
+      if (nextOrder - prevOrder <= 1) {
+        await renormalizeGroup(selectedISO, groupDone, groupPriority)
+        const day2 = getSortedDayTasks(selectedISO)
+        const group2 = day2.filter((t) => Number(t.done) === Number(groupDone) && (t.priority ?? 1) === groupPriority)
+
+        const group2Without = group2.filter((t) => t.id !== taskId)
+        const base2 = group2Without.findIndex((t) => t.id === overId)
+        const insert2 = pos === "above" ? base2 : base2 + 1
+
+        const prev2 = group2Without[insert2 - 1]
+        const next2 = group2Without[insert2]
+        const p2 = prev2?.sort_order ?? null
+        const n2 = next2?.sort_order ?? null
+
+        if (p2 === null && n2 === null) newOrder = 1000
+        else if (p2 === null) newOrder = (n2 as number) - 1000
+        else if (n2 === null) newOrder = p2 + 1000
+        else newOrder = Math.floor((p2 + n2) / 2)
+      } else {
+        newOrder = Math.floor((prevOrder + nextOrder) / 2)
+      }
+    }
+
+    // lokal setzen
     setTasksByDate((prev) => {
-      const day = (prev[selectedISO] ?? []).map((t) => {
-        if (t.id === a.id) return { ...t, sort_order: bOrder }
-        if (t.id === b.id) return { ...t, sort_order: aOrder }
-        return t
-      })
-      return { ...prev, [selectedISO]: day }
+      const list = prev[selectedISO] ?? []
+      return {
+        ...prev,
+        [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, sort_order: newOrder } : t)),
+      }
     })
 
-    // DB swap
-    const { error: e1 } = await supabase.from("tasks").update({ sort_order: bOrder }).eq("id", a.id).eq("user_id", userId)
-    const { error: e2 } = await supabase.from("tasks").update({ sort_order: aOrder }).eq("id", b.id).eq("user_id", userId)
-    if (e1 || e2) loadVisibleTasks()
+    const { error } = await supabase.from("tasks").update({ sort_order: newOrder }).eq("id", taskId).eq("user_id", userId)
+    if (error) loadVisibleTasks()
   }
 
   const moveTask = async (fromISO: ISODate, toISO: ISODate, taskId: string) => {
@@ -633,19 +673,13 @@ export default function App() {
     const task = fromList.find((t) => t.id === taskId)
     if (!task) return
 
-    // beim Verschieben: ans Ende der Zielgruppe hängen (done/priority bleiben gleich)
-    const toList = tasksByDate[toISO] ?? []
-    const nextSort =
-      toList
-        .filter((t) => Number(t.done) === Number(task.done) && (t.priority ?? 1) === (task.priority ?? 1))
-        .reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0) + 1
+    const newSort = Date.now()
 
-    // optimistic
     setTasksByDate((prev) => {
       const a = prev[fromISO] ?? []
       const b = prev[toISO] ?? []
       const nextFrom = a.filter((t) => t.id !== taskId)
-      const nextTo = [...b, { ...task, date: toISO, sort_order: nextSort }]
+      const nextTo = [...b, { ...task, date: toISO, sort_order: newSort }]
       const m = { ...prev, [fromISO]: nextFrom, [toISO]: nextTo }
       if (nextFrom.length === 0) delete m[fromISO]
       return m
@@ -653,14 +687,14 @@ export default function App() {
 
     const { error } = await supabase
       .from("tasks")
-      .update({ date: toISO, sort_order: nextSort })
+      .update({ date: toISO, sort_order: newSort })
       .eq("id", taskId)
       .eq("user_id", userId)
 
     if (error) loadVisibleTasks()
   }
 
-  // Category management
+  // Category management (via updating tasks) - USER FILTER!
   const addCategoryFromInput = () => {
     const name = normalizeCategory(newCategoryName)
     if (!name) return
@@ -712,7 +746,7 @@ export default function App() {
       const raw = rawA || rawB
       if (!raw) return null
       const p = JSON.parse(raw) as DragPayload
-      if (!p?.taskId || !p?.fromISO) return null
+      if (!p?.taskId || !p?.fromISO || !p?.kind) return null
       return p
     } catch {
       return null
@@ -961,6 +995,7 @@ export default function App() {
                             dragRef.current = null
                             setDragOverISO("")
                             if (!p) return
+                            if (p.kind !== "move") return
                             moveTask(p.fromISO, cell.iso, p.taskId)
                           }}
                           className={[
@@ -1071,33 +1106,56 @@ export default function App() {
                       <div className="p-4 text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
                     ) : (
                       <div className="divide-y">
-                        {selectedTasks
-                          .slice()
-                          .sort((a, b) => {
-                            const dDone = Number(a.done) - Number(b.done)
-                            if (dDone !== 0) return dDone
+                        {getSortedDayTasks(selectedISO).map((t) => {
+                          const isOver = dragOverTaskId === t.id
+                          const overClass =
+                            isOver && dragRef.current?.kind === "reorder"
+                              ? dragPos === "above"
+                                ? "ring-2 ring-primary/60 ring-inset"
+                                : "ring-2 ring-primary/60 ring-inset"
+                              : ""
 
-                            const pa = a.priority ?? 1
-                            const pb = b.priority ?? 1
-                            if (pb !== pa) return pb - pa
-
-                            const soA = a.sort_order ?? 0
-                            const soB = b.sort_order ?? 0
-                            if (soA !== soB) return soA - soB
-
-                            return (a.created_at ?? "").localeCompare(b.created_at ?? "")
-                          })
-                          .map((t) => (
+                          return (
                             <div
                               key={t.id}
-                              className="flex items-start gap-3 p-3"
+                              className={["flex items-start gap-3 p-3", overClass].join(" ")}
+                              // drop-zone für reorder
+                              onDragOver={(e) => {
+                                const p = readDragPayload(e)
+                                if (!p || p.kind !== "reorder") return
+                                if (p.fromISO !== selectedISO) return
+                                if (p.taskId === t.id) return
+
+                                e.preventDefault()
+                                e.dataTransfer.dropEffect = "move"
+
+                                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+                                const mid = rect.top + rect.height / 2
+                                const pos = e.clientY < mid ? "above" : "below"
+                                setDragOverTaskId(t.id)
+                                setDragPos(pos)
+                              }}
+                              onDragLeave={() => {
+                                if (dragOverTaskId === t.id) setDragOverTaskId("")
+                              }}
+                              onDrop={(e) => {
+                                const p = readDragPayload(e)
+                                dragRef.current = null
+                                setDragOverTaskId("")
+                                if (!p || p.kind !== "reorder") return
+                                if (p.fromISO !== selectedISO) return
+                                e.preventDefault()
+                                applyReorderWithinDay(p.taskId, t.id, dragPos)
+                              }}
+                              // weiter möglich: Aufgabe auf Kalender ziehen (für Datum verschieben)
                               draggable
-                              onDragStart={(e) => setDragPayload(e, { taskId: t.id, fromISO: selectedISO })}
+                              onDragStart={(e) => setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })}
                               onDragEnd={() => {
                                 dragRef.current = null
                                 setDragOverISO("")
+                                setDragOverTaskId("")
                               }}
-                              title="Drag & Drop: Aufgabe auf einen Tag im Kalender ziehen"
+                              title="Ziehe die Aufgabe auf einen Tag im Kalender, um das Datum zu ändern. Ziehe am Griff, um die Reihenfolge zu ändern."
                             >
                               <Checkbox className="mt-1" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
 
@@ -1128,31 +1186,30 @@ export default function App() {
                                 <Pencil className="h-4 w-4" />
                               </Button>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => bumpTaskOrder(t.id, -1)}
-                                aria-label="Nach oben"
-                                title="Nach oben"
+                              {/* Drag-Handle: Reihenfolge innerhalb gleicher done+priority Gruppe */}
+                              <span
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
+                                draggable
+                                onDragStart={(e) => {
+                                  e.stopPropagation()
+                                  setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
+                                }}
+                                onDragEnd={() => {
+                                  dragRef.current = null
+                                  setDragOverTaskId("")
+                                }}
+                                title="Ziehen zum Umordnen (nur innerhalb gleicher Priorität & Status)"
+                                aria-label="Ziehen zum Umordnen"
                               >
-                                <GripHorizontal className="h-4 w-4 -rotate-90" />
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => bumpTaskOrder(t.id, 1)}
-                                aria-label="Nach unten"
-                                title="Nach unten"
-                              >
-                                <GripHorizontal className="h-4 w-4 rotate-90" />
-                              </Button>
+                                <GripHorizontal className="h-4 w-4" />
+                              </span>
 
                               <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
