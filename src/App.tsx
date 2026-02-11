@@ -1182,11 +1182,14 @@ export default function App() {
                                 </div>
                               </div>
 
-                              <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten">
+                             <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten">
                                 <Pencil className="h-4 w-4" />
                               </Button>
 
-                              {/* Drag-Handle: Reihenfolge innerhalb gleicher done+priority Gruppe */}
+                              <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+
                               <span
                                 className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
                                 draggable
@@ -1198,15 +1201,11 @@ export default function App() {
                                   dragRef.current = null
                                   setDragOverTaskId("")
                                 }}
-                                title="Ziehen zum Umordnen (nur innerhalb gleicher Priorität & Status)"
+                                title="Ziehen zum Umordnen"
                                 aria-label="Ziehen zum Umordnen"
                               >
                                 <GripHorizontal className="h-4 w-4" />
                               </span>
-
-                              <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
                             </div>
                           )
                         })}
