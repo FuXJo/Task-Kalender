@@ -169,13 +169,14 @@ export default function App() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newCategory, setNewCategory] = useState<string>("__none__")
-  const [newPriority, setNewPriority] = useState<string>("2")
+  const [newHighPriority, setNewHighPriority] = useState(false)
 
   // Edit Task Dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editTaskId, setEditTaskId] = useState<string>("")
   const [editTitle, setEditTitle] = useState("")
   const [editCategory, setEditCategory] = useState<string>("__none__")
+  const [editHighPriority, setEditHighPriority] = useState(false)
 
   // Category management UI
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -434,16 +435,18 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .insert([{
-        user_id: userId,
-        date: selectedISO,
-        title,
-        category: cat,
-        done: false,
-        priority: Number(newPriority),
-        repeat_every_days: null,
-        repeat_until: null
-      }])
+      .insert([
+        {
+          user_id: userId,
+          date: selectedISO,
+          title,
+          category: cat,
+          done: false,
+          priority: newHighPriority ? 2 : 1,
+          repeat_every_days: null,
+          repeat_until: null,
+        },
+      ])
       .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until")
       .single()
 
@@ -457,6 +460,7 @@ export default function App() {
 
     setNewTitle("")
     setNewCategory("__none__")
+    setNewHighPriority(false)
     setAddDialogOpen(false)
   }
 
@@ -504,6 +508,7 @@ export default function App() {
     setEditTaskId(task.id)
     setEditTitle(task.title)
     setEditCategory(task.category ? task.category : "__none__")
+    setEditHighPriority((task.priority ?? 1) >= 2)
     setEditDialogOpen(true)
   }
 
@@ -519,12 +524,22 @@ export default function App() {
     const before = list.find((t) => t.id === editTaskId)
     if (!before) return
 
+    const nextPriority = editHighPriority ? 2 : 1
+
     setTasksByDate((prev) => {
       const l = prev[selectedISO] ?? []
-      return { ...prev, [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat } : t)) }
+      return {
+        ...prev,
+        [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat, priority: nextPriority } : t)),
+      }
     })
 
-    const { error } = await supabase.from("tasks").update({ title, category: cat }).eq("id", editTaskId).eq("user_id", userId)
+    const { error } = await supabase
+      .from("tasks")
+      .update({ title, category: cat, priority: nextPriority })
+      .eq("id", editTaskId)
+      .eq("user_id", userId)
+
     if (error) {
       setTasksByDate((prev) => {
         const l = prev[selectedISO] ?? []
@@ -537,6 +552,7 @@ export default function App() {
     setEditTaskId("")
     setEditTitle("")
     setEditCategory("__none__")
+    setEditHighPriority(false)
   }
 
   const moveTask = async (fromISO: ISODate, toISO: ISODate, taskId: string) => {
@@ -951,6 +967,11 @@ export default function App() {
                               </SelectContent>
                             </Select>
                           </div>
+
+                          <div className="flex items-center gap-2">
+                            <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} />
+                            <span className="text-sm">Hohe Priorität</span>
+                          </div>
                         </div>
 
                         <DialogFooter>
@@ -970,11 +991,18 @@ export default function App() {
                         {selectedTasks
                           .slice()
                           .sort((a, b) => {
-                            const d = Number(a.done) - Number(b.done)
-                            if (d !== 0) return d
+                            const dDone = Number(a.done) - Number(b.done)
+                            if (dDone !== 0) return dDone
+
                             const pa = a.priority ?? 1
                             const pb = b.priority ?? 1
-                            return pb - pa
+                            if (pb !== pa) return pb - pa
+
+                            const ca = (a.category ?? "").trim().toLowerCase()
+                            const cb = (b.category ?? "").trim().toLowerCase()
+                            if (ca !== cb) return ca.localeCompare(cb)
+
+                            return (a.created_at ?? "").localeCompare(b.created_at ?? "")
                           })
                           .map((t) => (
                             <div
@@ -999,10 +1027,17 @@ export default function App() {
                                 >
                                   {t.title}
                                 </div>
-                                <div className="mt-1">
+
+                                <div className="mt-1 flex flex-wrap items-center gap-2">
                                   <Badge variant="secondary" className="h-5 px-2 text-[11px]">
                                     {t.category ? t.category : "Ohne Kategorie"}
                                   </Badge>
+
+                                  {(t.priority ?? 1) >= 2 ? (
+                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-[13px] font-black leading-none text-white">
+                                      !
+                                    </span>
+                                  ) : null}
                                 </div>
                               </div>
 
@@ -1028,12 +1063,12 @@ export default function App() {
                       <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label>Titel</Label>
-                          <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" />
+                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" />
                         </div>
 
                         <div className="grid gap-2">
                           <Label>Kategorie (optional)</Label>
-                          <Select value={newCategory} onValueChange={setNewCategory}>
+                          <Select value={editCategory} onValueChange={setEditCategory}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -1048,18 +1083,9 @@ export default function App() {
                           </Select>
                         </div>
 
-                        <div className="grid gap-2">
-                          <Label>Priorität</Label>
-                          <Select value={newPriority} onValueChange={setNewPriority}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">Hoch</SelectItem>
-                              <SelectItem value="2">Mittel</SelectItem>
-                              <SelectItem value="3">Tief</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="flex items-center gap-2">
+                          <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} />
+                          <span className="text-sm">Hohe Priorität</span>
                         </div>
                       </div>
 
