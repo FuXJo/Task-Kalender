@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -29,6 +29,8 @@ type DbTask = {
   priority: number
   repeat_every_days: number | null
   repeat_until: string | null
+
+  sort_order: number
 }
 
 // Drag payload
@@ -308,11 +310,11 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
-      .order("created_at", { ascending: true })
+      .order("sort_order", { ascending: true })
 
     if (error) return
 
@@ -445,9 +447,10 @@ export default function App() {
           priority: newHighPriority ? 2 : 1,
           repeat_every_days: null,
           repeat_until: null,
+          sort_order: Date.now(),
         },
       ])
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
       .single()
 
     if (error || !data) return
@@ -553,6 +556,61 @@ export default function App() {
     setEditTitle("")
     setEditCategory("__none__")
     setEditHighPriority(false)
+  }
+
+  const bumpTaskOrder = async (taskId: string, direction: -1 | 1) => {
+    if (!userId) return
+
+    const list = (tasksByDate[selectedISO] ?? []).slice()
+
+    // Anzeige-Sortierung: done -> priority -> sort_order -> category
+    const sorted = list.sort((a, b) => {
+      const dDone = Number(a.done) - Number(b.done)
+      if (dDone !== 0) return dDone
+
+      const pa = a.priority ?? 1
+      const pb = b.priority ?? 1
+      if (pb !== pa) return pb - pa
+
+      const soA = a.sort_order ?? 0
+      const soB = b.sort_order ?? 0
+      if (soA !== soB) return soA - soB
+
+      const ca = (a.category ?? "").trim().toLowerCase()
+      const cb = (b.category ?? "").trim().toLowerCase()
+      return ca.localeCompare(cb)
+    })
+
+    const idx = sorted.findIndex((t) => t.id === taskId)
+    if (idx === -1) return
+
+    const j = idx + direction
+    if (j < 0 || j >= sorted.length) return
+
+    // nur innerhalb gleicher done+priority Gruppe verschieben
+    const a = sorted[idx]
+    const b = sorted[j]
+    const sameGroup = Number(a.done) === Number(b.done) && (a.priority ?? 1) === (b.priority ?? 1)
+    if (!sameGroup) return
+
+    const aOrder = a.sort_order ?? 0
+    const bOrder = b.sort_order ?? 0
+
+    // lokal swap
+    setTasksByDate((prev) => {
+      const day = (prev[selectedISO] ?? []).map((t) => {
+        if (t.id === a.id) return { ...t, sort_order: bOrder }
+        if (t.id === b.id) return { ...t, sort_order: aOrder }
+        return t
+      })
+      return { ...prev, [selectedISO]: day }
+    })
+
+    // DB swap
+    const { error: e1 } = await supabase.from("tasks").update({ sort_order: bOrder }).eq("id", a.id).eq("user_id", userId)
+    const { error: e2 } = await supabase.from("tasks").update({ sort_order: aOrder }).eq("id", b.id).eq("user_id", userId)
+
+    if (e1 || e2) loadVisibleTasks()
   }
 
   const moveTask = async (fromISO: ISODate, toISO: ISODate, taskId: string) => {
@@ -998,11 +1056,13 @@ export default function App() {
                             const pb = b.priority ?? 1
                             if (pb !== pa) return pb - pa
 
+                            const soA = a.sort_order ?? 0
+                            const soB = b.sort_order ?? 0
+                            if (soA !== soB) return soA - soB
+
                             const ca = (a.category ?? "").trim().toLowerCase()
                             const cb = (b.category ?? "").trim().toLowerCase()
-                            if (ca !== cb) return ca.localeCompare(cb)
-
-                            return (a.created_at ?? "").localeCompare(b.created_at ?? "")
+                            return ca.localeCompare(cb)
                           })
                           .map((t) => (
                             <div
@@ -1043,6 +1103,26 @@ export default function App() {
 
                               <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten">
                                 <Pencil className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => bumpTaskOrder(t.id, -1)}
+                                aria-label="Nach oben"
+                                title="Nach oben"
+                              >
+                                <GripHorizontal className="h-4 w-4 -rotate-90" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => bumpTaskOrder(t.id, 1)}
+                                aria-label="Nach unten"
+                                title="Nach unten"
+                              >
+                                <GripHorizontal className="h-4 w-4 rotate-90" />
                               </Button>
 
                               <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen">
@@ -1141,7 +1221,13 @@ export default function App() {
                               Umbenennen
                             </Button>
 
-                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteCategory(c)} aria-label="Kategorie löschen">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteCategory(c)}
+                              aria-label="Kategorie löschen"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
