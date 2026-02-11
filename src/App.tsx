@@ -464,7 +464,7 @@ export default function App() {
           priority: newHighPriority ? 2 : 1,
           repeat_every_days: null,
           repeat_until: null,
-          sort_order: Date.now(),
+          sort_order: Math.floor(Date.now() / 1000),
         },
       ])
       .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
@@ -673,7 +673,7 @@ export default function App() {
     const task = fromList.find((t) => t.id === taskId)
     if (!task) return
 
-    const newSort = Date.now()
+    const newSort = Math.floor(Date.now() / 1000)
 
     setTasksByDate((prev) => {
       const a = prev[fromISO] ?? []
