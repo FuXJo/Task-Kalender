@@ -169,6 +169,7 @@ export default function App() {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newCategory, setNewCategory] = useState<string>("__none__")
+  const [newPriority, setNewPriority] = useState<string>("2")
 
   // Edit Task Dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -439,7 +440,7 @@ export default function App() {
         title,
         category: cat,
         done: false,
-        priority: 1,
+        priority: Number(newPriority),
         repeat_every_days: null,
         repeat_until: null
       }])
@@ -1027,12 +1028,12 @@ export default function App() {
                       <div className="grid gap-3">
                         <div className="grid gap-2">
                           <Label>Titel</Label>
-                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" />
+                          <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" />
                         </div>
 
                         <div className="grid gap-2">
                           <Label>Kategorie (optional)</Label>
-                          <Select value={editCategory} onValueChange={setEditCategory}>
+                          <Select value={newCategory} onValueChange={setNewCategory}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -1043,6 +1044,20 @@ export default function App() {
                                   {c}
                                 </SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label>Priorität</Label>
+                          <Select value={newPriority} onValueChange={setNewPriority}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Hoch</SelectItem>
+                              <SelectItem value="2">Mittel</SelectItem>
+                              <SelectItem value="3">Tief</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
