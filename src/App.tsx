@@ -946,13 +946,15 @@ export default function App() {
           {/* Kalender */}
           <TabsContent value="kalender" className="mt-4">
             <div className="grid min-h-0 gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)] lg:overflow-hidden">
-              <Card className="rounded-2xl shadow-sm h-full">
+              {/* WICHTIG: flex-col + CardContent flex-1 => linke Box schliesst unten sauber */}
+              <Card className="rounded-2xl shadow-sm h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">
                     {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+
+                <CardContent className="flex-1 min-h-0 flex flex-col">
                   <div className="grid grid-cols-7 gap-3 text-xs text-muted-foreground">
                     {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
                       <div key={d} className="px-1">
@@ -999,7 +1001,8 @@ export default function App() {
                             moveTask(p.fromISO, cell.iso, p.taskId)
                           }}
                           className={[
-                            "relative h-24 rounded-2xl border p-2 text-left transition",
+                            // mehr bottom-padding => progress+% sitzen höher, Rand unten bleibt sichtbar
+                            "relative h-24 rounded-2xl border p-2 pb-7 text-left transition",
                             cell.inMonth ? "" : "opacity-50",
                             st.border,
                             st.bg,
@@ -1027,47 +1030,38 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* Legende + Spendenbox Container */}
-                    <div className="mt-4 flex items-start justify-between">
+                  {/* Legende DIREKT nach dem Kalender (links oben) */}
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-sm border border-rose-400/70 bg-rose-400/15" /> &lt; 50%
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-sm border border-amber-400/70 bg-amber-400/15" /> 50–99%
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15" /> 100%
+                    </span>
+                  </div>
 
-                      {/* Prozent-Legende links */}
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm border border-rose-400/70 bg-rose-400/15" /> &lt; 50%
-                        </span>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm border border-amber-400/70 bg-amber-400/15" /> 50–99%
-                        </span>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15" /> 100%
-                        </span>
+                  {/* Spendenbox bleibt unten rechts; mt-auto drückt sie nach unten, damit die Card “schliesst” */}
+                  <div className="mt-auto pt-4 flex justify-end">
+                    <div className="flex items-center gap-4 rounded-xl border border-border p-3 bg-background">
+                      <img src="/revolut-qr.jpg" alt="Revolut QR Code" className="w-24 h-24 object-contain" />
+
+                      <div className="text-right">
+                        <div className="text-sm font-medium">Projekt unterstützen</div>
+
+                        <a
+                          href="https://revolut.me/eljoa"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 block text-xs text-primary underline"
+                        >
+                          revolut.me/eljoa
+                        </a>
                       </div>
-
-                      {/* Spendenbox rechts */}
-                      <div className="flex items-center gap-4 rounded-xl border border-border p-3 bg-background">
-                        <img
-                          src="/revolut-qr.jpg"
-                          alt="Revolut QR Code"
-                          className="w-24 h-24 object-contain"
-                        />
-
-                        <div className="text-right">
-                          <div className="text-sm font-medium">
-                            Projekt unterstützen
-                          </div>
-
-                          <a
-                            href="https://revolut.me/eljoa"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 block text-xs text-primary underline"
-                          >
-                            revolut.me/eljoa
-                          </a>
-                        </div>
-                      </div>
-
                     </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1149,7 +1143,6 @@ export default function App() {
                             <div
                               key={t.id}
                               className={["flex items-start gap-3 p-3", overClass].join(" ")}
-                              // drop-zone für reorder
                               onDragOver={(e) => {
                                 const p = readDragPayload(e)
                                 if (!p || p.kind !== "reorder") return
@@ -1177,7 +1170,6 @@ export default function App() {
                                 e.preventDefault()
                                 applyReorderWithinDay(p.taskId, t.id, dragPos)
                               }}
-                              // weiter möglich: Aufgabe auf Kalender ziehen (für Datum verschieben)
                               draggable
                               onDragStart={(e) => setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })}
                               onDragEnd={() => {
@@ -1212,7 +1204,7 @@ export default function App() {
                                 </div>
                               </div>
 
-                             <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten">
+                              <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten">
                                 <Pencil className="h-4 w-4" />
                               </Button>
 
