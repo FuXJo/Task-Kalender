@@ -951,36 +951,36 @@ export default function App() {
 
           {/* Kalender */}
           <TabsContent value="kalender" className="mt-3 sm:mt-4">
-            <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_420px]">
+            <div className="grid gap-3 sm:gap-4 lg:grid-cols-[240px_1fr_420px]">
+              {/* Spendenbox links - nur auf Desktop */}
+              <Card className="hidden lg:flex flex-col items-center justify-center rounded-2xl shadow-sm p-6">
+                <div className="text-center space-y-4">
+                  <div className="text-base font-semibold">
+                    Projekt unterstützen
+                  </div>
+                  
+                  <img
+                    src="/revolut-qr.jpg"
+                    alt="Revolut QR Code"
+                    className="w-32 h-32 object-contain mx-auto"
+                  />
+                  
+                  <a
+                    href="https://revolut.me/eljoa"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-sm text-primary underline hover:text-primary/80 transition-colors"
+                  >
+                    revolut.me/eljoa
+                  </a>
+                </div>
+              </Card>
+
               <Card className="rounded-xl sm:rounded-2xl shadow-sm">
                 <CardHeader className="pb-2 sm:pb-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-sm sm:text-base">
-                      {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
-                    </CardTitle>
-
-                    {/* Spendenbox neben Titel */}
-                    <div className="hidden lg:flex items-center gap-3 rounded-xl border border-border p-2 bg-background">
-                      <img
-                        src="/revolut-qr.jpg"
-                        alt="Revolut QR Code"
-                        className="w-16 h-16 object-contain flex-shrink-0"
-                      />
-                      <div className="text-right">
-                        <div className="text-xs font-medium whitespace-nowrap">
-                          Projekt unterstützen
-                        </div>
-                        <a
-                          href="https://revolut.me/eljoa"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-0.5 block text-[10px] text-primary underline"
-                        >
-                          revolut.me/eljoa
-                        </a>
-                      </div>
-                    </div>
-                  </div>
+                  <CardTitle className="text-sm sm:text-base">
+                    {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="px-2 sm:px-6">
                   {/* Wochentage - kompakter auf Mobile */}
