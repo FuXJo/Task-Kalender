@@ -954,9 +954,33 @@ export default function App() {
             <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_420px]">
               <Card className="rounded-xl sm:rounded-2xl shadow-sm">
                 <CardHeader className="pb-2 sm:pb-3">
-                  <CardTitle className="text-sm sm:text-base">
-                    {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
-                  </CardTitle>
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle className="text-sm sm:text-base">
+                      {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                    </CardTitle>
+
+                    {/* Spendenbox neben Titel */}
+                    <div className="hidden lg:flex items-center gap-3 rounded-xl border border-border p-2 bg-background">
+                      <img
+                        src="/revolut-qr.jpg"
+                        alt="Revolut QR Code"
+                        className="w-16 h-16 object-contain flex-shrink-0"
+                      />
+                      <div className="text-right">
+                        <div className="text-xs font-medium whitespace-nowrap">
+                          Projekt unterstützen
+                        </div>
+                        <a
+                          href="https://revolut.me/eljoa"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-0.5 block text-[10px] text-primary underline"
+                        >
+                          revolut.me/eljoa
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-2 sm:px-6">
                   {/* Wochentage - kompakter auf Mobile */}
@@ -1035,8 +1059,8 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* Mobile-optimierte Legende & Spendenbox */}
-                  <div className="mt-3 sm:mt-4 space-y-3">
+                  {/* Mobile-optimierte Legende */}
+                  <div className="mt-3 sm:mt-4">
                     {/* Legende */}
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1 sm:gap-2">
@@ -1053,19 +1077,17 @@ export default function App() {
                       </span>
                     </div>
 
-                    {/* Mobile-optimierte Spendenbox */}
-                    <div className="flex flex-col sm:flex-row items-center gap-3 rounded-xl border border-border p-3 bg-background">
+                    {/* Mobile Spendenbox (nur auf kleinen Screens) */}
+                    <div className="mt-3 lg:hidden flex flex-col sm:flex-row items-center gap-3 rounded-xl border border-border p-3 bg-background">
                       <img
                         src="/revolut-qr.jpg"
                         alt="Revolut QR Code"
                         className="w-20 h-20 sm:w-24 sm:h-24 object-contain flex-shrink-0"
                       />
-
                       <div className="text-center sm:text-right w-full sm:w-auto">
                         <div className="text-sm font-medium">
                           Projekt unterstützen
                         </div>
-
                         <a
                           href="https://revolut.me/eljoa"
                           target="_blank"
