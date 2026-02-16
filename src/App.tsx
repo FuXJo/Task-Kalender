@@ -951,32 +951,34 @@ export default function App() {
 
           {/* Kalender */}
           <TabsContent value="kalender" className="mt-3 sm:mt-4">
-            <div className="grid gap-3 sm:gap-4 lg:grid-cols-[240px_1fr_420px]">
+            <div className="grid gap-3 sm:gap-4 lg:grid-cols-[200px_1fr] xl:grid-cols-[240px_1fr]">
               {/* Spendenbox links - nur auf Desktop */}
-              <Card className="hidden lg:flex flex-col items-center justify-center rounded-2xl shadow-sm p-6">
-                <div className="text-center space-y-4">
-                  <div className="text-base font-semibold">
+              <Card className="hidden lg:flex flex-col items-center justify-start rounded-2xl shadow-sm p-4 xl:p-6 h-fit sticky top-6">
+                <div className="text-center space-y-3 xl:space-y-4">
+                  <div className="text-sm xl:text-base font-semibold">
                     Projekt unterstützen
                   </div>
                   
                   <img
                     src="/revolut-qr.jpg"
                     alt="Revolut QR Code"
-                    className="w-32 h-32 object-contain mx-auto"
+                    className="w-28 h-28 xl:w-32 xl:h-32 object-contain mx-auto border rounded-lg"
                   />
                   
                   <a
                     href="https://revolut.me/eljoa"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-sm text-primary underline hover:text-primary/80 transition-colors"
+                    className="block text-xs xl:text-sm text-primary underline hover:text-primary/80 transition-colors break-all"
                   >
                     revolut.me/eljoa
                   </a>
                 </div>
               </Card>
 
-              <Card className="rounded-xl sm:rounded-2xl shadow-sm">
+              {/* Kalender und To-dos Container */}
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_420px]">
+                <Card className="rounded-xl sm:rounded-2xl shadow-sm">
                 <CardHeader className="pb-2 sm:pb-3">
                   <CardTitle className="text-sm sm:text-base">
                     {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
@@ -1317,6 +1319,7 @@ export default function App() {
                   </Dialog>
                 </CardContent>
               </Card>
+              </div>
             </div>
           </TabsContent>
 
