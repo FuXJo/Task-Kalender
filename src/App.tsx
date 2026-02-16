@@ -784,7 +784,7 @@ export default function App() {
 
   if (!authReady) {
     return (
-      <div className="min-h-screen grid place-items-center p-6">
+      <div className="min-h-screen grid place-items-center p-4">
         <Card className="w-full max-w-md rounded-2xl">
           <CardHeader>
             <CardTitle>Task/Kalender</CardTitle>
@@ -798,7 +798,7 @@ export default function App() {
   // Recovery screen takes precedence over everything
   if (recoveryMode) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background p-6" lang="de" translate="no">
+      <div className="min-h-screen grid place-items-center bg-background p-4" lang="de" translate="no">
         <Card className="w-full max-w-md rounded-2xl shadow-sm" translate="no">
           <CardHeader className="pb-3" translate="no">
             <CardTitle className="text-base" translate="no">
@@ -832,7 +832,7 @@ export default function App() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background p-6">
+      <div className="min-h-screen grid place-items-center bg-background p-4">
         <Card className="w-full max-w-md rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{resetMode ? "Passwort zurücksetzen" : "Login"}</CardTitle>
@@ -900,68 +900,76 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl p-4 md:p-6">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-2xl border">
-              <CalendarDays className="h-5 w-5" />
+    <div className="min-h-screen bg-background pb-safe">
+      <div className="mx-auto max-w-6xl p-3 sm:p-4 md:p-6">
+        {/* Mobile-optimierter Header */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl sm:rounded-2xl border flex-shrink-0">
+                <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-lg sm:text-xl font-semibold truncate">Study Calendar</div>
+              </div>
             </div>
-            <div>
-              <div className="text-xl font-semibold">Study Calendar</div>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={signOut}>
+            <Button variant="outline" size="sm" onClick={signOut} className="flex-shrink-0">
               Logout
             </Button>
+          </div>
 
-            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, -1))}>
+          {/* Mobile-freundliche Monatsnavigation */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, -1))} className="h-9 w-9 flex-shrink-0">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="min-w-[200px] rounded-xl border px-3 py-2 text-center text-sm font-medium">{monthLabel}</div>
-            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, 1))}>
+            <div className="flex-1 rounded-xl border px-3 py-2 text-center text-sm font-medium min-w-0">
+              <span className="truncate block">{monthLabel}</span>
+            </div>
+            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, 1))} className="h-9 w-9 flex-shrink-0">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <Tabs defaultValue="kalender" className="mt-6">
-          <TabsList className="w-full justify-start">
-            <TabsTrigger value="kalender" className="gap-2">
-              <CalendarDays className="h-4 w-4" />
+        <Tabs defaultValue="kalender" className="mt-4 sm:mt-6">
+          <TabsList className="w-full justify-start overflow-x-auto">
+            <TabsTrigger value="kalender" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Kalender
             </TabsTrigger>
-            <TabsTrigger value="kategorien" className="gap-2">
-              <Tag className="h-4 w-4" />
+            <TabsTrigger value="kategorien" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Kategorien
             </TabsTrigger>
-            <TabsTrigger value="fortschritt" className="gap-2">
-              <List className="h-4 w-4" />
+            <TabsTrigger value="fortschritt" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+              <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Fortschritt
             </TabsTrigger>
           </TabsList>
 
           {/* Kalender */}
-          <TabsContent value="kalender" className="mt-4">
-            <div className="grid min-h-0 gap-4 lg:grid-cols-[1fr_420px] lg:h-[calc(100vh-220px)] lg:overflow-hidden">
-              <Card className="rounded-2xl shadow-sm h-full">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">
+          <TabsContent value="kalender" className="mt-3 sm:mt-4">
+            <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_420px]">
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm">
+                <CardHeader className="pb-2 sm:pb-3">
+                  <CardTitle className="text-sm sm:text-base">
                     {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-7 gap-3 text-xs text-muted-foreground">
+                <CardContent className="px-2 sm:px-6">
+                  {/* Wochentage - kompakter auf Mobile */}
+                  <div className="grid grid-cols-7 gap-1 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
                     {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-                      <div key={d} className="px-1">
+                      <div key={d} className="text-center sm:px-1">
                         {d}
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-7 gap-3">
+                  {/* Kalenderraster - kompakter auf Mobile */}
+                  <div className="grid grid-cols-7 gap-1 sm:gap-3">
                     {monthCells.map((cell) => {
                       const tasks = tasksByDate[cell.iso]
                       const { total, done, ratio } = dayCompletion(tasks)
@@ -999,27 +1007,27 @@ export default function App() {
                             moveTask(p.fromISO, cell.iso, p.taskId)
                           }}
                           className={[
-                            "relative h-24 rounded-2xl border p-2 text-left transition",
+                            "relative h-16 sm:h-24 rounded-lg sm:rounded-2xl border p-1 sm:p-2 text-left transition touch-manipulation",
                             cell.inMonth ? "" : "opacity-50",
                             st.border,
                             st.bg,
-                            isSelected ? "ring-2 ring-primary/40" : "hover:bg-muted/40",
+                            isSelected ? "ring-2 ring-primary/40" : "hover:bg-muted/40 active:bg-muted/60",
                             isDragOver ? "ring-2 ring-primary" : "",
                           ].join(" ")}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="text-sm font-semibold">{cell.day}</div>
+                          <div className="flex items-start justify-between gap-1">
+                            <div className="text-xs sm:text-sm font-semibold">{cell.day}</div>
                             {total > 0 && (
-                              <Badge variant="secondary" className="h-5 px-2 text-[11px]">
+                              <Badge variant="secondary" className="h-4 sm:h-5 px-1 sm:px-2 text-[9px] sm:text-[11px] leading-tight">
                                 {done}/{total}
                               </Badge>
                             )}
                           </div>
 
                           {total > 0 && (
-                            <div className="absolute bottom-2 left-2 right-2 grid gap-1">
-                              <Progress value={percent(ratio)} />
-                              <div className="text-[11px] text-muted-foreground">{percent(ratio)}%</div>
+                            <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 right-1 sm:right-2 grid gap-0.5 sm:gap-1">
+                              <Progress value={percent(ratio)} className="h-1 sm:h-2" />
+                              <div className="text-[9px] sm:text-[11px] text-muted-foreground">{percent(ratio)}%</div>
                             </div>
                           )}
                         </button>
@@ -1027,82 +1035,83 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* Legende + Spendenbox Container */}
-                    <div className="mt-4 flex items-start justify-between">
-
-                      {/* Prozent-Legende links */}
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm border border-rose-400/70 bg-rose-400/15" /> &lt; 50%
-                        </span>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm border border-amber-400/70 bg-amber-400/15" /> 50–99%
-                        </span>
-                        <span className="inline-flex items-center gap-2">
-                          <span className="h-3 w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15" /> 100%
-                        </span>
-                      </div>
-
-                      {/* Spendenbox rechts */}
-                      <div className="flex items-center gap-4 rounded-xl border border-border p-3 bg-background">
-                        <img
-                          src="/revolut-qr.jpg"
-                          alt="Revolut QR Code"
-                          className="w-24 h-24 object-contain"
-                        />
-
-                        <div className="text-right">
-                          <div className="text-sm font-medium">
-                            Projekt unterstützen
-                          </div>
-
-                          <a
-                            href="https://revolut.me/eljoa"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 block text-xs text-primary underline"
-                          >
-                            revolut.me/eljoa
-                          </a>
-                        </div>
-                      </div>
-
+                  {/* Mobile-optimierte Legende & Spendenbox */}
+                  <div className="mt-3 sm:mt-4 space-y-3">
+                    {/* Legende */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 sm:gap-2">
+                        <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm border border-rose-400/70 bg-rose-400/15 flex-shrink-0" /> 
+                        <span className="whitespace-nowrap">&lt; 50%</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 sm:gap-2">
+                        <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm border border-amber-400/70 bg-amber-400/15 flex-shrink-0" /> 
+                        <span className="whitespace-nowrap">50–99%</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 sm:gap-2">
+                        <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15 flex-shrink-0" /> 
+                        <span className="whitespace-nowrap">100%</span>
+                      </span>
                     </div>
+
+                    {/* Mobile-optimierte Spendenbox */}
+                    <div className="flex flex-col sm:flex-row items-center gap-3 rounded-xl border border-border p-3 bg-background">
+                      <img
+                        src="/revolut-qr.jpg"
+                        alt="Revolut QR Code"
+                        className="w-20 h-20 sm:w-24 sm:h-24 object-contain flex-shrink-0"
+                      />
+
+                      <div className="text-center sm:text-right w-full sm:w-auto">
+                        <div className="text-sm font-medium">
+                          Projekt unterstützen
+                        </div>
+
+                        <a
+                          href="https://revolut.me/eljoa"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 block text-xs text-primary underline break-all"
+                        >
+                          revolut.me/eljoa
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Aufgabenliste rechts */}
-              <Card className="rounded-2xl shadow-sm h-full min-h-0 lg:sticky lg:top-6 flex flex-col">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">To-dos</CardTitle>
+              {/* Mobile-optimierte Aufgabenliste */}
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm">
+                <CardHeader className="pb-2 sm:pb-3">
+                  <CardTitle className="text-sm sm:text-base">To-dos</CardTitle>
                 </CardHeader>
-                <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-medium">{selectedDateLabel}</div>
+                <CardContent className="flex flex-col gap-2 sm:gap-3 px-2 sm:px-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="text-xs sm:text-sm font-medium line-clamp-2 sm:line-clamp-1 pr-2">{selectedDateLabel}</div>
 
                     <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button className="gap-2">
-                          <Plus className="h-4 w-4" />
+                        <Button className="gap-1.5 sm:gap-2 w-full sm:w-auto h-9 text-sm flex-shrink-0">
+                          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           Hinzufügen
                         </Button>
                       </DialogTrigger>
 
-                      <DialogContent className="sm:max-w-lg">
+                      <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
                         <DialogHeader>
-                          <DialogTitle>Task hinzufügen</DialogTitle>
+                          <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
                         </DialogHeader>
 
                         <div className="grid gap-3">
                           <div className="grid gap-2">
-                            <Label>Titel</Label>
-                            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" />
+                            <Label className="text-sm">Titel</Label>
+                            <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" />
                           </div>
 
                           <div className="grid gap-2">
-                            <Label>Kategorie (optional)</Label>
+                            <Label className="text-sm">Kategorie (optional)</Label>
                             <Select value={newCategory} onValueChange={setNewCategory}>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-10">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -1117,13 +1126,13 @@ export default function App() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} />
+                            <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
                             <span className="text-sm">Hohe Priorität</span>
                           </div>
                         </div>
 
-                        <DialogFooter>
-                          <Button onClick={addTask} disabled={newTitle.trim().length === 0}>
+                        <DialogFooter className="sm:justify-end">
+                          <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
                             Speichern
                           </Button>
                         </DialogFooter>
@@ -1131,25 +1140,23 @@ export default function App() {
                     </Dialog>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border">
+                  {/* Mobile-optimierte Task-Liste */}
+                  <div className="rounded-xl border overflow-hidden">
                     {selectedTasks.length === 0 ? (
-                      <div className="p-4 text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
+                      <div className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
                     ) : (
-                      <div className="divide-y">
+                      <div className="divide-y max-h-[60vh] overflow-y-auto">
                         {getSortedDayTasks(selectedISO).map((t) => {
                           const isOver = dragOverTaskId === t.id
                           const overClass =
                             isOver && dragRef.current?.kind === "reorder"
-                              ? dragPos === "above"
-                                ? "ring-2 ring-primary/60 ring-inset"
-                                : "ring-2 ring-primary/60 ring-inset"
+                              ? "ring-2 ring-primary/60 ring-inset"
                               : ""
 
                           return (
                             <div
                               key={t.id}
-                              className={["flex items-start gap-3 p-3", overClass].join(" ")}
-                              // drop-zone für reorder
+                              className={["flex items-start gap-2 sm:gap-3 p-2 sm:p-3 touch-manipulation", overClass].join(" ")}
                               onDragOver={(e) => {
                                 const p = readDragPayload(e)
                                 if (!p || p.kind !== "reorder") return
@@ -1177,7 +1184,6 @@ export default function App() {
                                 e.preventDefault()
                                 applyReorderWithinDay(p.taskId, t.id, dragPos)
                               }}
-                              // weiter möglich: Aufgabe auf Kalender ziehen (für Datum verschieben)
                               draggable
                               onDragStart={(e) => setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })}
                               onDragEnd={() => {
@@ -1185,57 +1191,59 @@ export default function App() {
                                 setDragOverISO("")
                                 setDragOverTaskId("")
                               }}
-                              title="Ziehe die Aufgabe auf einen Tag im Kalender, um das Datum zu ändern. Ziehe am Griff, um die Reihenfolge zu ändern."
                             >
-                              <Checkbox className="mt-1" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                              <Checkbox className="mt-0.5 sm:mt-1 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
 
                               <div className="min-w-0 flex-1">
                                 <div
                                   className={
-                                    "text-sm break-words whitespace-normal leading-snug " +
+                                    "text-xs sm:text-sm break-words whitespace-normal leading-snug " +
                                     (t.done ? "line-through text-muted-foreground" : "")
                                   }
                                 >
                                   {t.title}
                                 </div>
 
-                                <div className="mt-1 flex flex-wrap items-center gap-2">
-                                  <Badge variant="secondary" className="h-5 px-2 text-[11px]">
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                  <Badge variant="secondary" className="h-4 sm:h-5 px-1.5 sm:px-2 text-[9px] sm:text-[11px]">
                                     {t.category ? t.category : "Ohne Kategorie"}
                                   </Badge>
 
                                   {(t.priority ?? 1) >= 2 ? (
-                                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-600 text-[13px] font-black leading-none text-white">
+                                    <span className="inline-flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-rose-600 text-[11px] sm:text-[13px] font-black leading-none text-white">
                                       !
                                     </span>
                                   ) : null}
                                 </div>
                               </div>
 
-                             <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten">
-                                <Pencil className="h-4 w-4" />
-                              </Button>
+                              {/* Mobile-optimierte Action-Buttons */}
+                              <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+                                <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-8 w-8 sm:h-9 sm:w-9">
+                                  <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </Button>
 
-                              <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-8 w-8 sm:h-9 sm:w-9">
+                                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </Button>
 
-                              <span
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
-                                draggable
-                                onDragStart={(e) => {
-                                  e.stopPropagation()
-                                  setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
-                                }}
-                                onDragEnd={() => {
-                                  dragRef.current = null
-                                  setDragOverTaskId("")
-                                }}
-                                title="Ziehen zum Umordnen"
-                                aria-label="Ziehen zum Umordnen"
-                              >
-                                <GripHorizontal className="h-4 w-4" />
-                              </span>
+                                <span
+                                  className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0"
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.stopPropagation()
+                                    setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
+                                  }}
+                                  onDragEnd={() => {
+                                    dragRef.current = null
+                                    setDragOverTaskId("")
+                                  }}
+                                  title="Ziehen zum Umordnen"
+                                  aria-label="Ziehen zum Umordnen"
+                                >
+                                  <GripHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                </span>
+                              </div>
                             </div>
                           )
                         })}
@@ -1244,21 +1252,21 @@ export default function App() {
                   </div>
 
                   <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                    <DialogContent className="sm:max-w-lg">
+                    <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
                       <DialogHeader>
-                        <DialogTitle>Task bearbeiten</DialogTitle>
+                        <DialogTitle className="text-base sm:text-lg">Task bearbeiten</DialogTitle>
                       </DialogHeader>
 
                       <div className="grid gap-3">
                         <div className="grid gap-2">
-                          <Label>Titel</Label>
-                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" />
+                          <Label className="text-sm">Titel</Label>
+                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" className="h-10" />
                         </div>
 
                         <div className="grid gap-2">
-                          <Label>Kategorie (optional)</Label>
+                          <Label className="text-sm">Kategorie (optional)</Label>
                           <Select value={editCategory} onValueChange={setEditCategory}>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-10">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1273,13 +1281,13 @@ export default function App() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} />
+                          <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} className="h-4 w-4" />
                           <span className="text-sm">Hohe Priorität</span>
                         </div>
                       </div>
 
-                      <DialogFooter>
-                        <Button onClick={saveEditTask} disabled={editTitle.trim().length === 0}>
+                      <DialogFooter className="sm:justify-end">
+                        <Button onClick={saveEditTask} disabled={editTitle.trim().length === 0} className="w-full sm:w-auto">
                           Speichern
                         </Button>
                       </DialogFooter>
@@ -1290,34 +1298,34 @@ export default function App() {
             </div>
           </TabsContent>
 
-          {/* Kategorien */}
-          <TabsContent value="kategorien" className="mt-4">
-            <Card className="rounded-2xl shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Kategorien verwalten</CardTitle>
+          {/* Mobile-optimierte Kategorien */}
+          <TabsContent value="kategorien" className="mt-3 sm:mt-4">
+            <Card className="rounded-xl sm:rounded-2xl shadow-sm">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="text-sm sm:text-base">Kategorien verwalten</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4">
-                <div className="grid gap-2 rounded-2xl border p-3">
-                  <Label>Neue Kategorie</Label>
+              <CardContent className="grid gap-3 sm:gap-4 px-3 sm:px-6">
+                <div className="grid gap-2 rounded-xl border p-2 sm:p-3">
+                  <Label className="text-sm">Neue Kategorie</Label>
                   <div className="flex gap-2">
-                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="z.B. Sport" />
-                    <Button variant="outline" onClick={addCategoryFromInput}>
+                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="z.B. Sport" className="h-9 sm:h-10 text-sm" />
+                    <Button variant="outline" onClick={addCategoryFromInput} className="h-9 sm:h-10 text-sm whitespace-nowrap flex-shrink-0">
                       Hinzufügen
                     </Button>
                   </div>
                 </div>
 
-                <div className="grid gap-2 rounded-2xl border p-3">
+                <div className="grid gap-2 rounded-xl border p-2 sm:p-3">
                   <div className="text-sm font-medium">Vorhanden (löschen / umbenennen)</div>
                   <div className="grid gap-2">
                     {categories.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">Noch keine Kategorien.</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">Noch keine Kategorien.</div>
                     ) : (
                       categories.map((c) => (
-                        <div key={c} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2">
-                          <Badge variant="secondary">{c}</Badge>
+                        <div key={c} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-2 sm:px-3 py-2">
+                          <Badge variant="secondary" className="text-xs">{c}</Badge>
 
-                          <div className="ml-auto flex items-center gap-2">
+                          <div className="flex items-center gap-1 sm:gap-2">
                             <Button
                               type="button"
                               variant="outline"
@@ -1326,6 +1334,7 @@ export default function App() {
                                 setRenameFrom(c)
                                 setRenameTo(c)
                               }}
+                              className="h-8 text-xs"
                             >
                               Umbenennen
                             </Button>
@@ -1336,8 +1345,9 @@ export default function App() {
                               size="icon"
                               onClick={() => deleteCategory(c)}
                               aria-label="Kategorie löschen"
+                              className="h-8 w-8"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </div>
@@ -1345,18 +1355,18 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="mt-2 text-xs text-muted-foreground">Löschen setzt die Kategorie bei allen Tasks auf „Ohne Kategorie“.</div>
+                  <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground">Löschen setzt die Kategorie bei allen Tasks auf „Ohne Kategorie".</div>
                 </div>
 
                 <Separator />
 
-                <div className="grid gap-2 rounded-2xl border p-3">
+                <div className="grid gap-2 rounded-xl border p-2 sm:p-3">
                   <div className="text-sm font-medium">Kategorie umbenennen</div>
-                  <div className="grid gap-2 md:grid-cols-3 md:items-end">
+                  <div className="grid gap-2">
                     <div className="grid gap-1">
-                      <Label>Von</Label>
+                      <Label className="text-sm">Von</Label>
                       <Select value={renameFrom || "—"} onValueChange={(v) => setRenameFrom(v)}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-9 sm:h-10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1371,8 +1381,8 @@ export default function App() {
                     </div>
 
                     <div className="grid gap-1">
-                      <Label>Nach</Label>
-                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} placeholder="Neuer Name" />
+                      <Label className="text-sm">Nach</Label>
+                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} placeholder="Neuer Name" className="h-9 sm:h-10 text-sm" />
                     </div>
 
                     <Button
@@ -1384,6 +1394,7 @@ export default function App() {
                         setRenameTo("")
                       }}
                       disabled={!renameFrom || renameFrom === "—"}
+                      className="w-full h-9 sm:h-10 text-sm"
                     >
                       Speichern
                     </Button>
@@ -1393,26 +1404,26 @@ export default function App() {
             </Card>
           </TabsContent>
 
-          {/* Fortschritt */}
-          <TabsContent value="fortschritt" className="mt-4">
-            <Card className="rounded-2xl shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Fortschritt nach Kategorie</CardTitle>
+          {/* Mobile-optimierter Fortschritt */}
+          <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
+            <Card className="rounded-xl sm:rounded-2xl shadow-sm">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="text-sm sm:text-base">Fortschritt nach Kategorie</CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-3">
+              <CardContent className="grid gap-2 sm:gap-3 px-3 sm:px-6">
                 {categoryStats.rows.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">Noch keine Tasks für Statistik.</div>
+                  <div className="text-xs sm:text-sm text-muted-foreground">Noch keine Tasks für Statistik.</div>
                 ) : (
                   categoryStats.rows.map((r) => (
-                    <div key={r.label} className="rounded-2xl border p-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{r.label}</span>
-                        <span className="text-muted-foreground">
+                    <div key={r.label} className="rounded-xl border p-2 sm:p-3">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <span className="font-medium truncate pr-2">{r.label}</span>
+                        <span className="text-muted-foreground whitespace-nowrap">
                           {r.done}/{r.total}
                         </span>
                       </div>
-                      <Progress className="mt-2" value={percent(r.ratio)} />
-                      <div className="mt-1 text-xs text-muted-foreground">{percent(r.ratio)}%</div>
+                      <Progress className="mt-2 h-1.5 sm:h-2" value={percent(r.ratio)} />
+                      <div className="mt-1 text-[10px] sm:text-xs text-muted-foreground">{percent(r.ratio)}%</div>
                     </div>
                   ))
                 )}
