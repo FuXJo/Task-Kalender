@@ -977,30 +977,31 @@ export default function App() {
               </Card>
 
               {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_420px] flex-1 max-w-6xl">
-                <Card className="rounded-xl sm:rounded-2xl shadow-sm">
-                <CardHeader className="pb-2 sm:pb-3">
-                  <CardTitle className="text-sm sm:text-base">
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl">
+                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+                <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
+                  <CardTitle className="text-sm sm:text-base font-semibold">
                     {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-2 sm:px-6">
-                  {/* Wochentage - kompakter auf Mobile */}
-                  <div className="grid grid-cols-7 gap-1 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
+                <CardContent className="px-3 sm:px-5 pt-4">
+                  {/* Wochentage */}
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
                     {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-                      <div key={d} className="text-center sm:px-1">
+                      <div key={d} className="text-center py-1">
                         {d}
                       </div>
                     ))}
                   </div>
 
-                  {/* Kalenderraster - kompakter auf Mobile */}
-                  <div className="grid grid-cols-7 gap-1 sm:gap-3">
+                  {/* Kalenderraster */}
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                     {monthCells.map((cell) => {
                       const tasks = tasksByDate[cell.iso]
                       const { total, done, ratio } = dayCompletion(tasks)
                       const st = dayStatusClass(cell.iso, todayISO, tasks)
                       const isSelected = cell.iso === selectedISO
+                      const isToday = cell.iso === todayISO
                       const isDragOver = dragOverISO === cell.iso
 
                       return (
@@ -1033,27 +1034,42 @@ export default function App() {
                             moveTask(p.fromISO, cell.iso, p.taskId)
                           }}
                           className={[
-                            "relative h-16 sm:h-24 rounded-lg sm:rounded-2xl border p-1 sm:p-2 text-left transition touch-manipulation",
-                            cell.inMonth ? "" : "opacity-50",
+                            "relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation",
+                            cell.inMonth ? "" : "opacity-40",
                             st.border,
                             st.bg,
-                            isSelected ? "ring-2 ring-primary/40" : "hover:bg-muted/40 active:bg-muted/60",
-                            isDragOver ? "ring-2 ring-primary" : "",
+                            isSelected
+                              ? "ring-2 ring-primary shadow-sm"
+                              : "hover:shadow-sm hover:border-primary/30",
+                            isDragOver ? "ring-2 ring-primary scale-[1.02]" : "",
                           ].join(" ")}
                         >
+                          {/* Heute-Indikator */}
                           <div className="flex items-start justify-between gap-1">
-                            <div className="text-xs sm:text-sm font-semibold">{cell.day}</div>
+                            <div className={[
+                              "text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none",
+                              isToday ? "bg-primary text-primary-foreground" : ""
+                            ].join(" ")}>
+                              {cell.day}
+                            </div>
                             {total > 0 && (
-                              <Badge variant="secondary" className="h-4 sm:h-5 px-1 sm:px-2 text-[9px] sm:text-[11px] leading-tight">
+                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">
                                 {done}/{total}
-                              </Badge>
+                              </span>
                             )}
                           </div>
 
                           {total > 0 && (
-                            <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 right-1 sm:right-2 grid gap-0.5 sm:gap-1">
-                              <Progress value={percent(ratio)} className="h-1 sm:h-2" />
-                              <div className="text-[9px] sm:text-[11px] text-muted-foreground">{percent(ratio)}%</div>
+                            <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                              <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                <div
+                                  className={[
+                                    "h-full rounded-full transition-all",
+                                    ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"
+                                  ].join(" ")}
+                                  style={{ width: `${percent(ratio)}%` }}
+                                />
+                              </div>
                             </div>
                           )}
                         </button>
@@ -1061,65 +1077,44 @@ export default function App() {
                     })}
                   </div>
 
-                  {/* Mobile-optimierte Legende */}
-                  <div className="mt-3 sm:mt-4">
-                    {/* Legende */}
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1 sm:gap-2">
-                        <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm border border-rose-400/70 bg-rose-400/15 flex-shrink-0" /> 
-                        <span className="whitespace-nowrap">&lt; 50%</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 sm:gap-2">
-                        <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm border border-amber-400/70 bg-amber-400/15 flex-shrink-0" /> 
-                        <span className="whitespace-nowrap">50–99%</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 sm:gap-2">
-                        <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-sm border border-emerald-400/70 bg-emerald-400/15 flex-shrink-0" /> 
-                        <span className="whitespace-nowrap">100%</span>
-                      </span>
-                    </div>
+                  {/* Legende */}
+                  <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%
+                    </span>
+                  </div>
 
-                    {/* Mobile Spendenbox (nur auf kleinen Screens) */}
-                    <div className="mt-3 lg:hidden flex flex-col sm:flex-row items-center gap-3 rounded-xl border border-border p-3 bg-background">
-                      <img
-                        src="/revolut-qr.jpg"
-                        alt="Revolut QR Code"
-                        className="w-20 h-20 sm:w-24 sm:h-24 object-contain flex-shrink-0"
-                      />
-                      <div className="text-center sm:text-right w-full sm:w-auto">
-                        <div className="text-sm font-medium">
-                          Projekt unterstützen
-                        </div>
-                        <a
-                          href="https://revolut.me/eljoa"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1 block text-xs text-primary underline break-all"
-                        >
-                          revolut.me/eljoa
-                        </a>
-                      </div>
+                  {/* Mobile Spendenbox */}
+                  <div className="mt-3 xl:hidden flex flex-col sm:flex-row items-center gap-3 rounded-xl border border-border p-3 bg-background">
+                    <img src="/revolut-qr.jpg" alt="Revolut QR Code" className="w-20 h-20 sm:w-24 sm:h-24 object-contain flex-shrink-0" />
+                    <div className="text-center sm:text-right w-full sm:w-auto">
+                      <div className="text-sm font-medium">Projekt unterstützen</div>
+                      <a href="https://revolut.me/eljoa" target="_blank" rel="noopener noreferrer" className="mt-1 block text-xs text-primary underline break-all">revolut.me/eljoa</a>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Mobile-optimierte Aufgabenliste */}
-              <Card className="rounded-xl sm:rounded-2xl shadow-sm">
-                <CardHeader className="pb-2 sm:pb-3">
-                  <CardTitle className="text-sm sm:text-base">To-dos</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2 sm:gap-3 px-2 sm:px-6">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div className="text-xs sm:text-sm font-medium line-clamp-2 sm:line-clamp-1 pr-2">{selectedDateLabel}</div>
-
-                    <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="gap-1.5 sm:gap-2 w-full sm:w-auto h-9 text-sm flex-shrink-0">
-                          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                          Hinzufügen
-                        </Button>
-                      </DialogTrigger>
+              {/* To-dos */}
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
+                  <div>
+                    <div className="text-sm font-semibold">To-dos</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{selectedDateLabel}</div>
+                  </div>
+                  <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="gap-1.5 h-8 text-xs px-3 flex-shrink-0">
+                        <Plus className="h-3.5 w-3.5" />
+                        Hinzufügen
+                      </Button>
+                    </DialogTrigger>
 
                       <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
                         <DialogHeader>
@@ -1199,14 +1194,19 @@ export default function App() {
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                  </div>
+                </div>
 
-                  {/* Mobile-optimierte Task-Liste */}
-                  <div className="rounded-xl border overflow-hidden">
+                  {/* Task-Liste */}
+                  <div className="flex-1 overflow-y-auto">
                     {selectedTasks.length === 0 ? (
-                      <div className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">Keine Aufgaben für diesen Tag.</div>
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                          <Plus className="h-5 w-5 opacity-40" />
+                        </div>
+                        <p className="text-sm">Keine Aufgaben für diesen Tag.</p>
+                      </div>
                     ) : (
-                      <div className="divide-y max-h-[60vh] overflow-y-auto">
+                      <div className="divide-y">
                         {getSortedDayTasks(selectedISO).map((t) => {
                           const isOver = dragOverTaskId === t.id
                           const overClass =
@@ -1217,7 +1217,7 @@ export default function App() {
                           return (
                             <div
                               key={t.id}
-                              className={["flex items-start gap-2 sm:gap-3 p-2 sm:p-3 touch-manipulation", overClass].join(" ")}
+                              className={["flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-colors touch-manipulation", overClass].join(" ")}
                               onDragOver={(e) => {
                                 const p = readDragPayload(e)
                                 if (!p || p.kind !== "reorder") return
@@ -1253,45 +1253,36 @@ export default function App() {
                                 setDragOverTaskId("")
                               }}
                             >
-                              <Checkbox className="mt-0.5 sm:mt-1 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                              <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
 
                               <div className="min-w-0 flex-1">
-                                <div
-                                  className={
-                                    "text-xs sm:text-sm break-words whitespace-normal leading-snug " +
-                                    (t.done ? "line-through text-muted-foreground" : "")
-                                  }
-                                >
+                                <div className={[
+                                  "text-sm break-words leading-snug",
+                                  t.done ? "line-through text-muted-foreground" : "font-medium"
+                                ].join(" ")}>
                                   {t.title}
                                 </div>
-
-                                <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                                   {t.category && (
-                                    <Badge variant="secondary" className="h-4 sm:h-5 px-1.5 sm:px-2 text-[9px] sm:text-[11px]">
+                                    <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal">
                                       {t.category}
                                     </Badge>
                                   )}
-
-                                  {(t.priority ?? 1) >= 2 ? (
-                                    <span className="inline-flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-rose-600 text-[11px] sm:text-[13px] font-black leading-none text-white">
-                                      !
-                                    </span>
-                                  ) : null}
+                                  {(t.priority ?? 1) >= 2 && (
+                                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black leading-none text-white">!</span>
+                                  )}
                                 </div>
                               </div>
 
-                              {/* Mobile-optimierte Action-Buttons */}
-                              <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                                <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-8 w-8 sm:h-9 sm:w-9">
-                                  <Pencil className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                              <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-7 w-7">
+                                  <Pencil className="h-3 w-3" />
                                 </Button>
-
-                                <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-8 w-8 sm:h-9 sm:w-9">
-                                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                                  <Trash2 className="h-3 w-3" />
                                 </Button>
-
                                 <span
-                                  className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0"
+                                  className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
                                   draggable
                                   onDragStart={(e) => {
                                     e.stopPropagation()
@@ -1301,10 +1292,8 @@ export default function App() {
                                     dragRef.current = null
                                     setDragOverTaskId("")
                                   }}
-                                  title="Ziehen zum Umordnen"
-                                  aria-label="Ziehen zum Umordnen"
                                 >
-                                  <GripHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                  <GripHorizontal className="h-3 w-3" />
                                 </span>
                               </div>
                             </div>
@@ -1356,7 +1345,6 @@ export default function App() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                </CardContent>
               </Card>
               </div>
             </div>
