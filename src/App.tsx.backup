@@ -1324,85 +1324,111 @@ export default function App() {
           </TabsContent>
 
           {/* Mobile-optimierte Kategorien */}
-          {/* Kategorien – neu gestaltet */}
           <TabsContent value="kategorien" className="mt-3 sm:mt-4">
-            <div className="max-w-2xl mx-auto grid gap-4">
-
-              <Card className="rounded-2xl shadow-sm overflow-hidden">
-                <div className="bg-muted/40 px-5 py-3 border-b">
-                  <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Neue Kategorie</h2>
-                </div>
-                <CardContent className="pt-4 pb-5 px-5">
+            <Card className="rounded-xl sm:rounded-2xl shadow-sm">
+              <CardHeader className="pb-2 sm:pb-3">
+                <CardTitle className="text-sm sm:text-base">Kategorien verwalten</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:gap-4 px-3 sm:px-6">
+                <div className="grid gap-2 rounded-xl border p-2 sm:p-3">
+                  <Label className="text-sm">Neue Kategorie</Label>
                   <div className="flex gap-2">
-                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addCategoryFromInput()} placeholder="z.B. Sport, Mathe, Projekt…" className="h-10 text-sm flex-1" />
-                    <Button onClick={addCategoryFromInput} className="h-10 px-5 text-sm gap-2 flex-shrink-0">
-                      <Plus className="h-4 w-4" />
+                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="z.B. Sport" className="h-9 sm:h-10 text-sm" />
+                    <Button variant="outline" onClick={addCategoryFromInput} className="h-9 sm:h-10 text-sm whitespace-nowrap flex-shrink-0">
                       Hinzufügen
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl shadow-sm overflow-hidden">
-                <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
-                  <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
-                  <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">{categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}</span>
                 </div>
-                <CardContent className="p-0">
-                  {categories.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                      <Tag className="h-8 w-8 opacity-30" />
-                      <p className="text-sm">Noch keine Kategorien vorhanden.</p>
-                    </div>
-                  ) : (
-                    <ul className="divide-y">
-                      {categories.map((c, idx) => (
-                        <li key={c} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors group">
-                          <span className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">{idx + 1}</span>
-                          <span className="flex-1 text-sm font-medium truncate">{c}</span>
-                          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { setRenameFrom(c); setRenameTo(c) }} className="h-8 px-3 text-xs gap-1.5">
-                              <Pencil className="h-3 w-3" />
+
+                <div className="grid gap-2 rounded-xl border p-2 sm:p-3">
+                  <div className="text-sm font-medium">Vorhanden (löschen / umbenennen)</div>
+                  <div className="grid gap-2">
+                    {categories.length === 0 ? (
+                      <div className="text-xs sm:text-sm text-muted-foreground">Noch keine Kategorien.</div>
+                    ) : (
+                      categories.map((c) => (
+                        <div key={c} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border px-2 sm:px-3 py-2">
+                          <Badge variant="secondary" className="text-xs">{c}</Badge>
+
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setRenameFrom(c)
+                                setRenameTo(c)
+                              }}
+                              className="h-8 text-xs"
+                            >
                               Umbenennen
                             </Button>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteCategory(c)} aria-label="Löschen" className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteCategory(c)}
+                              aria-label="Kategorie löschen"
+                              className="h-8 w-8"
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="px-5 py-2.5 border-t bg-muted/20">
-                    <p className="text-[11px] text-muted-foreground">Löschen setzt die Kategorie aller zugehörigen Tasks auf „Ohne Kategorie".</p>
+                        </div>
+                      ))
+                    )}
                   </div>
-                </CardContent>
-              </Card>
 
-              {renameFrom && renameFrom !== "—" && (
-                <Card className="rounded-2xl shadow-sm overflow-hidden border-primary/30">
-                  <div className="bg-primary/5 px-5 py-3 border-b border-primary/20">
-                    <h2 className="text-sm font-semibold tracking-wide uppercase text-primary/70">Umbenennen</h2>
+                  <div className="mt-2 text-[10px] sm:text-xs text-muted-foreground">Löschen setzt die Kategorie bei allen Tasks auf „Ohne Kategorie".</div>
+                </div>
+
+                <Separator />
+
+                <div className="grid gap-2 rounded-xl border p-2 sm:p-3">
+                  <div className="text-sm font-medium">Kategorie umbenennen</div>
+                  <div className="grid gap-2">
+                    <div className="grid gap-1">
+                      <Label className="text-sm">Von</Label>
+                      <Select value={renameFrom || "—"} onValueChange={(v) => setRenameFrom(v)}>
+                        <SelectTrigger className="h-9 sm:h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="—">—</SelectItem>
+                          {categories.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid gap-1">
+                      <Label className="text-sm">Nach</Label>
+                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} placeholder="Neuer Name" className="h-9 sm:h-10 text-sm" />
+                    </div>
+
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (!renameFrom || renameFrom === "—") return
+                        renameCategory(renameFrom, renameTo)
+                        setRenameFrom("")
+                        setRenameTo("")
+                      }}
+                      disabled={!renameFrom || renameFrom === "—"}
+                      className="w-full h-9 sm:h-10 text-sm"
+                    >
+                      Speichern
+                    </Button>
                   </div>
-                  <CardContent className="pt-4 pb-5 px-5 grid gap-3">
-                    <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-2.5">
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">Aktuell:</span>
-                      <Badge variant="secondary" className="text-sm font-medium">{renameFrom}</Badge>
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wide">Neuer Name</Label>
-                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { renameCategory(renameFrom, renameTo); setRenameFrom(""); setRenameTo("") } }} placeholder="Neuer Name…" className="h-10 text-sm" autoFocus />
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <Button type="button" onClick={() => { renameCategory(renameFrom, renameTo); setRenameFrom(""); setRenameTo("") }} disabled={!renameTo.trim() || renameTo === renameFrom} className="flex-1 h-9 text-sm">Speichern</Button>
-                      <Button type="button" variant="outline" onClick={() => { setRenameFrom(""); setRenameTo("") }} className="h-9 px-4 text-sm">Abbrechen</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
+
           {/* Mobile-optimierter Fortschritt */}
           <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
             <Card className="rounded-xl sm:rounded-2xl shadow-sm">
