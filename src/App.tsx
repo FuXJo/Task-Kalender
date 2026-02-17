@@ -776,7 +776,7 @@ export default function App() {
         done: v.done,
         ratio: v.total === 0 ? 0 : v.done / v.total,
       }))
-      .filter((r) => r.total > 0 || r.category !== "")
+      .filter((r) => r.total > 0 && r.category !== "")
       .sort((a, b) => a.label.localeCompare(b.label))
 
     return { rows }
