@@ -1500,31 +1500,81 @@ export default function App() {
             </div>
           </TabsContent>
 
-          {/* Mobile-optimierter Fortschritt */}
+          {/* Fortschritt – neu gestaltet */}
           <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
-            <Card className="rounded-xl sm:rounded-2xl shadow-sm">
-              <CardHeader className="pb-2 sm:pb-3">
-                <CardTitle className="text-sm sm:text-base">Fortschritt nach Kategorie</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2 sm:gap-3 px-3 sm:px-6">
-                {categoryStats.rows.length === 0 ? (
-                  <div className="text-xs sm:text-sm text-muted-foreground">Noch keine Tasks für Statistik.</div>
-                ) : (
-                  categoryStats.rows.map((r) => (
-                    <div key={r.label} className="rounded-xl border p-2 sm:p-3">
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="font-medium truncate pr-2">{r.label}</span>
-                        <span className="text-muted-foreground whitespace-nowrap">
-                          {r.done}/{r.total}
-                        </span>
-                      </div>
-                      <Progress className="mt-2 h-1.5 sm:h-2" value={percent(r.ratio)} />
-                      <div className="mt-1 text-[10px] sm:text-xs text-muted-foreground">{percent(r.ratio)}%</div>
+            <div className="max-w-2xl mx-auto grid gap-4">
+
+              {/* Gesamt-Übersicht oben */}
+              {categoryStats.rows.length > 0 && (() => {
+                const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
+                const doneAll  = categoryStats.rows.reduce((s, r) => s + r.done,  0)
+                const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
+                return (
+                  <Card className="rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Gesamt</h2>
+                      <span className="text-xs text-muted-foreground">{doneAll} von {totalAll} erledigt</span>
                     </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+                    <CardContent className="px-5 pt-4 pb-5">
+                      <div className="flex items-end justify-between mb-2">
+                        <span className="text-3xl font-bold tabular-nums">{percent(ratioAll)}%</span>
+                        <span className="text-sm text-muted-foreground mb-1">{categoryStats.rows.length} Kategorien</span>
+                      </div>
+                      <Progress value={percent(ratioAll)} className="h-3 rounded-full" />
+                    </CardContent>
+                  </Card>
+                )
+              })()}
+
+              {/* Kategorien-Liste */}
+              <Card className="rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-muted/40 px-5 py-3 border-b">
+                  <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Nach Kategorie</h2>
+                </div>
+                <CardContent className="p-0">
+                  {categoryStats.rows.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                      <List className="h-8 w-8 opacity-30" />
+                      <p className="text-sm">Noch keine Tasks für Statistik.</p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y">
+                      {categoryStats.rows.map((r) => {
+                        const tone =
+                          r.ratio >= 1   ? "bg-emerald-500" :
+                          r.ratio >= 0.5 ? "bg-amber-400"   :
+                          r.total === 0  ? "bg-muted"       : "bg-rose-400"
+
+                        return (
+                          <li key={r.label} className="px-5 py-4 hover:bg-muted/20 transition-colors">
+                            <div className="flex items-center justify-between gap-3 mb-2">
+                              <span className="text-sm font-medium truncate">{r.label}</span>
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
+                                <span className={[
+                                  "text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full text-white min-w-[3rem] text-center",
+                                  tone
+                                ].join(" ")}>
+                                  {percent(r.ratio)}%
+                                </span>
+                              </div>
+                            </div>
+                            {/* Progress mit farbiger Bar */}
+                            <div className="h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={["h-full rounded-full transition-all duration-500", tone].join(" ")}
+                                style={{ width: `${percent(r.ratio)}%` }}
+                              />
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+
+            </div>
           </TabsContent>
         </Tabs>
       </div>
