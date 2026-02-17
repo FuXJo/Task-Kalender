@@ -771,7 +771,7 @@ export default function App() {
     const rows = Object.entries(acc)
       .map(([category, v]) => ({
         category,
-        label: category === "" ? "Ohne Kategorie" : category,
+        label: category === "" ? "–" : category,
         total: v.total,
         done: v.done,
         ratio: v.total === 0 ? 0 : v.done / v.total,
@@ -1139,7 +1139,7 @@ export default function App() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="__none__">Ohne Kategorie</SelectItem>
+                                <SelectItem value="__none__">– keine –</SelectItem>
                                 {categories.map((c) => (
                                   <SelectItem key={c} value={c}>
                                     {c}
@@ -1267,7 +1267,7 @@ export default function App() {
 
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                                   <Badge variant="secondary" className="h-4 sm:h-5 px-1.5 sm:px-2 text-[9px] sm:text-[11px]">
-                                    {t.category ? t.category : "Ohne Kategorie"}
+                                    {t.category ? t.category : "–"}
                                   </Badge>
 
                                   {(t.priority ?? 1) >= 2 ? (
@@ -1331,7 +1331,7 @@ export default function App() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="__none__">Ohne Kategorie</SelectItem>
+                              <SelectItem value="__none__">– keine –</SelectItem>
                               {categories.map((c) => (
                                 <SelectItem key={c} value={c}>
                                   {c}
