@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2 } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -782,6 +782,77 @@ export default function App() {
     return { rows }
   }, [tasksByDate, categories])
 
+  // ── Dark Mode ──────────────────────────────────────────────────────────────
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("darkMode") === "true" ||
+        (!localStorage.getItem("darkMode") && window.matchMedia("(prefers-color-scheme: dark)").matches)
+    }
+    return false
+  })
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (darkMode) {
+      root.classList.add("dark")
+      localStorage.setItem("darkMode", "true")
+    } else {
+      root.classList.remove("dark")
+      localStorage.setItem("darkMode", "false")
+    }
+  }, [darkMode])
+
+  // ── Streak ─────────────────────────────────────────────────────────────────
+  const streak = useMemo(() => {
+    let count = 0
+    const cursor = new Date()
+    cursor.setDate(cursor.getDate() - 1)
+    while (true) {
+      const iso = toISODate(cursor)
+      const tasks = tasksByDate[iso]
+      if (!tasks || tasks.length === 0) break
+      const { ratio } = dayCompletion(tasks)
+      if (ratio < 1) break
+      count++
+      cursor.setDate(cursor.getDate() - 1)
+    }
+    const todayTasks = tasksByDate[todayISO]
+    if (todayTasks && todayTasks.length > 0 && dayCompletion(todayTasks).ratio >= 1) count++
+    return count
+  }, [tasksByDate, todayISO])
+
+  // ── Wochenansicht ──────────────────────────────────────────────────────────
+  const [calView, setCalView] = useState<"month" | "week">("month")
+
+  const weekCells = useMemo(() => {
+    const today = parseISODate(selectedISO)
+    const dow = (today.getDay() + 6) % 7
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - dow)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      return { iso: toISODate(d), day: d.getDate(), label: d.toLocaleDateString("de-DE", { weekday: "short" }), inMonth: d.getMonth() === today.getMonth() }
+    })
+  }, [selectedISO])
+
+  // ── Keyboard Shortcuts ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === "INPUT" || tag === "TEXTAREA") return
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); setAddDialogOpen(true) }
+      if (e.key === "ArrowLeft") { e.preventDefault(); setCursorMonth(m => addMonths(m, -1)) }
+      if (e.key === "ArrowRight") { e.preventDefault(); setCursorMonth(m => addMonths(m, 1)) }
+      if (e.key === "d" || e.key === "D") { e.preventDefault(); setDarkMode(v => !v) }
+      if (e.key === "t" || e.key === "T") { e.preventDefault(); setSelectedISO(toISODate(new Date())); setCursorMonth(startOfMonth(new Date())) }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [userId])
+
+
   if (!authReady) {
     return (
       <div className="min-h-screen grid place-items-center p-4">
@@ -902,7 +973,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background pb-safe">
       <div className="mx-auto max-w-[1800px] p-3 sm:p-4 md:p-6">
-        {/* Mobile-optimierter Header */}
+        {/* Header */}
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -914,22 +985,49 @@ export default function App() {
               </div>
             </div>
 
-            <Button variant="outline" size="sm" onClick={signOut} className="flex-shrink-0">
-              Logout
-            </Button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Streak Badge */}
+              {streak > 0 && (
+                <div className="hidden sm:flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl px-3 py-1.5">
+                  <Flame className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">{streak}</span>
+                  <span className="text-xs text-orange-500/70 hidden md:inline">Tage</span>
+                </div>
+              )}
+
+              {/* Dark Mode Toggle */}
+              <Button variant="outline" size="icon" onClick={() => setDarkMode(v => !v)} className="h-9 w-9" title="Dark Mode (D)">
+                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+
+              <Button variant="outline" size="sm" onClick={signOut} className="flex-shrink-0">
+                Logout
+              </Button>
+            </div>
           </div>
 
-          {/* Mobile-freundliche Monatsnavigation */}
+          {/* Navigation */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, -1))} className="h-9 w-9 flex-shrink-0">
+            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, -1))} className="h-9 w-9 flex-shrink-0" title="Vorheriger Monat (←)">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 rounded-xl border px-3 py-2 text-center text-sm font-medium min-w-0">
               <span className="truncate block">{monthLabel}</span>
             </div>
-            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, 1))} className="h-9 w-9 flex-shrink-0">
+            <Button variant="outline" size="icon" onClick={() => { setSelectedISO(todayISO); setCursorMonth(startOfMonth(new Date())) }} className="h-9 px-3 text-xs" title="Heute (T)">
+              Heute
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, 1))} className="h-9 w-9 flex-shrink-0" title="Nächster Monat (→)">
               <ChevronRight className="h-4 w-4" />
             </Button>
+          </div>
+
+          {/* Keyboard Shortcuts Hinweis – nur Desktop */}
+          <div className="hidden lg:flex items-center gap-3 text-[10px] text-muted-foreground/60">
+            <span><kbd className="px-1 py-0.5 rounded border text-[9px]">N</kbd> Neue Aufgabe</span>
+            <span><kbd className="px-1 py-0.5 rounded border text-[9px]">T</kbd> Heute</span>
+            <span><kbd className="px-1 py-0.5 rounded border text-[9px]">←</kbd><kbd className="px-1 py-0.5 rounded border text-[9px]">→</kbd> Monat</span>
+            <span><kbd className="px-1 py-0.5 rounded border text-[9px]">D</kbd> Dark Mode</span>
           </div>
         </div>
 
@@ -980,114 +1078,124 @@ export default function App() {
               <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl">
                 <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                 <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
-                  <CardTitle className="text-sm sm:text-base font-semibold">
-                    {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
-                  </CardTitle>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-sm sm:text-base font-semibold">
+                      {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                    </CardTitle>
+                    {/* Monat / Woche Umschalter */}
+                    <div className="flex items-center rounded-lg border overflow-hidden text-xs">
+                      <button
+                        onClick={() => setCalView("month")}
+                        className={["px-3 py-1.5 transition-colors", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                      >
+                        Monat
+                      </button>
+                      <button
+                        onClick={() => setCalView("week")}
+                        className={["px-3 py-1.5 transition-colors border-l", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                      >
+                        Woche
+                      </button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="px-3 sm:px-5 pt-4">
-                  {/* Wochentage */}
-                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
-                    {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-                      <div key={d} className="text-center py-1">
-                        {d}
+
+                  {calView === "month" ? (
+                    <>
+                      {/* Wochentage */}
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
+                        {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
+                          <div key={d} className="text-center py-1">{d}</div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Kalenderraster */}
-                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                    {monthCells.map((cell) => {
-                      const tasks = tasksByDate[cell.iso]
-                      const { total, done, ratio } = dayCompletion(tasks)
-                      const st = dayStatusClass(cell.iso, todayISO, tasks)
-                      const isSelected = cell.iso === selectedISO
-                      const isToday = cell.iso === todayISO
-                      const isDragOver = dragOverISO === cell.iso
-
-                      return (
-                        <button
-                          key={cell.iso}
-                          type="button"
-                          onClick={() => {
-                            setSelectedISO(cell.iso)
-                            if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso)))
-                          }}
-                          onDragEnter={(e) => {
-                            e.preventDefault()
-                            setDragOverISO(cell.iso)
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault()
-                            e.dataTransfer.dropEffect = "move"
-                            if (dragOverISO !== cell.iso) setDragOverISO(cell.iso)
-                          }}
-                          onDragLeave={() => {
-                            if (dragOverISO === cell.iso) setDragOverISO("")
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault()
-                            const p = readDragPayload(e)
-                            dragRef.current = null
-                            setDragOverISO("")
-                            if (!p) return
-                            if (p.kind !== "move") return
-                            moveTask(p.fromISO, cell.iso, p.taskId)
-                          }}
-                          className={[
-                            "relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation",
-                            cell.inMonth ? "" : "opacity-40",
-                            st.border,
-                            st.bg,
-                            isSelected
-                              ? "ring-2 ring-primary shadow-sm"
-                              : "hover:shadow-sm hover:border-primary/30",
-                            isDragOver ? "ring-2 ring-primary scale-[1.02]" : "",
-                          ].join(" ")}
-                        >
-                          {/* Heute-Indikator */}
-                          <div className="flex items-start justify-between gap-1">
-                            <div className={[
-                              "text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none",
-                              isToday ? "bg-primary text-primary-foreground" : ""
-                            ].join(" ")}>
-                              {cell.day}
-                            </div>
-                            {total > 0 && (
-                              <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">
-                                {done}/{total}
-                              </span>
-                            )}
-                          </div>
-
-                          {total > 0 && (
-                            <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                              <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                <div
-                                  className={[
-                                    "h-full rounded-full transition-all",
-                                    ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"
-                                  ].join(" ")}
-                                  style={{ width: `${percent(ratio)}%` }}
-                                />
+                      {/* Monatsraster */}
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                        {monthCells.map((cell) => {
+                          const tasks = tasksByDate[cell.iso]
+                          const { total, done, ratio } = dayCompletion(tasks)
+                          const st = dayStatusClass(cell.iso, todayISO, tasks)
+                          const isSelected = cell.iso === selectedISO
+                          const isToday = cell.iso === todayISO
+                          const isDragOver = dragOverISO === cell.iso
+                          return (
+                            <button
+                              key={cell.iso}
+                              type="button"
+                              onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
+                              onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                              onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                              onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
+                              className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "ring-2 ring-primary scale-[1.02]" : ""].join(" ")}
+                            >
+                              <div className="flex items-start justify-between gap-1">
+                                <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                  {cell.day}
+                                </div>
+                                {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
                               </div>
-                            </div>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
+                              {total > 0 && (
+                                <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                  <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                    <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Wochenansicht */}
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                        {weekCells.map((cell) => {
+                          const tasks = tasksByDate[cell.iso]
+                          const { total, done, ratio } = dayCompletion(tasks)
+                          const st = dayStatusClass(cell.iso, todayISO, tasks)
+                          const isSelected = cell.iso === selectedISO
+                          const isToday = cell.iso === todayISO
+                          const isDragOver = dragOverISO === cell.iso
+                          return (
+                            <button
+                              key={cell.iso}
+                              type="button"
+                              onClick={() => setSelectedISO(cell.iso)}
+                              onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                              onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                              onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
+                              className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "ring-2 ring-primary" : ""].join(" ")}
+                            >
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
+                                <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                  {cell.day}
+                                </div>
+                              </div>
+                              {total > 0 && (
+                                <div className="mt-2">
+                                  <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
+                                  <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                    <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
 
                   {/* Legende */}
                   <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%
-                    </span>
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%</span>
+                    <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%</span>
                   </div>
 
                   {/* Mobile Spendenbox */}
@@ -1493,6 +1601,107 @@ export default function App() {
           {/* Fortschritt – neu gestaltet */}
           <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
             <div className="max-w-2xl mx-auto grid gap-4">
+
+              {/* Streak + Gesamt-Stats nebeneinander */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Streak Card */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                      <Flame className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold tabular-nums">{streak}</div>
+                      <div className="text-xs text-muted-foreground">Tage Streak</div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Gesamt-Abschlussrate */}
+                {categoryStats.rows.length > 0 && (() => {
+                  const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
+                  const doneAll  = categoryStats.rows.reduce((s, r) => s + r.done, 0)
+                  const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
+                  return (
+                    <Card className="rounded-2xl shadow-sm overflow-hidden">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <BarChart2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold tabular-nums">{percent(ratioAll)}%</div>
+                          <div className="text-xs text-muted-foreground">{doneAll}/{totalAll} erledigt</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })()}
+              </div>
+
+              {/* Heatmap – letzte 12 Wochen */}
+              <Card className="rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-muted/40 px-5 py-3 border-b">
+                  <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Aktivität (letzte 12 Wochen)</h2>
+                </div>
+                <CardContent className="px-4 pt-4 pb-5">
+                  {(() => {
+                    // Baue 12 Wochen à 7 Tage auf (Mo–So), neueste rechts
+                    const today = new Date()
+                    const dow = (today.getDay() + 6) % 7
+                    const endDate = new Date(today)
+                    endDate.setDate(today.getDate() - dow + 6) // Sonntag dieser Woche
+
+                    const weeks: Array<Array<{ iso: ISODate; ratio: number; total: number }>> = []
+                    for (let w = 11; w >= 0; w--) {
+                      const week: Array<{ iso: ISODate; ratio: number; total: number }> = []
+                      for (let d = 0; d < 7; d++) {
+                        const date = new Date(endDate)
+                        date.setDate(endDate.getDate() - w * 7 - (6 - d))
+                        const iso = toISODate(date)
+                        const tasks = tasksByDate[iso]
+                        const { total, ratio } = dayCompletion(tasks)
+                        week.push({ iso, ratio, total })
+                      }
+                      weeks.push(week)
+                    }
+
+                    return (
+                      <div className="overflow-x-auto">
+                        <div className="flex gap-1 min-w-fit">
+                          {weeks.map((week, wi) => (
+                            <div key={wi} className="flex flex-col gap-1">
+                              {week.map((cell) => {
+                                const isSelected = cell.iso === selectedISO
+                                const bg =
+                                  cell.total === 0 ? "bg-muted/50" :
+                                  cell.ratio >= 1   ? "bg-emerald-500" :
+                                  cell.ratio >= 0.5 ? "bg-amber-400" :
+                                                      "bg-rose-300"
+                                return (
+                                  <button
+                                    key={cell.iso}
+                                    onClick={() => { setSelectedISO(cell.iso); setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
+                                    title={`${cell.iso}: ${cell.total > 0 ? `${Math.round(cell.ratio * 100)}%` : "Keine Tasks"}`}
+                                    className={["h-5 w-5 rounded-sm transition-all hover:scale-110", bg, isSelected ? "ring-2 ring-primary ring-offset-1" : ""].join(" ")}
+                                  />
+                                )
+                              })}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground">
+                          <span>Weniger</span>
+                          <span className="h-3 w-3 rounded-sm bg-muted/50" />
+                          <span className="h-3 w-3 rounded-sm bg-rose-300" />
+                          <span className="h-3 w-3 rounded-sm bg-amber-400" />
+                          <span className="h-3 w-3 rounded-sm bg-emerald-500" />
+                          <span>Mehr</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </CardContent>
+              </Card>
 
               {/* Gesamt-Übersicht oben */}
               {categoryStats.rows.length > 0 && (() => {
