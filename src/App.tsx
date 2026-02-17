@@ -1266,9 +1266,11 @@ export default function App() {
                                 </div>
 
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                  <Badge variant="secondary" className="h-4 sm:h-5 px-1.5 sm:px-2 text-[9px] sm:text-[11px]">
-                                    {t.category ? t.category : "–"}
-                                  </Badge>
+                                  {t.category && (
+                                    <Badge variant="secondary" className="h-4 sm:h-5 px-1.5 sm:px-2 text-[9px] sm:text-[11px]">
+                                      {t.category}
+                                    </Badge>
+                                  )}
 
                                   {(t.priority ?? 1) >= 2 ? (
                                     <span className="inline-flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-rose-600 text-[11px] sm:text-[13px] font-black leading-none text-white">
