@@ -822,7 +822,23 @@ export default function App() {
   }, [tasksByDate, todayISO])
 
   // ── Wochenansicht ──────────────────────────────────────────────────────────
-  const [calView, setCalView] = useState<"month" | "week">("month")
+  const [calView, setCalView] = useState<"month" | "week" | "year">("month")
+
+  const yearCells = useMemo(() => {
+    const year = cursorMonth.getFullYear()
+    return Array.from({ length: 12 }, (_, i) => {
+      const monthStart = new Date(year, i, 1)
+      const monthEnd = new Date(year, i + 1, 0)
+      const days: ISODate[] = []
+      for (let d = 1; d <= monthEnd.getDate(); d++) {
+        days.push(toISODate(new Date(year, i, d)))
+      }
+      const totalAll = days.reduce((s, iso) => s + (tasksByDate[iso]?.length ?? 0), 0)
+      const doneAll  = days.reduce((s, iso) => s + (tasksByDate[iso]?.filter(t => t.done).length ?? 0), 0)
+      const ratio = totalAll === 0 ? 0 : doneAll / totalAll
+      return { monthIndex: i, year, label: monthStart.toLocaleDateString("de-DE", { month: "long" }), short: monthStart.toLocaleDateString("de-DE", { month: "short" }), total: totalAll, done: doneAll, ratio }
+    })
+  }, [cursorMonth, tasksByDate])
 
   const weekCells = useMemo(() => {
     const today = parseISODate(selectedISO)
@@ -1008,16 +1024,16 @@ export default function App() {
 
           {/* Navigation */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, -1))} className="h-9 w-9 flex-shrink-0" title="Vorheriger Monat (←)">
+            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, calView === "year" ? -12 : -1))} className="h-9 w-9 flex-shrink-0" title="Vorheriger Monat (←)">
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 rounded-xl border px-3 py-2 text-center text-sm font-medium min-w-0">
-              <span className="truncate block">{monthLabel}</span>
+              <span className="truncate block">{calView === "year" ? cursorMonth.getFullYear() : monthLabel}</span>
             </div>
             <Button variant="outline" size="icon" onClick={() => { setSelectedISO(todayISO); setCursorMonth(startOfMonth(new Date())) }} className="h-9 px-3 text-xs" title="Heute (T)">
               Heute
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, 1))} className="h-9 w-9 flex-shrink-0" title="Nächster Monat (→)">
+            <Button variant="outline" size="icon" onClick={() => setCursorMonth((m) => addMonths(m, calView === "year" ? 12 : 1))} className="h-9 w-9 flex-shrink-0" title="Nächster Monat (→)">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -1080,9 +1096,11 @@ export default function App() {
                 <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-sm sm:text-base font-semibold">
-                      {cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                      {calView === "year"
+                        ? cursorMonth.getFullYear().toString()
+                        : cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
                     </CardTitle>
-                    {/* Monat / Woche Umschalter */}
+                    {/* Monat / Woche / Jahr Umschalter */}
                     <div className="flex items-center rounded-lg border overflow-hidden text-xs">
                       <button
                         onClick={() => setCalView("month")}
@@ -1095,6 +1113,12 @@ export default function App() {
                         className={["px-3 py-1.5 transition-colors border-l", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
                       >
                         Woche
+                      </button>
+                      <button
+                        onClick={() => setCalView("year")}
+                        className={["px-3 py-1.5 transition-colors border-l", calView === "year" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                      >
+                        Jahr
                       </button>
                     </div>
                   </div>
@@ -1148,7 +1172,7 @@ export default function App() {
                         })}
                       </div>
                     </>
-                  ) : (
+                  ) : calView === "week" ? (
                     <>
                       {/* Wochenansicht */}
                       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
@@ -1188,6 +1212,55 @@ export default function App() {
                           )
                         })}
                       </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Jahresansicht – 4×3 Monate */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {yearCells.map((m) => {
+                          const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
+                          const tone =
+                            m.total === 0   ? "border-border bg-background" :
+                            m.ratio >= 1    ? "border-emerald-400/70 bg-emerald-400/15" :
+                            m.ratio >= 0.5  ? "border-amber-400/70 bg-amber-400/15" :
+                                              "border-rose-400/70 bg-rose-400/15"
+                          const barColor =
+                            m.total === 0   ? "bg-muted" :
+                            m.ratio >= 1    ? "bg-emerald-500" :
+                            m.ratio >= 0.5  ? "bg-amber-400" :
+                                              "bg-rose-400"
+
+                          return (
+                            <button
+                              key={m.monthIndex}
+                              type="button"
+                              onClick={() => {
+                                setCursorMonth(new Date(m.year, m.monthIndex, 1))
+                                setCalView("month")
+                              }}
+                              className={[
+                                "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
+                                tone,
+                                isCurrentMonth ? "ring-2 ring-primary" : ""
+                              ].join(" ")}
+                            >
+                              <div className="text-sm font-semibold">{m.label}</div>
+                              {m.total > 0 ? (
+                                <>
+                                  <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
+                                  <div className="mt-2 h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                    <div className={["h-full rounded-full transition-all", barColor].join(" ")} style={{ width: `${percent(m.ratio)}%` }} />
+                                  </div>
+                                  <div className="mt-1 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
+                                </>
+                              ) : (
+                                <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
                     </>
                   )}
 
