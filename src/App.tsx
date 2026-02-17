@@ -133,6 +133,7 @@ export default function App() {
   const [authEmail, setAuthEmail] = useState("")
   const [authPass, setAuthPass] = useState("")
   const [authMsg, setAuthMsg] = useState("")
+  const [authMode, setAuthMode] = useState<"login" | "register">("login")
 
   // Forgot/reset mail request UI
   const [resetMode, setResetMode] = useState(false)
@@ -934,74 +935,117 @@ export default function App() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen grid place-items-center bg-background p-4">
-        <Card className="w-full max-w-md rounded-2xl shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{resetMode ? "Passwort zurücksetzen" : "Login"}</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <div className="grid gap-2">
-              <Label>Email</Label>
-              <Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@email.com" />
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md space-y-6">
+
+          {/* Logo / Titel */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border bg-background shadow-sm mx-auto">
+              <CalendarDays className="h-7 w-7" />
             </div>
+            <h1 className="text-2xl font-bold tracking-tight">Study Calendar</h1>
+            <p className="text-sm text-muted-foreground">Organisiere deinen Lernalltag</p>
+          </div>
 
-            {resetMode ? null : (
-              <div className="grid gap-2">
-                <Label>Passwort</Label>
-                <Input value={authPass} onChange={(e) => setAuthPass(e.target.value)} type="password" />
-              </div>
-            )}
-
-            {authMsg ? <div className="text-sm text-rose-600">{authMsg}</div> : null}
-            {resetMsg ? <div className="text-sm text-emerald-600">{resetMsg}</div> : null}
-
-            {resetMode ? (
-              <>
-                <Button onClick={requestPasswordReset} disabled={authEmail.trim().length === 0}>
+          {resetMode ? (
+            /* ── Passwort zurücksetzen ── */
+            <Card className="rounded-2xl shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Passwort zurücksetzen</CardTitle>
+                <p className="text-xs text-muted-foreground">Wir senden dir einen Reset-Link per E-Mail.</p>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                <div className="grid gap-1.5">
+                  <Label className="text-sm">E-Mail</Label>
+                  <Input
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    type="email"
+                    className="h-10"
+                    onKeyDown={(e) => e.key === "Enter" && requestPasswordReset()}
+                  />
+                </div>
+                {resetMsg && <div className={["text-sm rounded-lg px-3 py-2", resetMsg.includes("gesendet") ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"].join(" ")}>{resetMsg}</div>}
+                <Button onClick={requestPasswordReset} disabled={!authEmail.trim()} className="w-full h-10">
                   Reset-Mail senden
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setResetMode(false)
-                    setResetMsg("")
-                    setAuthMsg("")
-                  }}
-                >
-                  Zurück zum Login
+                <Button variant="ghost" className="w-full" onClick={() => { setResetMode(false); setResetMsg(""); setAuthMsg("") }}>
+                  ← Zurück zum Login
                 </Button>
-              </>
-            ) : (
-              <>
-                <div className="flex gap-2">
-                  <Button className="flex-1" onClick={signIn}>
-                    Einloggen
-                  </Button>
-                  <Button className="flex-1" variant="outline" onClick={signUp}>
-                    Registrieren
-                  </Button>
-                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            /* ── Login / Registrierung mit Tabs ── */
+            <Card className="rounded-2xl shadow-sm overflow-hidden">
+              {/* Tab-Header */}
+              <div className="grid grid-cols-2 border-b">
+                <button
+                  onClick={() => { setAuthMsg(""); setAuthMode("login") }}
+                  className={["py-3 text-sm font-medium transition-colors", authMode === "login" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"].join(" ")}
+                >
+                  Einloggen
+                </button>
+                <button
+                  onClick={() => { setAuthMsg(""); setAuthMode("register") }}
+                  className={["py-3 text-sm font-medium transition-colors", authMode === "register" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"].join(" ")}
+                >
+                  Registrieren
+                </button>
+              </div>
 
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => {
-                    setResetMode(true)
-                    setResetMsg("")
-                    setAuthMsg("")
-                  }}
-                >
-                  Passwort vergessen?
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              <CardContent className="pt-5 pb-5 grid gap-4">
+                {authMode === "login" ? (
+                  <>
+                    <div className="grid gap-1.5">
+                      <Label className="text-sm">E-Mail</Label>
+                      <Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@email.com" type="email" className="h-10" onKeyDown={(e) => e.key === "Enter" && signIn()} />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Passwort</Label>
+                        <button onClick={() => { setResetMode(true); setResetMsg(""); setAuthMsg("") }} className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                          Vergessen?
+                        </button>
+                      </div>
+                      <Input value={authPass} onChange={(e) => setAuthPass(e.target.value)} type="password" className="h-10" onKeyDown={(e) => e.key === "Enter" && signIn()} />
+                    </div>
+                    {authMsg && <div className="text-sm bg-rose-50 text-rose-700 border border-rose-200 rounded-lg px-3 py-2">{authMsg}</div>}
+                    <Button onClick={signIn} disabled={!authEmail.trim() || !authPass} className="w-full h-10">
+                      Einloggen
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                      Erstelle ein kostenloses Konto um deinen Study Calendar zu speichern.
+                    </p>
+                    <div className="grid gap-1.5">
+                      <Label className="text-sm">E-Mail</Label>
+                      <Input value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@email.com" type="email" className="h-10" onKeyDown={(e) => e.key === "Enter" && signUp()} />
+                    </div>
+                    <div className="grid gap-1.5">
+                      <Label className="text-sm">Passwort</Label>
+                      <Input value={authPass} onChange={(e) => setAuthPass(e.target.value)} type="password" placeholder="Mindestens 6 Zeichen" className="h-10" onKeyDown={(e) => e.key === "Enter" && signUp()} />
+                      {authPass.length > 0 && authPass.length < 6 && (
+                        <p className="text-xs text-rose-500">Passwort zu kurz (min. 6 Zeichen)</p>
+                      )}
+                    </div>
+                    {authMsg && <div className={["text-sm rounded-lg px-3 py-2", authMsg.includes("bestätig") || authMsg.includes("Check") ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"].join(" ")}>{authMsg}</div>}
+                    <Button onClick={signUp} disabled={!authEmail.trim() || authPass.length < 6} className="w-full h-10">
+                      Konto erstellen
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     )
   }
 
-  return (
+
     <div className="min-h-screen bg-background pb-safe">
       <div className="mx-auto max-w-[1800px] p-3 sm:p-4 md:p-6">
         {/* Header */}
