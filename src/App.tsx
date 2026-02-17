@@ -845,11 +845,26 @@ export default function App() {
     const dow = (today.getDay() + 6) % 7
     const monday = new Date(today)
     monday.setDate(today.getDate() - dow)
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday)
-      d.setDate(monday.getDate() + i)
-      return { iso: toISODate(d), day: d.getDate(), label: d.toLocaleDateString("de-DE", { weekday: "short" }), inMonth: d.getMonth() === today.getMonth() }
-    })
+
+    // ISO Kalenderwoche berechnen
+    const getISOWeek = (d: Date) => {
+      const tmp = new Date(d)
+      tmp.setHours(0, 0, 0, 0)
+      tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7))
+      const yearStart = new Date(tmp.getFullYear(), 0, 1)
+      return { kw: Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7), year: tmp.getFullYear() }
+    }
+    const { kw, year } = getISOWeek(monday)
+
+    return {
+      days: Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday)
+        d.setDate(monday.getDate() + i)
+        return { iso: toISODate(d), day: d.getDate(), label: d.toLocaleDateString("de-DE", { weekday: "short" }), inMonth: d.getMonth() === today.getMonth() }
+      }),
+      kw,
+      year
+    }
   }, [selectedISO])
 
   // ── Keyboard Shortcuts ──────────────────────────────────────────────────────
@@ -1028,7 +1043,9 @@ export default function App() {
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 rounded-xl border px-3 py-2 text-center text-sm font-medium min-w-0">
-              <span className="truncate block">{calView === "year" ? cursorMonth.getFullYear() : monthLabel}</span>
+              <span className="truncate block">
+                {calView === "year" ? cursorMonth.getFullYear() : calView === "week" ? `KW ${weekCells.kw} · ${weekCells.year}` : monthLabel}
+              </span>
             </div>
             <Button variant="outline" size="icon" onClick={() => { setSelectedISO(todayISO); setCursorMonth(startOfMonth(new Date())) }} className="h-9 px-3 text-xs" title="Heute (T)">
               Heute
@@ -1098,21 +1115,23 @@ export default function App() {
                     <CardTitle className="text-sm sm:text-base font-semibold">
                       {calView === "year"
                         ? cursorMonth.getFullYear().toString()
+                        : calView === "week"
+                        ? `KW ${weekCells.kw} · ${weekCells.year}`
                         : cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
                     </CardTitle>
-                    {/* Monat / Woche / Jahr Umschalter */}
+                    {/* Woche / Monat / Jahr Umschalter */}
                     <div className="flex items-center rounded-lg border overflow-hidden text-xs">
                       <button
-                        onClick={() => setCalView("month")}
-                        className={["px-3 py-1.5 transition-colors", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                      >
-                        Monat
-                      </button>
-                      <button
                         onClick={() => setCalView("week")}
-                        className={["px-3 py-1.5 transition-colors border-l", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                        className={["px-3 py-1.5 transition-colors", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
                       >
                         Woche
+                      </button>
+                      <button
+                        onClick={() => setCalView("month")}
+                        className={["px-3 py-1.5 transition-colors border-l", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                      >
+                        Monat
                       </button>
                       <button
                         onClick={() => setCalView("year")}
@@ -1176,7 +1195,7 @@ export default function App() {
                     <>
                       {/* Wochenansicht */}
                       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                        {weekCells.map((cell) => {
+                        {weekCells.days.map((cell) => {
                           const tasks = tasksByDate[cell.iso]
                           const { total, done, ratio } = dayCompletion(tasks)
                           const st = dayStatusClass(cell.iso, todayISO, tasks)
