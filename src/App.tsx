@@ -1147,6 +1147,43 @@ export default function App() {
                                 ))}
                               </SelectContent>
                             </Select>
+
+                            {/* Neue Kategorie direkt im Dialog erstellen */}
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    const name = normalizeCategory(newCategoryName)
+                                    if (name) {
+                                      ensureCategory(name)
+                                      setNewCategory(name)
+                                      setNewCategoryName("")
+                                    }
+                                  }
+                                }}
+                                placeholder="Neue Kategorie erstellen…"
+                                className="h-9 text-sm flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-9 px-3 text-sm flex-shrink-0"
+                                disabled={!newCategoryName.trim()}
+                                onClick={() => {
+                                  const name = normalizeCategory(newCategoryName)
+                                  if (name) {
+                                    ensureCategory(name)
+                                    setNewCategory(name)
+                                    setNewCategoryName("")
+                                  }
+                                }}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -1323,18 +1360,24 @@ export default function App() {
             </div>
           </TabsContent>
 
-          {/* Mobile-optimierte Kategorien */}
           {/* Kategorien – neu gestaltet */}
           <TabsContent value="kategorien" className="mt-3 sm:mt-4">
             <div className="max-w-2xl mx-auto grid gap-4">
 
+              {/* Neue Kategorie */}
               <Card className="rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-muted/40 px-5 py-3 border-b">
                   <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Neue Kategorie</h2>
                 </div>
                 <CardContent className="pt-4 pb-5 px-5">
                   <div className="flex gap-2">
-                    <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addCategoryFromInput()} placeholder="z.B. Sport, Mathe, Projekt…" className="h-10 text-sm flex-1" />
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addCategoryFromInput()}
+                      placeholder="z.B. Sport, Mathe, Projekt…"
+                      className="h-10 text-sm flex-1"
+                    />
                     <Button onClick={addCategoryFromInput} className="h-10 px-5 text-sm gap-2 flex-shrink-0">
                       <Plus className="h-4 w-4" />
                       Hinzufügen
@@ -1343,10 +1386,13 @@ export default function App() {
                 </CardContent>
               </Card>
 
+              {/* Bestehende Kategorien */}
               <Card className="rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
                   <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
-                  <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">{categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}</span>
+                  <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">
+                    {categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}
+                  </span>
                 </div>
                 <CardContent className="p-0">
                   {categories.length === 0 ? (
@@ -1358,14 +1404,32 @@ export default function App() {
                     <ul className="divide-y">
                       {categories.map((c, idx) => (
                         <li key={c} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors group">
-                          <span className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">{idx + 1}</span>
+                          {/* Farbige Nummer */}
+                          <span className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+
                           <span className="flex-1 text-sm font-medium truncate">{c}</span>
+
                           <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => { setRenameFrom(c); setRenameTo(c) }} className="h-8 px-3 text-xs gap-1.5">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => { setRenameFrom(c); setRenameTo(c) }}
+                              className="h-8 px-3 text-xs gap-1.5"
+                            >
                               <Pencil className="h-3 w-3" />
                               Umbenennen
                             </Button>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteCategory(c)} aria-label="Löschen" className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteCategory(c)}
+                              aria-label="Löschen"
+                              className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -1379,6 +1443,7 @@ export default function App() {
                 </CardContent>
               </Card>
 
+              {/* Umbenennen – nur anzeigen wenn eine Kategorie ausgewählt */}
               {renameFrom && renameFrom !== "—" && (
                 <Card className="rounded-2xl shadow-sm overflow-hidden border-primary/30">
                   <div className="bg-primary/5 px-5 py-3 border-b border-primary/20">
@@ -1391,11 +1456,42 @@ export default function App() {
                     </div>
                     <div className="grid gap-1.5">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wide">Neuer Name</Label>
-                      <Input value={renameTo} onChange={(e) => setRenameTo(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { renameCategory(renameFrom, renameTo); setRenameFrom(""); setRenameTo("") } }} placeholder="Neuer Name…" className="h-10 text-sm" autoFocus />
+                      <Input
+                        value={renameTo}
+                        onChange={(e) => setRenameTo(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && renameFrom && renameFrom !== "—") {
+                            renameCategory(renameFrom, renameTo)
+                            setRenameFrom("")
+                            setRenameTo("")
+                          }
+                        }}
+                        placeholder="Neuer Name…"
+                        className="h-10 text-sm"
+                        autoFocus
+                      />
                     </div>
                     <div className="flex gap-2 pt-1">
-                      <Button type="button" onClick={() => { renameCategory(renameFrom, renameTo); setRenameFrom(""); setRenameTo("") }} disabled={!renameTo.trim() || renameTo === renameFrom} className="flex-1 h-9 text-sm">Speichern</Button>
-                      <Button type="button" variant="outline" onClick={() => { setRenameFrom(""); setRenameTo("") }} className="h-9 px-4 text-sm">Abbrechen</Button>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          renameCategory(renameFrom, renameTo)
+                          setRenameFrom("")
+                          setRenameTo("")
+                        }}
+                        disabled={!renameTo.trim() || renameTo === renameFrom}
+                        className="flex-1 h-9 text-sm"
+                      >
+                        Speichern
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => { setRenameFrom(""); setRenameTo("") }}
+                        className="h-9 px-4 text-sm"
+                      >
+                        Abbrechen
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -1403,6 +1499,7 @@ export default function App() {
 
             </div>
           </TabsContent>
+
           {/* Mobile-optimierter Fortschritt */}
           <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
             <Card className="rounded-xl sm:rounded-2xl shadow-sm">
