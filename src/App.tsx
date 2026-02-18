@@ -2106,7 +2106,7 @@ export default function App() {
                         <select
                           value={filterCategory}
                           onChange={(e) => setFilterCategory(e.target.value)}
-                          className="h-8 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="h-8 max-w-[80px] rounded-md border border-input bg-background px-1.5 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring truncate"
                           title="Nach Kategorie filtern"
                         >
                           <option value="">Alle</option>
@@ -2116,9 +2116,9 @@ export default function App() {
                         </select>
                         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                           <DialogTrigger asChild>
-                            <Button className="gap-1.5 h-8 text-xs px-3 flex-shrink-0">
+                            <Button className="gap-1 h-8 text-xs px-2 sm:px-3 flex-shrink-0">
                               <Plus className="h-3.5 w-3.5" />
-                              Hinzufügen
+                              <span className="hidden sm:inline">Hinzufügen</span>
                             </Button>
                           </DialogTrigger>
 
