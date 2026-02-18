@@ -17,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type ISODate = string
 
+type Subtask = { title: string; done: boolean }
+
 type DbTask = {
   id: string
   user_id: string
@@ -32,6 +34,7 @@ type DbTask = {
 
   sort_order: number
   notes?: string | null   // #10: optional notes field
+  subtasks?: Subtask[] | null  // #7: optional subtasks
 }
 
 // Drag payload
@@ -200,6 +203,29 @@ function triggerKonfetti() {
     container.appendChild(p)
   }
   setTimeout(() => container.remove(), 3000)
+}
+
+// Small inline input to add subtasks
+function SubtaskAddInput({ onAdd }: { onAdd: (title: string) => void }) {
+  const [val, setVal] = useState("")
+  return (
+    <div className="flex items-center gap-1 mt-0.5">
+      <Plus className="h-2.5 w-2.5 text-muted-foreground/40 flex-shrink-0" />
+      <input
+        type="text"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && val.trim()) {
+            onAdd(val.trim())
+            setVal("")
+          }
+        }}
+        placeholder="Subtask…"
+        className="text-[11px] bg-transparent border-none outline-none placeholder:text-muted-foreground/30 w-full py-0"
+      />
+    </div>
+  )
 }
 
 export default function App() {
@@ -536,7 +562,7 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes,subtasks")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
@@ -690,7 +716,7 @@ export default function App() {
     const { data, error } = await supabase
       .from("tasks")
       .insert(inserts)
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes,subtasks")
 
     if (error || !data) return
 
@@ -727,8 +753,9 @@ export default function App() {
         repeat_until: task.repeat_until,
         sort_order: Math.floor(Date.now() / 1000),
         notes: task.notes,
+        subtasks: task.subtasks ? task.subtasks.map(s => ({ ...s, done: false })) : null,
       })
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes,subtasks")
       .single()
     if (error || !data) return
     const row = data as DbTask
@@ -813,7 +840,7 @@ export default function App() {
           priority: deletedTask.priority,
           sort_order: deletedTask.sort_order,
         }])
-        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
+        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes,subtasks")
         .single()
       if (data) {
         const row = data as DbTask
@@ -877,6 +904,32 @@ export default function App() {
     setEditTitle("")
     setEditCategory("__none__")
     setEditHighPriority(false)
+  }
+
+  // Subtask management
+  const updateSubtasksForTask = async (taskId: string, dateISO: ISODate, newSubtasks: Subtask[]) => {
+    if (!userId) return
+    setTasksByDate((prev) => {
+      const l = prev[dateISO] ?? []
+      return { ...prev, [dateISO]: l.map((t) => (t.id === taskId ? { ...t, subtasks: newSubtasks } : t)) }
+    })
+    await supabase.from("tasks").update({ subtasks: newSubtasks }).eq("id", taskId).eq("user_id", userId)
+  }
+
+  const toggleSubtask = (task: DbTask, index: number) => {
+    const subs = [...(task.subtasks ?? [])]
+    subs[index] = { ...subs[index], done: !subs[index].done }
+    updateSubtasksForTask(task.id, task.date, subs)
+  }
+
+  const addSubtaskToTask = (task: DbTask, title: string) => {
+    const subs = [...(task.subtasks ?? []), { title, done: false }]
+    updateSubtasksForTask(task.id, task.date, subs)
+  }
+
+  const removeSubtask = (task: DbTask, index: number) => {
+    const subs = (task.subtasks ?? []).filter((_, i) => i !== index)
+    updateSubtasksForTask(task.id, task.date, subs)
   }
 
   const renormalizeGroup = async (iso: ISODate, done: boolean, priority: number) => {
@@ -1173,7 +1226,7 @@ export default function App() {
 
       let query = supabase
         .from("tasks")
-        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
+        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes,subtasks")
         .eq("user_id", userId)
         .order("date", { ascending: true })
       if (from) query = query.gte("date", from)
@@ -2307,6 +2360,30 @@ export default function App() {
                                   {t.notes && (
                                     <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
                                       <FileText className="h-2.5 w-2.5 inline mr-0.5" />{t.notes}
+                                    </div>
+                                  )}
+                                  {/* Subtasks */}
+                                  {((t.subtasks && t.subtasks.length > 0) || !t.done) && (
+                                    <div className="mt-1.5 space-y-0.5">
+                                      {(t.subtasks ?? []).map((sub, si) => (
+                                        <div key={si} className="flex items-center gap-1.5 group/sub">
+                                          <Checkbox
+                                            className="h-3 w-3 flex-shrink-0"
+                                            checked={sub.done}
+                                            onCheckedChange={() => toggleSubtask(t, si)}
+                                          />
+                                          <span className={["text-[11px] flex-1 leading-tight", sub.done ? "line-through text-muted-foreground/60" : "text-muted-foreground"].join(" ")}>{sub.title}</span>
+                                          <button
+                                            onClick={() => removeSubtask(t, si)}
+                                            className="opacity-0 group-hover/sub:opacity-60 hover:!opacity-100 text-muted-foreground transition-opacity"
+                                          >
+                                            <X className="h-2.5 w-2.5" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                      {!t.done && (
+                                        <SubtaskAddInput onAdd={(title) => addSubtaskToTask(t, title)} />
+                                      )}
                                     </div>
                                   )}
                                 </div>
