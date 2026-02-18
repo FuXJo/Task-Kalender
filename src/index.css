@@ -30,6 +30,7 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -62,6 +63,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -72,23 +74,29 @@
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
+
 .custom-scrollbar:hover {
   scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: transparent;
   border-radius: 3px;
   transition: background-color 0.2s;
 }
+
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
   background-color: hsl(var(--muted-foreground) / 0.3);
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: hsl(var(--muted-foreground) / 0.5);
 }
@@ -99,11 +107,105 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .view-transition {
   animation: fadeSlideIn 0.25s ease-out;
+}
+
+/* #1: Konfetti Animation */
+@keyframes konfettiPop {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+.konfetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.konfetti-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: konfettiFall 2s ease-out forwards;
+}
+
+@keyframes konfettiFall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* #3: Skeleton Loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground) / 0.08) 50%, hsl(var(--muted)) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+/* #4: Checkbox Bounce */
+@keyframes checkBounce {
+  0% {
+    transform: scale(1);
+  }
+
+  30% {
+    transform: scale(1.3);
+  }
+
+  60% {
+    transform: scale(0.9);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.check-bounce {
+  animation: checkBounce 0.3s ease-out;
+}
+
+/* Category color stripe */
+.category-stripe {
+  border-left: 3px solid var(--stripe-color, hsl(var(--muted-foreground) / 0.2));
 }

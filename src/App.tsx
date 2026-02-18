@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2, Undo2, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -31,6 +31,7 @@ type DbTask = {
   repeat_until: string | null
 
   sort_order: number
+  notes?: string | null   // #10: optional notes field
 }
 
 // Drag payload
@@ -144,6 +145,42 @@ function getEmptyMessage(iso: ISODate) {
   return EMPTY_MESSAGES[hash % EMPTY_MESSAGES.length]
 }
 
+// #2: Category Color Palette
+const CATEGORY_COLORS = [
+  "hsl(220, 80%, 60%)",  // Blue
+  "hsl(340, 75%, 55%)",  // Rose
+  "hsl(160, 65%, 45%)",  // Emerald
+  "hsl(280, 60%, 55%)",  // Purple
+  "hsl(30, 80%, 55%)",   // Orange
+  "hsl(190, 70%, 45%)",  // Teal
+  "hsl(50, 85%, 50%)",   // Amber
+  "hsl(0, 70%, 55%)",    // Red
+]
+
+function getCategoryColor(category: string): string {
+  const hash = category.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
+  return CATEGORY_COLORS[hash % CATEGORY_COLORS.length]
+}
+
+// #1: Konfetti burst function
+function triggerKonfetti() {
+  const container = document.createElement("div")
+  container.className = "konfetti-container"
+  document.body.appendChild(container)
+  const colors = ["#f43f5e", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"]
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement("div")
+    p.className = "konfetti-particle"
+    p.style.left = `${Math.random() * 100}%`
+    p.style.top = `${Math.random() * 30 - 10}%`
+    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
+    p.style.animationDelay = `${Math.random() * 0.5}s`
+    p.style.animationDuration = `${1.5 + Math.random() * 1}s`
+    container.appendChild(p)
+  }
+  setTimeout(() => container.remove(), 3000)
+}
+
 export default function App() {
   // Auth
   const [authReady, setAuthReady] = useState(false)
@@ -232,6 +269,8 @@ export default function App() {
   const [newTitle, setNewTitle] = useState("")
   const [newCategory, setNewCategory] = useState<string>("__none__")
   const [newHighPriority, setNewHighPriority] = useState(false)
+  const [newRepeatDays, setNewRepeatDays] = useState<number>(0)  // #5: 0 = no repeat
+  const [newNotes, setNewNotes] = useState("")  // #10: notes field
 
   // Edit Task Dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -239,6 +278,22 @@ export default function App() {
   const [editTitle, setEditTitle] = useState("")
   const [editCategory, setEditCategory] = useState<string>("__none__")
   const [editHighPriority, setEditHighPriority] = useState(false)
+  const [editNotes, setEditNotes] = useState("")  // #10: notes field
+
+  // #6: Task search
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // #8: Multi-select for batch operations
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set())
+  const [multiSelectMode, setMultiSelectMode] = useState(false)
+
+  // #4: Checkbox bounce tracking
+  const [bouncingId, setBouncingId] = useState<string>("")
+
+  // #1: Konfetti recently triggered flag to avoid double-trigger
+  const konfettiTriggeredRef = useRef<string>("")
 
   // Category management UI
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -405,7 +460,7 @@ export default function App() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
       .eq("user_id", userId)
       .gte("date", from)
       .lte("date", to)
@@ -526,35 +581,54 @@ export default function App() {
     const cat = newCategory === "__none__" ? null : normalizeCategory(newCategory)
     if (cat) ensureCategory(cat)
 
+    const repeatDays = newRepeatDays > 0 ? newRepeatDays : null
+    const notes = newNotes.trim() || null
+
+    // #5: If repeat is set, create tasks for future dates too
+    const datesToCreate: ISODate[] = [selectedISO]
+    if (repeatDays) {
+      const maxRepeats = Math.min(Math.floor(90 / repeatDays), 30) // max ~30 repeats or 90 days
+      for (let i = 1; i <= maxRepeats; i++) {
+        const d = parseISODate(selectedISO)
+        d.setDate(d.getDate() + repeatDays * i)
+        datesToCreate.push(toISODate(d))
+      }
+    }
+
+    const inserts = datesToCreate.map((date, i) => ({
+      user_id: userId,
+      date,
+      title,
+      category: cat,
+      done: false,
+      priority: newHighPriority ? 2 : 1,
+      repeat_every_days: repeatDays,
+      repeat_until: null,
+      sort_order: Math.floor(Date.now() / 1000) + i,
+    }))
+
     const { data, error } = await supabase
       .from("tasks")
-      .insert([
-        {
-          user_id: userId,
-          date: selectedISO,
-          title,
-          category: cat,
-          done: false,
-          priority: newHighPriority ? 2 : 1,
-          repeat_every_days: null,
-          repeat_until: null,
-          sort_order: Math.floor(Date.now() / 1000),
-        },
-      ])
-      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
-      .single()
+      .insert(inserts)
+      .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
 
     if (error || !data) return
 
-    const row = data as DbTask
+    const rows = data as DbTask[]
     setTasksByDate((prev) => {
-      const list = prev[row.date] ?? []
-      return { ...prev, [row.date]: [...list, row] }
+      const next = { ...prev }
+      for (const row of rows) {
+        const list = next[row.date] ?? []
+        next[row.date] = [...list, row]
+      }
+      return next
     })
 
     setNewTitle("")
     setNewCategory("__none__")
     setNewHighPriority(false)
+    setNewRepeatDays(0)
+    setNewNotes("")
     setAddDialogOpen(false)
   }
 
@@ -566,10 +640,29 @@ export default function App() {
 
     const nextDone = !cur.done
 
+    // #4: Checkbox bounce
+    if (nextDone) {
+      setBouncingId(taskId)
+      setTimeout(() => setBouncingId(""), 350)
+    }
+
     setTasksByDate((prev) => {
       const list = prev[selectedISO] ?? []
       return { ...prev, [selectedISO]: list.map((t) => (t.id === taskId ? { ...t, done: nextDone } : t)) }
     })
+
+    // #1: Check if all tasks for this day are now done -> konfetti!
+    if (nextDone) {
+      const updated = dayList.map((t) => t.id === taskId ? { ...t, done: true } : t)
+      const allDone = updated.length > 0 && updated.every((t) => t.done)
+      if (allDone && konfettiTriggeredRef.current !== selectedISO) {
+        konfettiTriggeredRef.current = selectedISO
+        setTimeout(triggerKonfetti, 200)
+      }
+    } else {
+      // Reset konfetti flag if unchecking
+      if (konfettiTriggeredRef.current === selectedISO) konfettiTriggeredRef.current = ""
+    }
 
     const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId).eq("user_id", userId)
     if (error) {
@@ -614,7 +707,7 @@ export default function App() {
           priority: deletedTask.priority,
           sort_order: deletedTask.sort_order,
         }])
-        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
+        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
         .single()
       if (data) {
         const row = data as DbTask
@@ -632,6 +725,7 @@ export default function App() {
     setEditTitle(task.title)
     setEditCategory(task.category ? task.category : "__none__")
     setEditHighPriority((task.priority ?? 1) >= 2)
+    setEditNotes(task.notes ?? "")
     setEditDialogOpen(true)
   }
 
@@ -648,18 +742,19 @@ export default function App() {
     if (!before) return
 
     const nextPriority = editHighPriority ? 2 : 1
+    const notes = editNotes.trim() || null
 
     setTasksByDate((prev) => {
       const l = prev[selectedISO] ?? []
       return {
         ...prev,
-        [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat, priority: nextPriority } : t)),
+        [selectedISO]: l.map((t) => (t.id === editTaskId ? { ...t, title, category: cat, priority: nextPriority, notes } : t)),
       }
     })
 
     const { error } = await supabase
       .from("tasks")
-      .update({ title, category: cat, priority: nextPriority })
+      .update({ title, category: cat, priority: nextPriority, notes })
       .eq("id", editTaskId)
       .eq("user_id", userId)
 
@@ -893,7 +988,7 @@ export default function App() {
 
       let query = supabase
         .from("tasks")
-        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
+        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order,notes")
         .eq("user_id", userId)
         .order("date", { ascending: true })
       if (from) query = query.gte("date", from)
@@ -975,6 +1070,113 @@ export default function App() {
     setDragOverTaskId("")
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [touchDragId, dragOverTaskId, dragPos])
+
+  // #6: Search keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault()
+        setSearchOpen(true)
+        setTimeout(() => searchInputRef.current?.focus(), 50)
+      }
+      if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false)
+        setSearchQuery("")
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [searchOpen])
+
+  // #6: Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return []
+    const q = searchQuery.toLowerCase()
+    const results: { task: DbTask; iso: ISODate }[] = []
+    for (const [iso, tasks] of Object.entries(tasksByDate)) {
+      for (const t of tasks ?? []) {
+        if (t.title.toLowerCase().includes(q) || (t.category && t.category.toLowerCase().includes(q))) {
+          results.push({ task: t, iso })
+        }
+      }
+    }
+    return results.slice(0, 20) // limit to 20 results
+  }, [searchQuery, tasksByDate])
+
+  // #9: CSV export function
+  const exportCSV = useCallback(() => {
+    const source = statsData
+    const rows: string[] = ["Datum,Titel,Kategorie,Erledigt,Priorität"]
+    for (const [iso, tasks] of Object.entries(source)) {
+      for (const t of tasks ?? []) {
+        rows.push(`${iso},"${t.title.replace(/"/g, '""')}",${t.category ?? ""},${t.done ? "Ja" : "Nein"},${t.priority >= 2 ? "Hoch" : "Normal"}`)
+      }
+    }
+    const csv = rows.join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `tasks_export_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [statsData])
+
+  // #8: Batch delete selected tasks
+  const deleteSelectedTasks = useCallback(async () => {
+    if (!userId || selectedTaskIds.size === 0) return
+    for (const taskId of selectedTaskIds) {
+      await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", userId)
+    }
+    setTasksByDate((prev) => {
+      const next = { ...prev }
+      for (const [iso, tasks] of Object.entries(next)) {
+        next[iso] = (tasks ?? []).filter((t) => !selectedTaskIds.has(t.id))
+        if (next[iso].length === 0) delete next[iso]
+      }
+      return next
+    })
+    setSelectedTaskIds(new Set())
+    setMultiSelectMode(false)
+  }, [userId, selectedTaskIds])
+
+  // #8: Batch move selected tasks to a date
+  const moveSelectedTasks = useCallback(async (targetISO: ISODate) => {
+    if (!userId || selectedTaskIds.size === 0) return
+    for (const taskId of selectedTaskIds) {
+      await supabase.from("tasks").update({ date: targetISO }).eq("id", taskId).eq("user_id", userId)
+    }
+    setTasksByDate((prev) => {
+      const next = { ...prev }
+      const movedTasks: DbTask[] = []
+      // Remove from current positions
+      for (const [iso, tasks] of Object.entries(next)) {
+        const remaining = (tasks ?? []).filter((t) => {
+          if (selectedTaskIds.has(t.id)) {
+            movedTasks.push({ ...t, date: targetISO })
+            return false
+          }
+          return true
+        })
+        if (remaining.length === 0) delete next[iso]
+        else next[iso] = remaining
+      }
+      // Add to target date
+      next[targetISO] = [...(next[targetISO] ?? []), ...movedTasks]
+      return next
+    })
+    setSelectedTaskIds(new Set())
+    setMultiSelectMode(false)
+  }, [userId, selectedTaskIds])
+
+  // #7: Deadline indicator - count open tasks for today
+  const todayOpenCount = useMemo(() => {
+    const today = toISODate(new Date())
+    const todayTasks = tasksByDate[today] ?? []
+    return todayTasks.filter((t) => !t.done).length
+  }, [tasksByDate])
+
+  const isEvening = new Date().getHours() >= 18
 
   // ── Dark Mode ──────────────────────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -1272,6 +1474,19 @@ export default function App() {
                   </div>
                 )}
 
+                {/* #6: Search */}
+                <Button variant="outline" size="icon" onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50) }} className="h-9 w-9" title="Suche (/)">
+                  <Search className="h-4 w-4" />
+                </Button>
+
+                {/* #7: Deadline indicator */}
+                {isEvening && todayOpenCount > 0 && selectedISO === toISODate(new Date()) && (
+                  <div className="hidden sm:flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-1.5">
+                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">{todayOpenCount}</span>
+                    <span className="text-xs text-amber-500/70">offen</span>
+                  </div>
+                )}
+
                 {/* Dark Mode Toggle */}
                 <Button variant="outline" size="icon" onClick={() => setDarkMode(v => !v)} className="h-9 w-9" title="Dark Mode (D)">
                   {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -1554,93 +1769,147 @@ export default function App() {
                         <div className="text-sm font-semibold">To-dos</div>
                         <div className="text-[11px] text-muted-foreground mt-0.5">{selectedDateLabel}</div>
                       </div>
-                      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button className="gap-1.5 h-8 text-xs px-3 flex-shrink-0">
-                            <Plus className="h-3.5 w-3.5" />
-                            Hinzufügen
-                          </Button>
-                        </DialogTrigger>
+                      <div className="flex items-center gap-1.5">
+                        {/* #8: Multi-select toggle */}
+                        <Button
+                          variant={multiSelectMode ? "secondary" : "ghost"}
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Mehrfachauswahl"
+                          onClick={() => { setMultiSelectMode(v => !v); setSelectedTaskIds(new Set()) }}
+                        >
+                          <CheckSquare className="h-3.5 w-3.5" />
+                        </Button>
+                        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button className="gap-1.5 h-8 text-xs px-3 flex-shrink-0">
+                              <Plus className="h-3.5 w-3.5" />
+                              Hinzufügen
+                            </Button>
+                          </DialogTrigger>
 
-                        <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
-                          <DialogHeader>
-                            <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
-                          </DialogHeader>
+                          <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
+                            <DialogHeader>
+                              <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
+                            </DialogHeader>
 
-                          <div className="grid gap-3">
-                            <div className="grid gap-2">
-                              <Label className="text-sm">Titel</Label>
-                              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
-                            </div>
+                            <div className="grid gap-3">
+                              <div className="grid gap-2">
+                                <Label className="text-sm">Titel</Label>
+                                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
+                              </div>
 
-                            <div className="grid gap-2">
-                              <Label className="text-sm">Kategorie (optional)</Label>
-                              <Select value={newCategory} onValueChange={setNewCategory}>
-                                <SelectTrigger className="h-10">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">– keine –</SelectItem>
-                                  {categories.map((c) => (
-                                    <SelectItem key={c} value={c}>
-                                      {c}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div className="grid gap-2">
+                                <Label className="text-sm">Kategorie (optional)</Label>
+                                <Select value={newCategory} onValueChange={setNewCategory}>
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">– keine –</SelectItem>
+                                    {categories.map((c) => (
+                                      <SelectItem key={c} value={c}>
+                                        {c}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
 
-                              {/* Neue Kategorie direkt im Dialog erstellen */}
-                              <div className="flex gap-2 mt-1">
-                                <Input
-                                  value={newCategoryName}
-                                  onChange={(e) => setNewCategoryName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault()
+                                {/* Neue Kategorie direkt im Dialog erstellen */}
+                                <div className="flex gap-2 mt-1">
+                                  <Input
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        const name = normalizeCategory(newCategoryName)
+                                        if (name) {
+                                          ensureCategory(name)
+                                          setNewCategory(name)
+                                          setNewCategoryName("")
+                                        }
+                                      }
+                                    }}
+                                    placeholder="Neue Kategorie erstellen…"
+                                    className="h-9 text-sm flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-9 px-3 text-sm flex-shrink-0"
+                                    disabled={!newCategoryName.trim()}
+                                    onClick={() => {
                                       const name = normalizeCategory(newCategoryName)
                                       if (name) {
                                         ensureCategory(name)
                                         setNewCategory(name)
                                         setNewCategoryName("")
                                       }
-                                    }
-                                  }}
-                                  placeholder="Neue Kategorie erstellen…"
-                                  className="h-9 text-sm flex-1"
+                                    }}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
+                                <span className="text-sm">Hohe Priorität</span>
+                              </div>
+
+                              {/* #5: Repeat field */}
+                              <div className="grid gap-2">
+                                <Label className="text-sm flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Wiederholen (optional)</Label>
+                                <Select value={String(newRepeatDays)} onValueChange={(v) => setNewRepeatDays(Number(v))}>
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="0">Kein Repeat</SelectItem>
+                                    <SelectItem value="1">Täglich</SelectItem>
+                                    <SelectItem value="2">Alle 2 Tage</SelectItem>
+                                    <SelectItem value="7">Wöchentlich</SelectItem>
+                                    <SelectItem value="14">Alle 2 Wochen</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* #10: Notes field */}
+                              <div className="grid gap-2">
+                                <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
+                                <textarea
+                                  value={newNotes}
+                                  onChange={(e) => setNewNotes(e.target.value)}
+                                  placeholder="z.B. Kapitel 3-5 lesen"
+                                  className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                                  rows={2}
                                 />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="h-9 px-3 text-sm flex-shrink-0"
-                                  disabled={!newCategoryName.trim()}
-                                  onClick={() => {
-                                    const name = normalizeCategory(newCategoryName)
-                                    if (name) {
-                                      ensureCategory(name)
-                                      setNewCategory(name)
-                                      setNewCategoryName("")
-                                    }
-                                  }}
-                                >
-                                  <Plus className="h-3.5 w-3.5" />
-                                </Button>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
-                              <span className="text-sm">Hohe Priorität</span>
-                            </div>
-                          </div>
-
-                          <DialogFooter className="sm:justify-end">
-                            <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
-                              Speichern
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                            <DialogFooter className="sm:justify-end">
+                              <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
+                                Speichern
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
+                    {/* #8: Multi-select toolbar */}
+                    {multiSelectMode && selectedTaskIds.size > 0 && (
+                      <div className="border-b px-4 py-2 flex items-center gap-2 bg-muted/30">
+                        <span className="text-xs font-medium">{selectedTaskIds.size} ausgewählt</span>
+                        <div className="flex-1" />
+                        <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={deleteSelectedTasks}>
+                          <Trash2 className="h-3 w-3 mr-1" /> Löschen
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setSelectedTaskIds(new Set()); setMultiSelectMode(false) }}>
+                          Abbrechen
+                        </Button>
+                      </div>
+                    )}
 
                     {/* Task-Liste */}
                     <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
@@ -1665,7 +1934,13 @@ export default function App() {
                               <div
                                 key={t.id}
                                 data-task-id={t.id}
-                                className={["flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-colors touch-manipulation", overClass, touchDragId === t.id ? "opacity-50" : ""].join(" ")}
+                                className={[
+                                  "flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-colors touch-manipulation category-stripe",
+                                  overClass,
+                                  touchDragId === t.id ? "opacity-50" : "",
+                                  selectedTaskIds.has(t.id) ? "bg-primary/5" : ""
+                                ].join(" ")}
+                                style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
                                 onDragOver={(e) => {
                                   const p = readDragPayload(e)
                                   if (!p || p.kind !== "reorder") return
@@ -1701,7 +1976,25 @@ export default function App() {
                                   setDragOverTaskId("")
                                 }}
                               >
-                                <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                                {/* #8: Multi-select checkbox */}
+                                {multiSelectMode ? (
+                                  <Checkbox
+                                    className="h-4 w-4 flex-shrink-0"
+                                    checked={selectedTaskIds.has(t.id)}
+                                    onCheckedChange={() => {
+                                      setSelectedTaskIds(prev => {
+                                        const next = new Set(prev)
+                                        if (next.has(t.id)) next.delete(t.id)
+                                        else next.add(t.id)
+                                        return next
+                                      })
+                                    }}
+                                  />
+                                ) : (
+                                  <div className={bouncingId === t.id ? "check-bounce" : ""}>
+                                    <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                                  </div>
+                                )}
 
                                 <div className="min-w-0 flex-1">
                                   <div className={[
@@ -1712,14 +2005,22 @@ export default function App() {
                                   </div>
                                   <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                                     {t.category && (
-                                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal">
+                                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(t.category), color: getCategoryColor(t.category) }}>
                                         {t.category}
                                       </Badge>
                                     )}
                                     {(t.priority ?? 1) >= 2 && (
                                       <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black leading-none text-white">!</span>
                                     )}
+                                    {t.repeat_every_days && t.repeat_every_days > 0 && (
+                                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"><Repeat className="h-2.5 w-2.5" /> {t.repeat_every_days === 1 ? "täglich" : t.repeat_every_days === 7 ? "wöchentlich" : `alle ${t.repeat_every_days}d`}</span>
+                                    )}
                                   </div>
+                                  {t.notes && (
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
+                                      <FileText className="h-2.5 w-2.5 inline mr-0.5" />{t.notes}
+                                    </div>
+                                  )}
                                 </div>
 
                                 <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity">
@@ -1785,7 +2086,19 @@ export default function App() {
 
                           <div className="flex items-center gap-2">
                             <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} className="h-4 w-4" />
-                            <span className="text-sm">Hohe Priorität</span>
+                            <span className="text-sm">Hohe Priorit&auml;t</span>
+                          </div>
+
+                          {/* #10: Notes field in edit dialog */}
+                          <div className="grid gap-2">
+                            <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
+                            <textarea
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              placeholder="z.B. Kapitel 3-5 lesen"
+                              className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                              rows={2}
+                            />
                           </div>
                         </div>
 
@@ -1963,6 +2276,11 @@ export default function App() {
                     })}
                   </div>
                   {statsLoading && <span className="text-xs text-muted-foreground animate-pulse">Lade...</span>}
+                  <div className="flex-1" />
+                  {/* #9: CSV Export */}
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={exportCSV}>
+                    <Download className="h-3.5 w-3.5" /> CSV Export
+                  </Button>
                 </div>
 
                 {/* Streak + Gesamt-Stats nebeneinander */}
@@ -2139,6 +2457,61 @@ export default function App() {
               </div>
             </TabsContent>
           </Tabs>
+          {/* #6: Search Overlay */}
+          {searchOpen && (
+            <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-[10vh]" onClick={() => { setSearchOpen(false); setSearchQuery("") }}>
+              <div className="bg-card border rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-3 border-b px-4 py-3">
+                  <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <input
+                    ref={searchInputRef}
+                    autoFocus
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Tasks durchsuchen…"
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery("") } }}
+                  />
+                  <button onClick={() => { setSearchOpen(false); setSearchQuery("") }} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {searchQuery.trim() && (
+                  <div className="max-h-[300px] overflow-y-auto">
+                    {searchResults.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-sm text-muted-foreground">Keine Ergebnisse</div>
+                    ) : (
+                      searchResults.map(({ task, iso }) => (
+                        <button
+                          key={task.id}
+                          className="w-full text-left px-4 py-2.5 hover:bg-muted/50 border-b last:border-b-0 transition-colors"
+                          onClick={() => {
+                            setSelectedISO(iso)
+                            setCursorMonth(startOfMonth(parseISODate(iso)))
+                            setSearchOpen(false)
+                            setSearchQuery("")
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={["text-sm flex-1 truncate", task.done ? "line-through text-muted-foreground" : "font-medium"].join(" ")}>{task.title}</div>
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">{iso}</span>
+                          </div>
+                          {task.category && (
+                            <Badge variant="secondary" className="mt-0.5 h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(task.category), color: getCategoryColor(task.category) }}>
+                              {task.category}
+                            </Badge>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                <div className="px-4 py-2 border-t text-[10px] text-muted-foreground">
+                  Drücke <kbd className="px-1 py-0.5 rounded border text-[10px]">/</kbd> zum Öffnen · <kbd className="px-1 py-0.5 rounded border text-[10px]">Esc</kbd> zum Schliessen
+                </div>
+              </div>
+            </div>
+          )}
           {/* #1: Undo Toast */}
           {undoToast && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
