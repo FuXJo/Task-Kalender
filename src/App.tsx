@@ -1346,7 +1346,7 @@ export default function App() {
               </Card>
 
               {/* To-dos */}
-              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col lg:self-start lg:sticky lg:top-4">
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col sticky top-6 self-start max-h-[calc(100vh-120px)]">
                 <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                   <div>
                     <div className="text-sm font-semibold">To-dos</div>
@@ -1441,7 +1441,7 @@ export default function App() {
                 </div>
 
                   {/* Task-Liste */}
-                  <div className="overflow-y-auto max-h-[60vh] lg:max-h-[calc(100vh-16rem)]">
+                  <div className="flex-1 overflow-y-auto">
                     {selectedTasks.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
