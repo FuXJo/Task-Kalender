@@ -978,12 +978,11 @@ export default function App() {
 
     // Show undo toast
     showUndoToast(`Kategorie "${cat}" entfernt`, async () => {
-      // Re-assign the category to all affected tasks
+      // Re-assign the category to all affected tasks in DB
       if (affectedTaskIds.length > 0) {
         await supabase.from("tasks").update({ category: cat }).eq("user_id", userId).in("id", affectedTaskIds)
       }
-      // Restore category in list
-      setCategories((prev) => (prev.includes(cat) ? prev : [...prev, cat].sort((a, b) => a.localeCompare(b))))
+      // Reload from DB — this refreshes both tasksByDate and categories
       await loadVisibleTasks()
       dismissToast()
     })
