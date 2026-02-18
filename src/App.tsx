@@ -973,12 +973,17 @@ export default function App() {
     if (newCategory === cat) setNewCategory("__none__")
     if (editCategory === cat) setEditCategory("__none__")
 
+    // Remove from categories list
+    setCategories((prev) => prev.filter((c) => c !== cat))
+
     // Show undo toast
     showUndoToast(`Kategorie "${cat}" entfernt`, async () => {
       // Re-assign the category to all affected tasks
       if (affectedTaskIds.length > 0) {
         await supabase.from("tasks").update({ category: cat }).eq("user_id", userId).in("id", affectedTaskIds)
       }
+      // Restore category in list
+      setCategories((prev) => (prev.includes(cat) ? prev : [...prev, cat].sort((a, b) => a.localeCompare(b))))
       await loadVisibleTasks()
       dismissToast()
     })
