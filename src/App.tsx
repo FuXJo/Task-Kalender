@@ -1046,7 +1046,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen overflow-y-auto bg-background pb-safe">
+    <div className="min-h-screen bg-background pb-safe">
       <div className="mx-auto max-w-[1800px] p-3 sm:p-4 md:p-6">
         {/* Header */}
         <div className="space-y-3">
@@ -1152,7 +1152,7 @@ export default function App() {
               </Card>
 
               {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl">
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl items-start">
                 <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                 <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                   <div className="flex items-center justify-between gap-2">
@@ -1346,7 +1346,7 @@ export default function App() {
               </Card>
 
               {/* To-dos */}
-              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col sticky top-6 self-start max-h-[calc(100vh-120px)]">
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col sticky top-4" style={{maxHeight: 'calc(100vh - 180px)'}}>
                 <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                   <div>
                     <div className="text-sm font-semibold">To-dos</div>
@@ -1441,7 +1441,7 @@ export default function App() {
                 </div>
 
                   {/* Task-Liste */}
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto min-h-0">
                     {selectedTasks.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                         <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
