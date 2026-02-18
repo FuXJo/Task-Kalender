@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -145,7 +145,7 @@ function getEmptyMessage(iso: ISODate) {
   return EMPTY_MESSAGES[hash % EMPTY_MESSAGES.length]
 }
 
-// #2: Category Color Palette
+// Category Color Palette – expanded for picker
 const CATEGORY_COLORS = [
   "hsl(220, 80%, 60%)",  // Blue
   "hsl(340, 75%, 55%)",  // Rose
@@ -155,9 +155,13 @@ const CATEGORY_COLORS = [
   "hsl(190, 70%, 45%)",  // Teal
   "hsl(50, 85%, 50%)",   // Amber
   "hsl(0, 70%, 55%)",    // Red
+  "hsl(260, 70%, 65%)",  // Violet
+  "hsl(140, 55%, 40%)",  // Green
+  "hsl(15, 85%, 55%)",   // Tomato
+  "hsl(200, 75%, 50%)",  // Sky
 ]
 
-function getCategoryColor(category: string): string {
+function getDefaultCategoryColor(category: string): string {
   const hash = category.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
   return CATEGORY_COLORS[hash % CATEGORY_COLORS.length]
 }
@@ -294,6 +298,29 @@ export default function App() {
 
   // #1: Konfetti recently triggered flag to avoid double-trigger
   const konfettiTriggeredRef = useRef<string>("")
+
+  // Custom category colors (persisted in localStorage)
+  const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("categoryColors")
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })
+
+  useEffect(() => {
+    localStorage.setItem("categoryColors", JSON.stringify(categoryColorMap))
+  }, [categoryColorMap])
+
+  const getCategoryColor = useCallback((category: string): string => {
+    return categoryColorMap[category] ?? getDefaultCategoryColor(category)
+  }, [categoryColorMap])
+
+  const setCategoryColor = useCallback((category: string, color: string) => {
+    setCategoryColorMap(prev => ({ ...prev, [category]: color }))
+  }, [])
+
+  // Color picker popup state
+  const [colorPickerOpen, setColorPickerOpen] = useState<string>("")
 
   // Category management UI
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -2145,7 +2172,7 @@ export default function App() {
                   <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
                     <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">
-                      {categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}
+                      {categories.length} {categories.length === 1 ? "Eintrag" : "Eintr\u00e4ge"}
                     </span>
                   </div>
                   <CardContent className="p-0">
@@ -2156,43 +2183,93 @@ export default function App() {
                       </div>
                     ) : (
                       <ul className="divide-y">
-                        {categories.map((c, idx) => (
-                          <li key={c} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors group">
-                            {/* Farbige Nummer */}
-                            <span className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
-                              {idx + 1}
-                            </span>
+                        {categories.map((c) => {
+                          const color = getCategoryColor(c)
+                          const taskCount = Object.values(tasksByDate).flat().filter(t => t.category === c).length
+                          return (
+                            <li key={c} className="relative flex items-center gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors group">
+                              {/* Color dot - clickable for picker */}
+                              <div className="relative">
+                                <button
+                                  onClick={() => setColorPickerOpen(colorPickerOpen === c ? "" : c)}
+                                  className="h-9 w-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 shadow-sm"
+                                  style={{ backgroundColor: color }}
+                                  title="Farbe \u00e4ndern"
+                                >
+                                  <Palette className="h-3.5 w-3.5 text-white/80" />
+                                </button>
 
-                            <span className="flex-1 text-sm font-medium truncate">{c}</span>
+                                {/* Color picker popup */}
+                                {colorPickerOpen === c && (
+                                  <div className="absolute left-0 top-full mt-2 z-50 bg-card border rounded-xl shadow-xl p-3 w-[180px]" onClick={(e) => e.stopPropagation()}>
+                                    <div className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wide">Farbe w\u00e4hlen</div>
+                                    <div className="grid grid-cols-6 gap-1.5">
+                                      {CATEGORY_COLORS.map((clr) => (
+                                        <button
+                                          key={clr}
+                                          onClick={() => { setCategoryColor(c, clr); setColorPickerOpen("") }}
+                                          className="h-6 w-6 rounded-full transition-all hover:scale-125 hover:ring-2 ring-offset-1 ring-offset-background"
+                                          style={{
+                                            backgroundColor: clr,
+                                            outline: getCategoryColor(c) === clr ? `2px solid ${clr}` : "none",
+                                            outlineOffset: "2px"
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        setCategoryColorMap(prev => {
+                                          const next = { ...prev }
+                                          delete next[c]
+                                          return next
+                                        })
+                                        setColorPickerOpen("")
+                                      }}
+                                      className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+                                    >
+                                      Zur\u00fccksetzen
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
 
-                            <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => { setRenameFrom(c); setRenameTo(c) }}
-                                className="h-8 px-3 text-xs gap-1.5"
-                              >
-                                <Pencil className="h-3 w-3" />
-                                Umbenennen
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteCategory(c)}
-                                aria-label="Löschen"
-                                className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </li>
-                        ))}
+                              {/* Category info */}
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-semibold truncate block" style={{ color }}>{c}</span>
+                                <span className="text-[10px] text-muted-foreground">{taskCount} {taskCount === 1 ? "Task" : "Tasks"}</span>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => { setRenameFrom(c); setRenameTo(c) }}
+                                  className="h-8 px-3 text-xs gap-1.5"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                  <span className="hidden sm:inline">Umbenennen</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteCategory(c)}
+                                  aria-label="L\u00f6schen"
+                                  className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </li>
+                          )
+                        })}
                       </ul>
                     )}
                     <div className="px-5 py-2.5 border-t bg-muted/20">
-                      <p className="text-[11px] text-muted-foreground">Löschen setzt die Kategorie aller zugehörigen Tasks auf „Ohne Kategorie".</p>
+                      <p className="text-[11px] text-muted-foreground">Klicke auf den farbigen Kreis um die Farbe zu \u00e4ndern. L\u00f6schen setzt die Kategorie aller zugehörigen Tasks auf „Ohne Kategorie\".</p>
                     </div>
                   </CardContent>
                 </Card>
