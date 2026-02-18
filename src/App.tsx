@@ -1046,7 +1046,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="h-screen overflow-hidden bg-background">
+      <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-[1800px] p-3 sm:p-4 md:p-6">
         {/* Header */}
         <div className="space-y-3">
@@ -1912,6 +1913,7 @@ export default function App() {
             </div>
           </TabsContent>
         </Tabs>
+      </div>
       </div>
     </div>
   )
