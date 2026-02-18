@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -350,6 +350,7 @@ export default function App() {
 
   const [dragOverTaskId, setDragOverTaskId] = useState<string>("")
   const [dragPos, setDragPos] = useState<"above" | "below">("above")
+  const [draggingTaskId, setDraggingTaskId] = useState<string>("")
 
   // Ref + height tracking for calendar card to constrain To-dos panel
   const calendarCardRef = useRef<HTMLDivElement>(null)
@@ -1706,7 +1707,7 @@ export default function App() {
                                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                     onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
                                     onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
-                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "ring-2 ring-primary scale-[1.02]" : ""].join(" ")}
+                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                   >
                                     <div className="flex items-start justify-between gap-1">
                                       <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
@@ -1746,7 +1747,7 @@ export default function App() {
                                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                     onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
                                     onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
-                                    className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "ring-2 ring-primary" : ""].join(" ")}
+                                    className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                   >
                                     <div className="flex flex-col items-center gap-1">
                                       <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
@@ -1998,9 +1999,9 @@ export default function App() {
                         <div className="divide-y">
                           {getSortedDayTasks(selectedISO).map((t) => {
                             const isOver = dragOverTaskId === t.id
-                            const overClass =
+                            const indicatorClass =
                               isOver && dragRef.current?.kind === "reorder"
-                                ? "ring-2 ring-primary/60 ring-inset"
+                                ? (dragPos === "above" ? "drag-indicator-above" : "drag-indicator-below")
                                 : ""
 
                             return (
@@ -2008,9 +2009,10 @@ export default function App() {
                                 key={t.id}
                                 data-task-id={t.id}
                                 className={[
-                                  "flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-colors touch-manipulation category-stripe",
-                                  overClass,
-                                  touchDragId === t.id ? "opacity-50" : "",
+                                  "task-item flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-all touch-manipulation category-stripe",
+                                  indicatorClass,
+                                  draggingTaskId === t.id ? "task-dragging" : "",
+                                  touchDragId === t.id ? "task-dragging" : "",
                                   selectedTaskIds.has(t.id) ? "bg-primary/5" : ""
                                 ].join(" ")}
                                 style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
@@ -2042,11 +2044,15 @@ export default function App() {
                                   applyReorderWithinDay(p.taskId, t.id, dragPos)
                                 }}
                                 draggable
-                                onDragStart={(e) => setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })}
+                                onDragStart={(e) => {
+                                  setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })
+                                  setDraggingTaskId(t.id)
+                                }}
                                 onDragEnd={() => {
                                   dragRef.current = null
                                   setDragOverISO("")
                                   setDragOverTaskId("")
+                                  setDraggingTaskId("")
                                 }}
                               >
                                 {/* #8: Multi-select checkbox */}
@@ -2104,21 +2110,23 @@ export default function App() {
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                   <span
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
+                                    className="drag-handle inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
                                     draggable
                                     onDragStart={(e) => {
                                       e.stopPropagation()
                                       setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
+                                      setDraggingTaskId(t.id)
                                     }}
                                     onDragEnd={() => {
                                       dragRef.current = null
                                       setDragOverTaskId("")
+                                      setDraggingTaskId("")
                                     }}
                                     onTouchStart={(e) => handleTouchStart(t.id, e)}
                                     onTouchMove={(e) => handleTouchMove(e)}
                                     onTouchEnd={() => handleTouchEnd()}
                                   >
-                                    <GripHorizontal className="h-3 w-3" />
+                                    <GripVertical className="h-3.5 w-3.5" />
                                   </span>
                                 </div>
                               </div>

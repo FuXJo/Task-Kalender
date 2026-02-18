@@ -209,3 +209,51 @@
 .category-stripe {
   border-left: 3px solid var(--stripe-color, hsl(var(--muted-foreground) / 0.2));
 }
+
+/* Drag and Drop */
+.task-dragging {
+  opacity: 0.4;
+  transform: scale(0.97);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.drag-indicator-above {
+  box-shadow: inset 0 2px 0 0 hsl(var(--primary));
+}
+
+.drag-indicator-below {
+  box-shadow: inset 0 -2px 0 0 hsl(var(--primary));
+}
+
+@keyframes dropTargetPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.6);
+  }
+}
+
+.calendar-drop-target {
+  animation: dropTargetPulse 1s ease-in-out infinite;
+  background-color: hsl(var(--primary) / 0.06);
+  transform: scale(1.03);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.drag-handle {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.group:hover .drag-handle,
+.task-item:hover .drag-handle {
+  opacity: 0.4;
+}
+
+.drag-handle:hover {
+  opacity: 1 !important;
+}
