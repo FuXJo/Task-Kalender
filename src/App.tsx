@@ -954,12 +954,12 @@ export default function App() {
       const next = { ...prev }
       const tasksToMove: typeof prev[string] = []
 
-      // Remove tasks from their current dates
+      // Remove tasks from their current dates, preserving original order
       for (const iso of Object.keys(next)) {
         const remaining: typeof prev[string] = []
         for (const t of next[iso] ?? []) {
           if (taskIds.includes(t.id)) {
-            tasksToMove.push({ ...t, date: toISO, sort_order: newSort + tasksToMove.length })
+            tasksToMove.push({ ...t, date: toISO })
           } else {
             remaining.push(t)
           }
@@ -968,17 +968,29 @@ export default function App() {
         else next[iso] = remaining
       }
 
+      // Sort by original sort_order to preserve order
+      tasksToMove.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      // Assign new sequential sort_order
+      tasksToMove.forEach((t, i) => { t.sort_order = newSort + i })
+
       // Add to target date
       next[toISO] = [...(next[toISO] ?? []), ...tasksToMove]
       return next
     })
 
-    // DB update
-    for (let i = 0; i < taskIds.length; i++) {
+    // DB update - collect tasks sorted by original order first
+    const allTasks = Object.values(tasksByDate).flat()
+    const sortedIds = taskIds
+      .map((id) => allTasks.find((t) => t.id === id))
+      .filter(Boolean)
+      .sort((a, b) => (a!.sort_order ?? 0) - (b!.sort_order ?? 0))
+      .map((t) => t!.id)
+
+    for (let i = 0; i < sortedIds.length; i++) {
       await supabase
         .from("tasks")
         .update({ date: toISO, sort_order: newSort + i })
-        .eq("id", taskIds[i])
+        .eq("id", sortedIds[i])
         .eq("user_id", userId)
     }
 
@@ -1888,9 +1900,9 @@ export default function App() {
                       <div className="flex items-center gap-1.5">
                         {/* #8: Multi-select toggle */}
                         <Button
-                          variant={multiSelectMode ? "secondary" : "ghost"}
+                          variant={multiSelectMode ? "default" : "ghost"}
                           size="icon"
-                          className="h-8 w-8"
+                          className={multiSelectMode ? "h-8 w-8 bg-rose-500 hover:bg-rose-600 text-white" : "h-8 w-8"}
                           title="Mehrfachauswahl"
                           onClick={() => { setMultiSelectMode(v => !v); setSelectedTaskIds(new Set()) }}
                         >
