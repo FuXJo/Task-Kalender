@@ -195,22 +195,6 @@ export default function App() {
   const [dragOverTaskId, setDragOverTaskId] = useState<string>("")
   const [dragPos, setDragPos] = useState<"above" | "below">("above")
 
-  // Ref to measure calendar card height for todos panel
-  const calendarCardRef = useRef<HTMLDivElement>(null)
-  const [calendarHeight, setCalendarHeight] = useState<number>(0)
-
-  useEffect(() => {
-    const update = () => {
-      if (calendarCardRef.current) {
-        setCalendarHeight(calendarCardRef.current.offsetHeight)
-      }
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    if (calendarCardRef.current) ro.observe(calendarCardRef.current)
-    return () => ro.disconnect()
-  }, [])
-
   // Month cells
   const monthCells = useMemo(() => {
     const start = startOfMonth(cursorMonth)
@@ -1168,8 +1152,9 @@ export default function App() {
               </Card>
 
               {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start">
-                <Card ref={calendarCardRef} className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden lg:sticky lg:top-4">
+              <div className="flex gap-3 sm:gap-4 flex-1 max-w-6xl items-start">
+                <div className="flex-1 min-w-0">
+                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                 <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-sm sm:text-base font-semibold">
@@ -1360,11 +1345,12 @@ export default function App() {
                   </div>
                 </CardContent>
               </Card>
+              </div>
 
               {/* To-dos */}
+              <div className="w-[380px] flex-shrink-0 sticky top-4 self-start" style={{maxHeight: 'calc(100vh - 140px)'}}>
               <Card
-                className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col sticky top-4"
-                style={{ maxHeight: calendarHeight > 0 ? `${calendarHeight}px` : 'calc(100vh - 180px)' }}
+                className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col h-full"
               >
                 <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                   <div>
@@ -1609,6 +1595,7 @@ export default function App() {
                     </DialogContent>
                   </Dialog>
               </Card>
+              </div>
               </div>
             </div>
           </TabsContent>
