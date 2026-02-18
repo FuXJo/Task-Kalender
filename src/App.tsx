@@ -1825,262 +1825,264 @@ export default function App() {
 
                 {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
                 <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start">
-                  <Card ref={calendarCardRef} className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
-                    <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-sm sm:text-base font-semibold">
-                          {calView === "year"
-                            ? cursorMonth.getFullYear().toString()
-                            : calView === "week"
-                              ? `KW ${weekCells.kw} · ${weekCells.year}`
-                              : cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
-                        </CardTitle>
-                        {/* Woche / Monat / Jahr Umschalter */}
-                        <div className="flex items-center rounded-lg border overflow-hidden text-xs">
-                          <button
-                            onClick={() => setCalView("week")}
-                            className={["px-3 py-1.5 transition-colors", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                          >
-                            Woche
-                          </button>
-                          <button
-                            onClick={() => setCalView("month")}
-                            className={["px-3 py-1.5 transition-colors border-l", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                          >
-                            Monat
-                          </button>
-                          <button
-                            onClick={() => setCalView("year")}
-                            className={["px-3 py-1.5 transition-colors border-l", calView === "year" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                          >
-                            Jahr
-                          </button>
+                  <div className="space-y-3 sm:space-y-4">
+                    <Card ref={calendarCardRef} className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+                      <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
+                        <div className="flex items-center justify-between gap-2">
+                          <CardTitle className="text-sm sm:text-base font-semibold">
+                            {calView === "year"
+                              ? cursorMonth.getFullYear().toString()
+                              : calView === "week"
+                                ? `KW ${weekCells.kw} · ${weekCells.year}`
+                                : cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                          </CardTitle>
+                          {/* Woche / Monat / Jahr Umschalter */}
+                          <div className="flex items-center rounded-lg border overflow-hidden text-xs">
+                            <button
+                              onClick={() => setCalView("week")}
+                              className={["px-3 py-1.5 transition-colors", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                            >
+                              Woche
+                            </button>
+                            <button
+                              onClick={() => setCalView("month")}
+                              className={["px-3 py-1.5 transition-colors border-l", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                            >
+                              Monat
+                            </button>
+                            <button
+                              onClick={() => setCalView("year")}
+                              className={["px-3 py-1.5 transition-colors border-l", calView === "year" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                            >
+                              Jahr
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="px-3 sm:px-5 pt-4">
-                      {/* #3: View transition animation */}
-                      <div key={calView} className="view-transition">
-                        {calView === "month" ? (
-                          <>
-                            {/* Wochentage */}
-                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
-                              {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-                                <div key={d} className="text-center py-1">{d}</div>
-                              ))}
-                            </div>
+                      </CardHeader>
+                      <CardContent className="px-3 sm:px-5 pt-4">
+                        {/* #3: View transition animation */}
+                        <div key={calView} className="view-transition">
+                          {calView === "month" ? (
+                            <>
+                              {/* Wochentage */}
+                              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
+                                {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
+                                  <div key={d} className="text-center py-1">{d}</div>
+                                ))}
+                              </div>
 
-                            {/* Monatsraster */}
-                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                              {monthCells.map((cell) => {
-                                const tasks = tasksByDate[cell.iso]
-                                const { total, done, ratio } = dayCompletion(tasks)
-                                const st = dayStatusClass(cell.iso, todayISO, tasks)
-                                const isSelected = cell.iso === selectedISO
-                                const isToday = cell.iso === todayISO
-                                const isDragOver = dragOverISO === cell.iso
-                                return (
-                                  <button
-                                    key={cell.iso}
-                                    type="button"
-                                    onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
-                                    onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
-                                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
-                                    onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                    onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
-                                    onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
-                                  >
-                                    <div className="flex items-start justify-between gap-1">
-                                      <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
-                                        {cell.day}
+                              {/* Monatsraster */}
+                              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                                {monthCells.map((cell) => {
+                                  const tasks = tasksByDate[cell.iso]
+                                  const { total, done, ratio } = dayCompletion(tasks)
+                                  const st = dayStatusClass(cell.iso, todayISO, tasks)
+                                  const isSelected = cell.iso === selectedISO
+                                  const isToday = cell.iso === todayISO
+                                  const isDragOver = dragOverISO === cell.iso
+                                  return (
+                                    <button
+                                      key={cell.iso}
+                                      type="button"
+                                      onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
+                                      onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                                      onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                                      onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
+                                      className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                      onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
+                                    >
+                                      <div className="flex items-start justify-between gap-1">
+                                        <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                          {cell.day}
+                                        </div>
+                                        {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
                                       </div>
-                                      {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
-                                    </div>
-                                    {total > 0 && (
-                                      <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                                        {/* Category dots */}
-                                        {(() => {
-                                          const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
-                                          return cats.length > 0 ? (
-                                            <div className="flex gap-0.5 mb-0.5">
-                                              {cats.slice(0, 4).map(c => (
-                                                <span key={c} className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
-                                              ))}
-                                              {cats.length > 4 && <span className="text-[7px] text-muted-foreground leading-none">+{cats.length - 4}</span>}
-                                            </div>
-                                          ) : null
-                                        })()}
-                                        <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                          <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                      {total > 0 && (
+                                        <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                          {/* Category dots */}
+                                          {(() => {
+                                            const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
+                                            return cats.length > 0 ? (
+                                              <div className="flex gap-0.5 mb-0.5">
+                                                {cats.slice(0, 4).map(c => (
+                                                  <span key={c} className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
+                                                ))}
+                                                {cats.length > 4 && <span className="text-[7px] text-muted-foreground leading-none">+{cats.length - 4}</span>}
+                                              </div>
+                                            ) : null
+                                          })()}
+                                          <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                            <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </>
+                          ) : calView === "week" ? (
+                            <>
+                              {/* Wochenansicht */}
+                              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                                {weekCells.days.map((cell) => {
+                                  const tasks = tasksByDate[cell.iso]
+                                  const { total, done, ratio } = dayCompletion(tasks)
+                                  const st = dayStatusClass(cell.iso, todayISO, tasks)
+                                  const isSelected = cell.iso === selectedISO
+                                  const isToday = cell.iso === todayISO
+                                  const isDragOver = dragOverISO === cell.iso
+                                  return (
+                                    <button
+                                      key={cell.iso}
+                                      type="button"
+                                      onClick={() => setSelectedISO(cell.iso)}
+                                      onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                                      onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                                      onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
+                                      className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                      onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
+                                    >
+                                      <div className="flex flex-col items-center gap-1">
+                                        <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
+                                        <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                          {cell.day}
                                         </div>
                                       </div>
-                                    )}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </>
-                        ) : calView === "week" ? (
-                          <>
-                            {/* Wochenansicht */}
-                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                              {weekCells.days.map((cell) => {
-                                const tasks = tasksByDate[cell.iso]
-                                const { total, done, ratio } = dayCompletion(tasks)
-                                const st = dayStatusClass(cell.iso, todayISO, tasks)
-                                const isSelected = cell.iso === selectedISO
-                                const isToday = cell.iso === todayISO
-                                const isDragOver = dragOverISO === cell.iso
-                                return (
-                                  <button
-                                    key={cell.iso}
-                                    type="button"
-                                    onClick={() => setSelectedISO(cell.iso)}
-                                    onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
-                                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
-                                    onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                    onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                    className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
-                                    onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
-                                  >
-                                    <div className="flex flex-col items-center gap-1">
-                                      <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
-                                      <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
-                                        {cell.day}
-                                      </div>
-                                    </div>
-                                    {total > 0 && (
-                                      <div className="mt-2">
-                                        <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
-                                        {/* Category dots */}
-                                        {(() => {
-                                          const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
-                                          return cats.length > 0 ? (
-                                            <div className="flex justify-center gap-0.5 mt-1">
-                                              {cats.slice(0, 5).map(c => (
-                                                <span key={c} className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
-                                              ))}
-                                            </div>
-                                          ) : null
-                                        })()}
-                                        <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                          <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                      {total > 0 && (
+                                        <div className="mt-2">
+                                          <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
+                                          {/* Category dots */}
+                                          {(() => {
+                                            const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
+                                            return cats.length > 0 ? (
+                                              <div className="flex justify-center gap-0.5 mt-1">
+                                                {cats.slice(0, 5).map(c => (
+                                                  <span key={c} className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
+                                                ))}
+                                              </div>
+                                            ) : null
+                                          })()}
+                                          <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                            <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                          </div>
                                         </div>
-                                      </div>
-                                    )}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {/* Jahresansicht – 4×3 Monate */}
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                              {yearCells.map((m) => {
-                                const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
-                                const tone =
-                                  m.total === 0 ? "border-border bg-background" :
-                                    m.ratio >= 1 ? "border-emerald-400/70 bg-emerald-400/15" :
-                                      m.ratio >= 0.5 ? "border-amber-400/70 bg-amber-400/15" :
-                                        "border-rose-400/70 bg-rose-400/15"
-                                const barColor =
-                                  m.total === 0 ? "bg-muted" :
-                                    m.ratio >= 1 ? "bg-emerald-500" :
-                                      m.ratio >= 0.5 ? "bg-amber-400" :
-                                        "bg-rose-400"
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* Jahresansicht – 4×3 Monate */}
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {yearCells.map((m) => {
+                                  const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
+                                  const tone =
+                                    m.total === 0 ? "border-border bg-background" :
+                                      m.ratio >= 1 ? "border-emerald-400/70 bg-emerald-400/15" :
+                                        m.ratio >= 0.5 ? "border-amber-400/70 bg-amber-400/15" :
+                                          "border-rose-400/70 bg-rose-400/15"
+                                  const barColor =
+                                    m.total === 0 ? "bg-muted" :
+                                      m.ratio >= 1 ? "bg-emerald-500" :
+                                        m.ratio >= 0.5 ? "bg-amber-400" :
+                                          "bg-rose-400"
 
-                                return (
-                                  <button
-                                    key={m.monthIndex}
-                                    type="button"
-                                    onClick={() => {
-                                      setCursorMonth(new Date(m.year, m.monthIndex, 1))
-                                      setCalView("month")
-                                    }}
-                                    className={[
-                                      "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
-                                      tone,
-                                      isCurrentMonth ? "ring-2 ring-primary" : ""
-                                    ].join(" ")}
-                                  >
-                                    <div className="text-sm font-semibold">{m.label}</div>
-                                    {m.total > 0 ? (
-                                      <>
-                                        <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
-                                        {/* Mini heatmap dots */}
-                                        <div className="grid grid-cols-7 gap-[2px] mt-2">
-                                          {/* Empty cells for first day offset */}
-                                          {Array.from({ length: m.firstDow }, (_, i) => (
-                                            <span key={`pad-${i}`} className="h-2 w-2" />
-                                          ))}
-                                          {m.days.map(d => {
-                                            const bg = d.total === 0 ? "bg-muted/40" :
-                                              d.ratio >= 1 ? "bg-emerald-500" :
-                                                d.ratio >= 0.5 ? "bg-amber-400" :
-                                                  "bg-rose-300"
-                                            return <span key={d.iso} className={`h-2 w-2 rounded-[2px] ${bg}`} />
-                                          })}
-                                        </div>
-                                        <div className="mt-1.5 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
-                                      </>
-                                    ) : (
-                                      <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
-                                    )}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
-                          </>
-                        )}
+                                  return (
+                                    <button
+                                      key={m.monthIndex}
+                                      type="button"
+                                      onClick={() => {
+                                        setCursorMonth(new Date(m.year, m.monthIndex, 1))
+                                        setCalView("month")
+                                      }}
+                                      className={[
+                                        "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
+                                        tone,
+                                        isCurrentMonth ? "ring-2 ring-primary" : ""
+                                      ].join(" ")}
+                                    >
+                                      <div className="text-sm font-semibold">{m.label}</div>
+                                      {m.total > 0 ? (
+                                        <>
+                                          <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
+                                          {/* Mini heatmap dots */}
+                                          <div className="grid grid-cols-7 gap-[2px] mt-2">
+                                            {/* Empty cells for first day offset */}
+                                            {Array.from({ length: m.firstDow }, (_, i) => (
+                                              <span key={`pad-${i}`} className="h-2 w-2" />
+                                            ))}
+                                            {m.days.map(d => {
+                                              const bg = d.total === 0 ? "bg-muted/40" :
+                                                d.ratio >= 1 ? "bg-emerald-500" :
+                                                  d.ratio >= 0.5 ? "bg-amber-400" :
+                                                    "bg-rose-300"
+                                              return <span key={d.iso} className={`h-2 w-2 rounded-[2px] ${bg}`} />
+                                            })}
+                                          </div>
+                                          <div className="mt-1.5 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
+                                        </>
+                                      ) : (
+                                        <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
+                                      )}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                              <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
+                            </>
+                          )}
 
-                      </div>{/* close view-transition wrapper */}
+                        </div>{/* close view-transition wrapper */}
 
-                      {/* Legende */}
-                      <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
-                        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%</span>
-                        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%</span>
-                        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%</span>
-                      </div>
-
-                      {/* #6: Mobile Spendenbox – kompakter Banner */}
-                      <a href="https://revolut.me/eljoa" target="_blank" rel="noopener noreferrer" className="mt-3 xl:hidden flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-xs text-muted-foreground">
-                        <span className="text-base">☕</span>
-                        <span>Projekt unterstützen – <span className="text-primary underline">revolut.me/eljoa</span></span>
-                      </a>
-                    </CardContent>
-                  </Card>
-
-                  {/* Weekly Summary */}
-                  {(() => {
-                    const today = new Date()
-                    const dow = (today.getDay() + 6) % 7
-                    const monday = new Date(today)
-                    monday.setDate(today.getDate() - dow)
-                    let weekTotal = 0, weekDone = 0
-                    for (let i = 0; i < 7; i++) {
-                      const d = new Date(monday)
-                      d.setDate(monday.getDate() + i)
-                      const iso = toISODate(d)
-                      const tasks = tasksByDate[iso] ?? []
-                      weekTotal += tasks.length
-                      weekDone += tasks.filter(t => t.done).length
-                    }
-                    const weekOpen = weekTotal - weekDone
-                    if (weekTotal === 0) return null
-                    return (
-                      <div className="rounded-xl border bg-muted/20 px-4 py-2.5 flex items-center justify-between text-xs">
-                        <span className="font-medium text-muted-foreground">Diese Woche</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-muted-foreground">{weekTotal} Tasks</span>
-                          <span className="text-emerald-600 font-medium">{weekDone} ✓</span>
-                          {weekOpen > 0 && <span className="text-amber-600 font-medium">{weekOpen} offen</span>}
+                        {/* Legende */}
+                        <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
+                          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%</span>
+                          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%</span>
+                          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%</span>
                         </div>
-                      </div>
-                    )
-                  })()}
+
+                        {/* #6: Mobile Spendenbox – kompakter Banner */}
+                        <a href="https://revolut.me/eljoa" target="_blank" rel="noopener noreferrer" className="mt-3 xl:hidden flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-xs text-muted-foreground">
+                          <span className="text-base">☕</span>
+                          <span>Projekt unterstützen – <span className="text-primary underline">revolut.me/eljoa</span></span>
+                        </a>
+                      </CardContent>
+                    </Card>
+
+                    {/* Weekly Summary */}
+                    {(() => {
+                      const today = new Date()
+                      const dow = (today.getDay() + 6) % 7
+                      const monday = new Date(today)
+                      monday.setDate(today.getDate() - dow)
+                      let weekTotal = 0, weekDone = 0
+                      for (let i = 0; i < 7; i++) {
+                        const d = new Date(monday)
+                        d.setDate(monday.getDate() + i)
+                        const iso = toISODate(d)
+                        const tasks = tasksByDate[iso] ?? []
+                        weekTotal += tasks.length
+                        weekDone += tasks.filter(t => t.done).length
+                      }
+                      const weekOpen = weekTotal - weekDone
+                      if (weekTotal === 0) return null
+                      return (
+                        <div className="rounded-xl border bg-muted/20 px-4 py-2.5 flex items-center justify-between text-xs">
+                          <span className="font-medium text-muted-foreground">Diese Woche</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-muted-foreground">{weekTotal} Tasks</span>
+                            <span className="text-emerald-600 font-medium">{weekDone} ✓</span>
+                            {weekOpen > 0 && <span className="text-amber-600 font-medium">{weekOpen} offen</span>}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
 
                   {/* To-dos */}
                   <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-4" style={{ maxHeight: calendarCardHeight ? `${calendarCardHeight}px` : "calc(100vh - 96px)" }}>
