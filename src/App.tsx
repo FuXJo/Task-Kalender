@@ -2145,6 +2145,43 @@ export default function App() {
                                 ))}
                               </SelectContent>
                             </Select>
+
+                            {/* Neue Kategorie direkt im Edit-Dialog erstellen */}
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
+                                    const name = normalizeCategory(newCategoryName)
+                                    if (name) {
+                                      ensureCategory(name)
+                                      setEditCategory(name)
+                                      setNewCategoryName("")
+                                    }
+                                  }
+                                }}
+                                placeholder="Neue Kategorie erstellen…"
+                                className="h-9 text-sm flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-9 px-3 text-sm flex-shrink-0"
+                                disabled={!newCategoryName.trim()}
+                                onClick={() => {
+                                  const name = normalizeCategory(newCategoryName)
+                                  if (name) {
+                                    ensureCategory(name)
+                                    setEditCategory(name)
+                                    setNewCategoryName("")
+                                  }
+                                }}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2">
