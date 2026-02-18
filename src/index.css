@@ -257,3 +257,20 @@
 .drag-handle:hover {
   opacity: 1 !important;
 }
+
+/* Show drag handles on touch devices (no hover) */
+@media (hover: none) {
+  .drag-handle {
+    opacity: 0.35;
+  }
+}
+
+/* Smooth momentum scrolling on iOS */
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Contain layout reflows within task items */
+.task-item {
+  contain: layout style;
+}

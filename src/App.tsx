@@ -1787,7 +1787,7 @@ export default function App() {
                                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                     onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
                                     onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                   >
                                     <div className="flex items-start justify-between gap-1">
                                       <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
@@ -1827,7 +1827,7 @@ export default function App() {
                                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                     onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
                                     onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                    className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                    className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                   >
                                     <div className="flex flex-col items-center gap-1">
                                       <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
@@ -2089,7 +2089,7 @@ export default function App() {
                                 key={t.id}
                                 data-task-id={t.id}
                                 className={[
-                                  "task-item flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-all touch-manipulation category-stripe",
+                                  "task-item flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
                                   indicatorClass,
                                   draggingTaskId === t.id ? "task-dragging" : "",
                                   draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
