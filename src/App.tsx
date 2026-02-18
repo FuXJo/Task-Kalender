@@ -519,6 +519,10 @@ export default function App() {
     setCategories(uniqueCategoriesFromTasks(mapped))
   }
 
+  // Keep a ref to the latest loadVisibleTasks so undo closures always call the current version
+  const loadVisibleTasksRef = useRef(loadVisibleTasks)
+  useEffect(() => { loadVisibleTasksRef.current = loadVisibleTasks })
+
   useEffect(() => {
     if (!userId) {
       setTasksByDate({})
@@ -982,8 +986,8 @@ export default function App() {
       if (affectedTaskIds.length > 0) {
         await supabase.from("tasks").update({ category: cat }).eq("user_id", userId).in("id", affectedTaskIds)
       }
-      // Reload from DB — this refreshes both tasksByDate and categories
-      await loadVisibleTasks()
+      // Reload from DB using ref (avoids stale closure)
+      await loadVisibleTasksRef.current()
       dismissToast()
     })
   }
