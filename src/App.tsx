@@ -2272,7 +2272,7 @@ export default function App() {
                                 key={t.id}
                                 data-task-id={t.id}
                                 className={[
-                                  "task-item flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
+                                  "task-item flex items-start gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
                                   indicatorClass,
                                   draggingTaskId === t.id ? "task-dragging" : "",
                                   draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
@@ -2322,7 +2322,7 @@ export default function App() {
                                 {/* #8: Multi-select checkbox */}
                                 {multiSelectMode ? (
                                   <Checkbox
-                                    className="h-4 w-4 flex-shrink-0"
+                                    className="h-4 w-4 flex-shrink-0 mt-0.5"
                                     checked={selectedTaskIds.has(t.id)}
                                     onCheckedChange={() => {
                                       setSelectedTaskIds(prev => {
@@ -2334,7 +2334,7 @@ export default function App() {
                                     }}
                                   />
                                 ) : (
-                                  <div className={bouncingId === t.id ? "check-bounce" : ""}>
+                                  <div className={bouncingId === t.id ? "check-bounce mt-0.5" : "mt-0.5"}>
                                     <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
                                   </div>
                                 )}
@@ -2390,7 +2390,7 @@ export default function App() {
                                   )}
                                 </div>
 
-                                <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity">
+                                <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity mt-0.5">
                                   <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-7 w-7">
                                     <Pencil className="h-3 w-3" />
                                   </Button>
