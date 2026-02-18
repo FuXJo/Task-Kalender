@@ -316,7 +316,7 @@ export default function App() {
   // #1: Konfetti recently triggered flag to avoid double-trigger
   const konfettiTriggeredRef = useRef<string>("")
 
-  // Custom category colors (persisted in localStorage)
+  // Custom category colors (synced to Supabase for cross-device support)
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem("categoryColors")
@@ -324,9 +324,35 @@ export default function App() {
     } catch { return {} }
   })
 
+  // Load colors from Supabase when user changes
+  useEffect(() => {
+    if (!userId) return
+    const loadColors = async () => {
+      const { data } = await supabase
+        .from("user_settings")
+        .select("category_colors")
+        .eq("user_id", userId)
+        .single()
+      if (data?.category_colors && typeof data.category_colors === "object") {
+        setCategoryColorMap(data.category_colors as Record<string, string>)
+      }
+    }
+    loadColors()
+  }, [userId])
+
+  // Save colors to Supabase + localStorage when they change
+  const colorSaveTimerRef = useRef<number>(0)
   useEffect(() => {
     localStorage.setItem("categoryColors", JSON.stringify(categoryColorMap))
-  }, [categoryColorMap])
+    if (!userId) return
+    // Debounce DB save to avoid excessive writes
+    clearTimeout(colorSaveTimerRef.current)
+    colorSaveTimerRef.current = window.setTimeout(async () => {
+      await supabase
+        .from("user_settings")
+        .upsert({ user_id: userId, category_colors: categoryColorMap }, { onConflict: "user_id" })
+    }, 500)
+  }, [categoryColorMap, userId])
 
   const getCategoryColor = useCallback((category: string): string => {
     return categoryColorMap[category] ?? getDefaultCategoryColor(category)
