@@ -988,6 +988,8 @@ export default function App() {
       }
       // Reload from DB using ref (avoids stale closure)
       await loadVisibleTasksRef.current()
+      // Ensure category is in the list even if it had no tasks
+      setCategories((prev) => (prev.includes(cat) ? prev : [...prev, cat].sort((a, b) => a.localeCompare(b))))
       dismissToast()
     })
   }
