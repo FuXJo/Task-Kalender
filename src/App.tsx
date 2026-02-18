@@ -950,16 +950,35 @@ export default function App() {
     const cat = normalizeCategory(category)
     if (!cat || !userId) return
 
+    // Collect task IDs that have this category so we can restore them on undo
+    const affectedTaskIds: string[] = []
+    for (const [, tasks] of Object.entries(tasksByDate)) {
+      for (const t of tasks) {
+        if (t.category === cat) affectedTaskIds.push(t.id)
+      }
+    }
+
+    // Nullify category in DB
     await supabase.from("tasks").update({ category: null }).eq("user_id", userId).eq("category", cat)
-    await loadVisibleTasks()
+
+    // Update local state optimistically
+    setTasksByDate((prev) => {
+      const next = { ...prev }
+      for (const iso of Object.keys(next)) {
+        next[iso] = next[iso].map((t) => t.category === cat ? { ...t, category: null } : t)
+      }
+      return next
+    })
 
     if (newCategory === cat) setNewCategory("__none__")
     if (editCategory === cat) setEditCategory("__none__")
 
-    // #1: Show undo toast for category deletion
+    // Show undo toast
     showUndoToast(`Kategorie "${cat}" entfernt`, async () => {
-      // Re-assign the category to all tasks that had it (within visible range)
-      // This is a best-effort undo
+      // Re-assign the category to all affected tasks
+      if (affectedTaskIds.length > 0) {
+        await supabase.from("tasks").update({ category: cat }).eq("user_id", userId).in("id", affectedTaskIds)
+      }
       await loadVisibleTasks()
       dismissToast()
     })
