@@ -1046,7 +1046,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="h-screen overflow-y-auto bg-background pb-safe">
       <div className="mx-auto max-w-[1800px] p-3 sm:p-4 md:p-6">
         {/* Header */}
         <div className="space-y-3">
