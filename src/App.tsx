@@ -1152,9 +1152,8 @@ export default function App() {
               </Card>
 
               {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-              <div className="flex gap-3 sm:gap-4 flex-1 max-w-6xl items-start">
-                <div className="flex-1 min-w-0">
-                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+              <div className="grid min-h-0 gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:h-[calc(100vh-220px)] lg:overflow-hidden">
+                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden h-full">
                 <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-sm sm:text-base font-semibold">
@@ -1345,13 +1344,9 @@ export default function App() {
                   </div>
                 </CardContent>
               </Card>
-              </div>
 
               {/* To-dos */}
-              <div className="w-[380px] flex-shrink-0 sticky top-4 self-start" style={{maxHeight: 'calc(100vh - 140px)'}}>
-              <Card
-                className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col h-full"
-              >
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col h-full min-h-0">
                 <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                   <div>
                     <div className="text-sm font-semibold">To-dos</div>
@@ -1595,7 +1590,6 @@ export default function App() {
                     </DialogContent>
                   </Dialog>
               </Card>
-              </div>
               </div>
             </div>
           </TabsContent>
