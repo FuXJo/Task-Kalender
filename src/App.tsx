@@ -1152,8 +1152,8 @@ export default function App() {
               </Card>
 
               {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-              <div className="grid min-h-0 gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:h-[calc(100vh-220px)] lg:overflow-hidden">
-                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden h-full">
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start">
+                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                 <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-sm sm:text-base font-semibold">
@@ -1346,7 +1346,7 @@ export default function App() {
               </Card>
 
               {/* To-dos */}
-              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col h-full min-h-0">
+              <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-4" style={{maxHeight: "calc(100vh - 100px)"}}>
                 <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                   <div>
                     <div className="text-sm font-semibold">To-dos</div>
