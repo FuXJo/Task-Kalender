@@ -145,21 +145,38 @@ function getEmptyMessage(iso: ISODate) {
   return EMPTY_MESSAGES[hash % EMPTY_MESSAGES.length]
 }
 
-// Category Color Palette – expanded for picker
-const CATEGORY_COLORS = [
-  "hsl(220, 80%, 60%)",  // Blue
-  "hsl(340, 75%, 55%)",  // Rose
-  "hsl(160, 65%, 45%)",  // Emerald
-  "hsl(280, 60%, 55%)",  // Purple
-  "hsl(30, 80%, 55%)",   // Orange
-  "hsl(190, 70%, 45%)",  // Teal
-  "hsl(50, 85%, 50%)",   // Amber
-  "hsl(0, 70%, 55%)",    // Red
-  "hsl(260, 70%, 65%)",  // Violet
-  "hsl(140, 55%, 40%)",  // Green
-  "hsl(15, 85%, 55%)",   // Tomato
-  "hsl(200, 75%, 50%)",  // Sky
+// Category Color Palette – grouped by tone
+const CATEGORY_COLOR_GROUPS = [
+  {
+    label: "Standard", colors: [
+      "hsl(220, 80%, 60%)", "hsl(340, 75%, 55%)", "hsl(160, 65%, 45%)", "hsl(280, 60%, 55%)",
+      "hsl(30, 80%, 55%)", "hsl(190, 70%, 45%)", "hsl(50, 85%, 50%)", "hsl(0, 70%, 55%)",
+      "hsl(260, 70%, 65%)", "hsl(140, 55%, 40%)", "hsl(15, 85%, 55%)", "hsl(200, 75%, 50%)",
+    ]
+  },
+  {
+    label: "Neon", colors: [
+      "hsl(120, 100%, 45%)", "hsl(300, 100%, 50%)", "hsl(180, 100%, 45%)", "hsl(60, 100%, 50%)",
+      "hsl(330, 100%, 55%)", "hsl(200, 100%, 55%)",
+    ]
+  },
+  {
+    label: "Pastel", colors: [
+      "hsl(220, 70%, 80%)", "hsl(340, 65%, 80%)", "hsl(160, 50%, 75%)", "hsl(280, 55%, 80%)",
+      "hsl(30, 70%, 80%)", "hsl(50, 70%, 80%)", "hsl(0, 60%, 80%)", "hsl(190, 55%, 75%)",
+      "hsl(140, 45%, 75%)", "hsl(260, 55%, 82%)", "hsl(15, 65%, 80%)", "hsl(100, 45%, 75%)",
+    ]
+  },
+  {
+    label: "Dunkel", colors: [
+      "hsl(220, 55%, 35%)", "hsl(340, 50%, 35%)", "hsl(160, 45%, 30%)", "hsl(280, 45%, 35%)",
+      "hsl(30, 55%, 35%)", "hsl(0, 50%, 35%)",
+    ]
+  },
 ]
+
+// Flat array for default color assignment
+const CATEGORY_COLORS = CATEGORY_COLOR_GROUPS.flatMap(g => g.colors)
 
 function getDefaultCategoryColor(category: string): string {
   const hash = category.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
@@ -2168,14 +2185,14 @@ export default function App() {
                 </Card>
 
                 {/* Bestehende Kategorien */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
+                <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "60vh" }}>
+                  <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between flex-shrink-0">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
                     <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">
-                      {categories.length} {categories.length === 1 ? "Eintrag" : "Eintr\u00e4ge"}
+                      {categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}
                     </span>
                   </div>
-                  <CardContent className="p-0">
+                  <CardContent className="p-0 overflow-y-auto custom-scrollbar flex-1">
                     {categories.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
                         <Tag className="h-8 w-8 opacity-30" />
@@ -2194,43 +2211,65 @@ export default function App() {
                                   onClick={() => setColorPickerOpen(colorPickerOpen === c ? "" : c)}
                                   className="h-9 w-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 shadow-sm"
                                   style={{ backgroundColor: color }}
-                                  title="Farbe \u00e4ndern"
+                                  title="Farbe ändern"
                                 >
                                   <Palette className="h-3.5 w-3.5 text-white/80" />
                                 </button>
 
-                                {/* Color picker popup */}
+                                {/* Color picker popup - centered overlay */}
                                 {colorPickerOpen === c && (
-                                  <div className="absolute left-0 top-full mt-2 z-50 bg-card border rounded-xl shadow-xl p-3 w-[180px]" onClick={(e) => e.stopPropagation()}>
-                                    <div className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wide">Farbe w\u00e4hlen</div>
-                                    <div className="grid grid-cols-6 gap-1.5">
-                                      {CATEGORY_COLORS.map((clr) => (
-                                        <button
-                                          key={clr}
-                                          onClick={() => { setCategoryColor(c, clr); setColorPickerOpen("") }}
-                                          className="h-6 w-6 rounded-full transition-all hover:scale-125 hover:ring-2 ring-offset-1 ring-offset-background"
-                                          style={{
-                                            backgroundColor: clr,
-                                            outline: getCategoryColor(c) === clr ? `2px solid ${clr}` : "none",
-                                            outlineOffset: "2px"
-                                          }}
-                                        />
-                                      ))}
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        setCategoryColorMap(prev => {
-                                          const next = { ...prev }
-                                          delete next[c]
-                                          return next
-                                        })
-                                        setColorPickerOpen("")
+                                  <>
+                                    <div className="fixed inset-0 z-[99]" onClick={() => setColorPickerOpen("")} />
+                                    <div
+                                      className="fixed z-[100] bg-card border rounded-xl shadow-2xl p-3 w-[220px] max-h-[320px] overflow-y-auto custom-scrollbar"
+                                      style={{
+                                        left: "50%",
+                                        top: "50%",
+                                        transform: "translate(-50%, -50%)",
                                       }}
-                                      className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      Zur\u00fccksetzen
-                                    </button>
-                                  </div>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs font-semibold text-foreground">Farbe wählen</div>
+                                        <button onClick={() => setColorPickerOpen("")} className="text-muted-foreground hover:text-foreground">
+                                          <X className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                      {CATEGORY_COLOR_GROUPS.map((group) => (
+                                        <div key={group.label} className="mb-2 last:mb-0">
+                                          <div className="text-[9px] font-medium text-muted-foreground mb-1 uppercase tracking-widest">{group.label}</div>
+                                          <div className="grid grid-cols-6 gap-1.5">
+                                            {group.colors.map((clr) => (
+                                              <button
+                                                key={clr}
+                                                onClick={() => { setCategoryColor(c, clr); setColorPickerOpen("") }}
+                                                className="h-7 w-7 rounded-full transition-all hover:scale-125"
+                                                style={{
+                                                  backgroundColor: clr,
+                                                  outline: getCategoryColor(c) === clr ? "2.5px solid currentColor" : "none",
+                                                  outlineOffset: "2px",
+                                                  boxShadow: getCategoryColor(c) === clr ? `0 0 0 1px ${clr}` : "none",
+                                                }}
+                                              />
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ))}
+                                      <button
+                                        onClick={() => {
+                                          setCategoryColorMap(prev => {
+                                            const next = { ...prev }
+                                            delete next[c]
+                                            return next
+                                          })
+                                          setColorPickerOpen("")
+                                        }}
+                                        className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1 border-t"
+                                      >
+                                        Zurücksetzen
+                                      </button>
+                                    </div>
+                                  </>
                                 )}
                               </div>
 
@@ -2257,7 +2296,7 @@ export default function App() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => deleteCategory(c)}
-                                  aria-label="L\u00f6schen"
+                                  aria-label="Löschen"
                                   className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -2268,10 +2307,10 @@ export default function App() {
                         })}
                       </ul>
                     )}
-                    <div className="px-5 py-2.5 border-t bg-muted/20">
-                      <p className="text-[11px] text-muted-foreground">Klicke auf den farbigen Kreis um die Farbe zu \u00e4ndern. L\u00f6schen setzt die Kategorie aller zugehörigen Tasks auf „Ohne Kategorie\".</p>
-                    </div>
                   </CardContent>
+                  <div className="px-5 py-2.5 border-t bg-muted/20 flex-shrink-0">
+                    <p className="text-[11px] text-muted-foreground">Klicke auf den farbigen Kreis um die Farbe zu ändern.</p>
+                  </div>
                 </Card>
 
                 {/* Umbenennen – nur anzeigen wenn eine Kategorie ausgewählt */}
