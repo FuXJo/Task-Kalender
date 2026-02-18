@@ -943,6 +943,48 @@ export default function App() {
     if (error) loadVisibleTasks()
   }
 
+  // Move multiple tasks at once
+  const moveTasks = async (toISO: ISODate, taskIds: string[]) => {
+    if (!userId || !toISO || taskIds.length === 0) return
+
+    const newSort = Math.floor(Date.now() / 1000)
+
+    // Optimistic UI update
+    setTasksByDate((prev) => {
+      const next = { ...prev }
+      const tasksToMove: typeof prev[string] = []
+
+      // Remove tasks from their current dates
+      for (const iso of Object.keys(next)) {
+        const remaining: typeof prev[string] = []
+        for (const t of next[iso] ?? []) {
+          if (taskIds.includes(t.id)) {
+            tasksToMove.push({ ...t, date: toISO, sort_order: newSort + tasksToMove.length })
+          } else {
+            remaining.push(t)
+          }
+        }
+        if (remaining.length === 0) delete next[iso]
+        else next[iso] = remaining
+      }
+
+      // Add to target date
+      next[toISO] = [...(next[toISO] ?? []), ...tasksToMove]
+      return next
+    })
+
+    // DB update
+    for (let i = 0; i < taskIds.length; i++) {
+      await supabase
+        .from("tasks")
+        .update({ date: toISO, sort_order: newSort + i })
+        .eq("id", taskIds[i])
+        .eq("user_id", userId)
+    }
+
+    setSelectedTaskIds(new Set())
+  }
+
   // Category management (via updating tasks) - USER FILTER!
   const addCategoryFromInput = () => {
     const name = normalizeCategory(newCategoryName)
@@ -1706,7 +1748,7 @@ export default function App() {
                                     onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
                                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                     onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                    onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
+                                    onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
                                     className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                   >
                                     <div className="flex items-start justify-between gap-1">
@@ -1746,7 +1788,7 @@ export default function App() {
                                     onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
                                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                     onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                    onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
+                                    onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
                                     className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                   >
                                     <div className="flex flex-col items-center gap-1">
@@ -2012,8 +2054,9 @@ export default function App() {
                                   "task-item flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-all touch-manipulation category-stripe",
                                   indicatorClass,
                                   draggingTaskId === t.id ? "task-dragging" : "",
+                                  draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
                                   touchDragId === t.id ? "task-dragging" : "",
-                                  selectedTaskIds.has(t.id) ? "bg-primary/5" : ""
+                                  selectedTaskIds.has(t.id) && !draggingTaskId ? "bg-primary/5" : ""
                                 ].join(" ")}
                                 style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
                                 onDragOver={(e) => {
