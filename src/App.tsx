@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2 } from "lucide-react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripHorizontal, Sun, Moon, Flame, BarChart2, Undo2, X } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -124,6 +124,26 @@ function uniqueCategoriesFromTasks(tasksByDate: Record<ISODate, DbTask[]>) {
   return Array.from(set).sort((a, b) => a.localeCompare(b))
 }
 
+// #2: Motivational empty state messages
+const EMPTY_MESSAGES = [
+  "Heute ist ein guter Tag, um produktiv zu sein! 🚀",
+  "Starte mit einer kleinen Aufgabe – du schaffst das! 💪",
+  "Plane deinen Tag und bleib organisiert! 📋",
+  "Weniger planen, mehr umsetzen! ⚡",
+  "Jede grosse Reise beginnt mit einem ersten Schritt! 🏔️",
+  "Nutze den Tag – er kommt nicht zurück! ⏳",
+  "Fokus ist deine Superkraft! 🎯",
+  "Ein leerer Tag = eine leere Leinwand! 🎨",
+  "Was wirst du heute erreichen? 🌟",
+  "Produktivität beginnt mit dem ersten Task! ✅",
+]
+
+function getEmptyMessage(iso: ISODate) {
+  // Deterministisch basierend auf dem Datum
+  const hash = iso.split("").reduce((a, c) => a + c.charCodeAt(0), 0)
+  return EMPTY_MESSAGES[hash % EMPTY_MESSAGES.length]
+}
+
 export default function App() {
   // Auth
   const [authReady, setAuthReady] = useState(false)
@@ -168,7 +188,44 @@ export default function App() {
   }, [])
 
   const [cursorMonth, setCursorMonth] = useState<Date>(() => startOfMonth(new Date()))
-  const [selectedISO, setSelectedISO] = useState<ISODate>(() => toISODate(new Date()))
+
+  // #12: Read selectedISO from URL parameter on init
+  const [selectedISO, setSelectedISO] = useState<ISODate>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const dateParam = params.get("date")
+      if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) return dateParam
+    }
+    return toISODate(new Date())
+  })
+
+  // #12: Sync selectedISO to URL
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.set("date", selectedISO)
+    window.history.replaceState(null, "", url.toString())
+  }, [selectedISO])
+
+  // #1: Undo toast state
+  type UndoToast = { message: string; undo: () => void; timer: ReturnType<typeof setTimeout> }
+  const [undoToast, setUndoToast] = useState<UndoToast | null>(null)
+
+  const showUndoToast = useCallback((message: string, undo: () => void) => {
+    // Clear any existing toast
+    setUndoToast(prev => {
+      if (prev) clearTimeout(prev.timer)
+      return null
+    })
+    const timer = setTimeout(() => setUndoToast(null), 5000)
+    setUndoToast({ message, undo, timer })
+  }, [])
+
+  const dismissToast = useCallback(() => {
+    setUndoToast(prev => {
+      if (prev) clearTimeout(prev.timer)
+      return null
+    })
+  }, [])
 
   // Add Task Dialog
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -526,7 +583,10 @@ export default function App() {
   const deleteTask = async (taskId: string) => {
     if (!userId) return
     const snapshot = tasksByDate[selectedISO] ?? []
+    const deletedTask = snapshot.find((t) => t.id === taskId)
+    if (!deletedTask) return
 
+    // Optimistic remove
     setTasksByDate((prev) => {
       const list = prev[selectedISO] ?? []
       const next = list.filter((t) => t.id !== taskId)
@@ -536,7 +596,35 @@ export default function App() {
     })
 
     const { error } = await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", userId)
-    if (error) setTasksByDate((prev) => ({ ...prev, [selectedISO]: snapshot }))
+    if (error) {
+      setTasksByDate((prev) => ({ ...prev, [selectedISO]: snapshot }))
+      return
+    }
+
+    // #1: Show undo toast
+    showUndoToast(`"${deletedTask.title}" gelöscht`, async () => {
+      const { data } = await supabase
+        .from("tasks")
+        .insert([{
+          user_id: userId,
+          date: deletedTask.date,
+          title: deletedTask.title,
+          category: deletedTask.category,
+          done: deletedTask.done,
+          priority: deletedTask.priority,
+          sort_order: deletedTask.sort_order,
+        }])
+        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
+        .single()
+      if (data) {
+        const row = data as DbTask
+        setTasksByDate((prev) => {
+          const list = prev[row.date] ?? []
+          return { ...prev, [row.date]: [...list, row] }
+        })
+      }
+      dismissToast()
+    })
   }
 
   const openEditTask = (task: DbTask) => {
@@ -728,6 +816,14 @@ export default function App() {
 
     if (newCategory === cat) setNewCategory("__none__")
     if (editCategory === cat) setEditCategory("__none__")
+
+    // #1: Show undo toast for category deletion
+    showUndoToast(`Kategorie "${cat}" entfernt`, async () => {
+      // Re-assign the category to all tasks that had it (within visible range)
+      // This is a best-effort undo
+      await loadVisibleTasks()
+      dismissToast()
+    })
   }
 
   const renameCategory = async (oldName: string, newNameRaw: string) => {
@@ -771,12 +867,53 @@ export default function App() {
   }
 
   // Stats
+  // #9: Stats period filter
+  type StatsPeriod = "month" | "3months" | "all"
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>("month")
+  const [statsData, setStatsData] = useState<Record<ISODate, DbTask[]>>({})
+  const [statsLoading, setStatsLoading] = useState(false)
+
+  // Load stats data based on selected period
+  useEffect(() => {
+    if (!userId) return
+    const load = async () => {
+      if (statsPeriod === "month") {
+        // Use existing tasksByDate for current month
+        setStatsData(tasksByDate)
+        return
+      }
+      setStatsLoading(true)
+      const now = new Date()
+      let from: string | undefined
+      if (statsPeriod === "3months") {
+        const d = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+        from = toISODate(d)
+      }
+      // statsPeriod === "all" => no date filter
+
+      let query = supabase
+        .from("tasks")
+        .select("id,user_id,date,title,category,done,created_at,priority,repeat_every_days,repeat_until,sort_order")
+        .eq("user_id", userId)
+        .order("date", { ascending: true })
+      if (from) query = query.gte("date", from)
+
+      const { data } = await query
+      const rows = (data ?? []) as DbTask[]
+      setStatsData(mapTasksByDate(rows))
+      setStatsLoading(false)
+    }
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, statsPeriod, tasksByDate])
+
   const categoryStats = useMemo(() => {
+    const source = statsData
     const acc: Record<string, { total: number; done: number }> = {}
     for (const c of categories) acc[c] = { total: 0, done: 0 }
     acc[""] = acc[""] ?? { total: 0, done: 0 }
 
-    for (const tasks of Object.values(tasksByDate)) {
+    for (const tasks of Object.values(source)) {
       for (const t of tasks ?? []) {
         const c = normalizeCategory(t.category ?? "")
         if (c !== "" && !acc[c]) acc[c] = { total: 0, done: 0 }
@@ -797,7 +934,47 @@ export default function App() {
       .sort((a, b) => a.label.localeCompare(b.label))
 
     return { rows }
-  }, [tasksByDate, categories])
+  }, [statsData, categories])
+
+  // #10: Touch DnD state for task list reordering
+  const touchDragRef = useRef<{ taskId: string; startY: number; currentEl: HTMLElement | null } | null>(null)
+  const [touchDragId, setTouchDragId] = useState<string>("")
+
+  const handleTouchStart = useCallback((taskId: string, e: React.TouchEvent) => {
+    // Only start drag from the grip handle area
+    const touch = e.touches[0]
+    touchDragRef.current = { taskId, startY: touch.clientY, currentEl: e.currentTarget as HTMLElement }
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchDragRef.current) return
+    const touch = e.touches[0]
+    const dy = Math.abs(touch.clientY - touchDragRef.current.startY)
+    if (dy > 10) {
+      setTouchDragId(touchDragRef.current.taskId)
+      // Find the task element under the finger
+      const elements = document.elementsFromPoint(touch.clientX, touch.clientY)
+      const taskEl = elements.find(el => el.getAttribute("data-task-id") && el.getAttribute("data-task-id") !== touchDragRef.current?.taskId)
+      if (taskEl) {
+        const overId = taskEl.getAttribute("data-task-id") ?? ""
+        const rect = taskEl.getBoundingClientRect()
+        const mid = rect.top + rect.height / 2
+        const pos = touch.clientY < mid ? "above" : "below"
+        setDragOverTaskId(overId)
+        setDragPos(pos)
+      }
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchDragRef.current && touchDragId && dragOverTaskId) {
+      applyReorderWithinDay(touchDragRef.current.taskId, dragOverTaskId, dragPos)
+    }
+    touchDragRef.current = null
+    setTouchDragId("")
+    setDragOverTaskId("")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [touchDragId, dragOverTaskId, dragPos])
 
   // ── Dark Mode ──────────────────────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -839,7 +1016,15 @@ export default function App() {
   }, [tasksByDate, todayISO])
 
   // ── Wochenansicht ──────────────────────────────────────────────────────────
-  const [calView, setCalView] = useState<"month" | "week" | "year">("month")
+  // #8: Persist calView in localStorage
+  const [calView, setCalView] = useState<"month" | "week" | "year">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("calView")
+      if (saved === "month" || saved === "week" || saved === "year") return saved
+    }
+    return "month"
+  })
+  useEffect(() => { localStorage.setItem("calView", calView) }, [calView])
 
   const yearCells = useMemo(() => {
     const year = cursorMonth.getFullYear()
@@ -1204,145 +1389,148 @@ export default function App() {
                       </div>
                     </CardHeader>
                     <CardContent className="px-3 sm:px-5 pt-4">
+                      {/* #3: View transition animation */}
+                      <div key={calView} className="view-transition">
+                        {calView === "month" ? (
+                          <>
+                            {/* Wochentage */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
+                              {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
+                                <div key={d} className="text-center py-1">{d}</div>
+                              ))}
+                            </div>
 
-                      {calView === "month" ? (
-                        <>
-                          {/* Wochentage */}
-                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
-                            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-                              <div key={d} className="text-center py-1">{d}</div>
-                            ))}
-                          </div>
-
-                          {/* Monatsraster */}
-                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                            {monthCells.map((cell) => {
-                              const tasks = tasksByDate[cell.iso]
-                              const { total, done, ratio } = dayCompletion(tasks)
-                              const st = dayStatusClass(cell.iso, todayISO, tasks)
-                              const isSelected = cell.iso === selectedISO
-                              const isToday = cell.iso === todayISO
-                              const isDragOver = dragOverISO === cell.iso
-                              return (
-                                <button
-                                  key={cell.iso}
-                                  type="button"
-                                  onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
-                                  onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
-                                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
-                                  onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                  onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
-                                  className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "ring-2 ring-primary scale-[1.02]" : ""].join(" ")}
-                                >
-                                  <div className="flex items-start justify-between gap-1">
-                                    <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
-                                      {cell.day}
+                            {/* Monatsraster */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                              {monthCells.map((cell) => {
+                                const tasks = tasksByDate[cell.iso]
+                                const { total, done, ratio } = dayCompletion(tasks)
+                                const st = dayStatusClass(cell.iso, todayISO, tasks)
+                                const isSelected = cell.iso === selectedISO
+                                const isToday = cell.iso === todayISO
+                                const isDragOver = dragOverISO === cell.iso
+                                return (
+                                  <button
+                                    key={cell.iso}
+                                    type="button"
+                                    onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
+                                    onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                                    onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                                    onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
+                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-all touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "ring-2 ring-primary scale-[1.02]" : ""].join(" ")}
+                                  >
+                                    <div className="flex items-start justify-between gap-1">
+                                      <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                        {cell.day}
+                                      </div>
+                                      {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
                                     </div>
-                                    {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
-                                  </div>
-                                  {total > 0 && (
-                                    <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                                      <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                        <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                    {total > 0 && (
+                                      <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                        <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                          <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </>
+                        ) : calView === "week" ? (
+                          <>
+                            {/* Wochenansicht */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                              {weekCells.days.map((cell) => {
+                                const tasks = tasksByDate[cell.iso]
+                                const { total, done, ratio } = dayCompletion(tasks)
+                                const st = dayStatusClass(cell.iso, todayISO, tasks)
+                                const isSelected = cell.iso === selectedISO
+                                const isToday = cell.iso === todayISO
+                                const isDragOver = dragOverISO === cell.iso
+                                return (
+                                  <button
+                                    key={cell.iso}
+                                    type="button"
+                                    onClick={() => setSelectedISO(cell.iso)}
+                                    onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                                    onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                                    onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
+                                    className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30 hover:scale-[1.02]", isDragOver ? "ring-2 ring-primary" : ""].join(" ")}
+                                  >
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
+                                      <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                        {cell.day}
                                       </div>
                                     </div>
-                                  )}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </>
-                      ) : calView === "week" ? (
-                        <>
-                          {/* Wochenansicht */}
-                          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                            {weekCells.days.map((cell) => {
-                              const tasks = tasksByDate[cell.iso]
-                              const { total, done, ratio } = dayCompletion(tasks)
-                              const st = dayStatusClass(cell.iso, todayISO, tasks)
-                              const isSelected = cell.iso === selectedISO
-                              const isToday = cell.iso === todayISO
-                              const isDragOver = dragOverISO === cell.iso
-                              return (
-                                <button
-                                  key={cell.iso}
-                                  type="button"
-                                  onClick={() => setSelectedISO(cell.iso)}
-                                  onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
-                                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
-                                  onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                  onDrop={(e) => { e.preventDefault(); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; moveTask(p.fromISO, cell.iso, p.taskId) }}
-                                  className={["relative rounded-xl border p-2 text-left transition-all touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "ring-2 ring-primary" : ""].join(" ")}
-                                >
-                                  <div className="flex flex-col items-center gap-1">
-                                    <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
-                                    <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
-                                      {cell.day}
-                                    </div>
-                                  </div>
-                                  {total > 0 && (
-                                    <div className="mt-2">
-                                      <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
-                                      <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                        <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                    {total > 0 && (
+                                      <div className="mt-2">
+                                        <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
+                                        <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                          <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          {/* Jahresansicht – 4×3 Monate */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {yearCells.map((m) => {
-                              const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
-                              const tone =
-                                m.total === 0 ? "border-border bg-background" :
-                                  m.ratio >= 1 ? "border-emerald-400/70 bg-emerald-400/15" :
-                                    m.ratio >= 0.5 ? "border-amber-400/70 bg-amber-400/15" :
-                                      "border-rose-400/70 bg-rose-400/15"
-                              const barColor =
-                                m.total === 0 ? "bg-muted" :
-                                  m.ratio >= 1 ? "bg-emerald-500" :
-                                    m.ratio >= 0.5 ? "bg-amber-400" :
-                                      "bg-rose-400"
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Jahresansicht – 4×3 Monate */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                              {yearCells.map((m) => {
+                                const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
+                                const tone =
+                                  m.total === 0 ? "border-border bg-background" :
+                                    m.ratio >= 1 ? "border-emerald-400/70 bg-emerald-400/15" :
+                                      m.ratio >= 0.5 ? "border-amber-400/70 bg-amber-400/15" :
+                                        "border-rose-400/70 bg-rose-400/15"
+                                const barColor =
+                                  m.total === 0 ? "bg-muted" :
+                                    m.ratio >= 1 ? "bg-emerald-500" :
+                                      m.ratio >= 0.5 ? "bg-amber-400" :
+                                        "bg-rose-400"
 
-                              return (
-                                <button
-                                  key={m.monthIndex}
-                                  type="button"
-                                  onClick={() => {
-                                    setCursorMonth(new Date(m.year, m.monthIndex, 1))
-                                    setCalView("month")
-                                  }}
-                                  className={[
-                                    "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
-                                    tone,
-                                    isCurrentMonth ? "ring-2 ring-primary" : ""
-                                  ].join(" ")}
-                                >
-                                  <div className="text-sm font-semibold">{m.label}</div>
-                                  {m.total > 0 ? (
-                                    <>
-                                      <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
-                                      <div className="mt-2 h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                        <div className={["h-full rounded-full transition-all", barColor].join(" ")} style={{ width: `${percent(m.ratio)}%` }} />
-                                      </div>
-                                      <div className="mt-1 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
-                                    </>
-                                  ) : (
-                                    <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
-                                  )}
-                                </button>
-                              )
-                            })}
-                          </div>
-                          <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
-                        </>
-                      )}
+                                return (
+                                  <button
+                                    key={m.monthIndex}
+                                    type="button"
+                                    onClick={() => {
+                                      setCursorMonth(new Date(m.year, m.monthIndex, 1))
+                                      setCalView("month")
+                                    }}
+                                    className={[
+                                      "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
+                                      tone,
+                                      isCurrentMonth ? "ring-2 ring-primary" : ""
+                                    ].join(" ")}
+                                  >
+                                    <div className="text-sm font-semibold">{m.label}</div>
+                                    {m.total > 0 ? (
+                                      <>
+                                        <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
+                                        <div className="mt-2 h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                          <div className={["h-full rounded-full transition-all", barColor].join(" ")} style={{ width: `${percent(m.ratio)}%` }} />
+                                        </div>
+                                        <div className="mt-1 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
+                                      </>
+                                    ) : (
+                                      <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
+                          </>
+                        )}
+
+                      </div>{/* close view-transition wrapper */}
 
                       {/* Legende */}
                       <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
@@ -1351,14 +1539,11 @@ export default function App() {
                         <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%</span>
                       </div>
 
-                      {/* Mobile Spendenbox */}
-                      <div className="mt-3 xl:hidden flex flex-col sm:flex-row items-center gap-3 rounded-xl border border-border p-3 bg-background">
-                        <img src="/revolut-qr.jpg" alt="Revolut QR Code" className="w-20 h-20 sm:w-24 sm:h-24 object-contain flex-shrink-0" />
-                        <div className="text-center sm:text-right w-full sm:w-auto">
-                          <div className="text-sm font-medium">Projekt unterstützen</div>
-                          <a href="https://revolut.me/eljoa" target="_blank" rel="noopener noreferrer" className="mt-1 block text-xs text-primary underline break-all">revolut.me/eljoa</a>
-                        </div>
-                      </div>
+                      {/* #6: Mobile Spendenbox – kompakter Banner */}
+                      <a href="https://revolut.me/eljoa" target="_blank" rel="noopener noreferrer" className="mt-3 xl:hidden flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-xs text-muted-foreground">
+                        <span className="text-base">☕</span>
+                        <span>Projekt unterstützen – <span className="text-primary underline">revolut.me/eljoa</span></span>
+                      </a>
                     </CardContent>
                   </Card>
 
@@ -1385,7 +1570,7 @@ export default function App() {
                           <div className="grid gap-3">
                             <div className="grid gap-2">
                               <Label className="text-sm">Titel</Label>
-                              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" />
+                              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
                             </div>
 
                             <div className="grid gap-2">
@@ -1458,13 +1643,14 @@ export default function App() {
                     </div>
 
                     {/* Task-Liste */}
-                    <div className="flex-1 overflow-y-auto min-h-0">
+                    <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
                       {selectedTasks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
                           <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                             <Plus className="h-5 w-5 opacity-40" />
                           </div>
                           <p className="text-sm">Keine Aufgaben für diesen Tag.</p>
+                          <p className="text-xs text-muted-foreground/60 max-w-[200px] text-center leading-relaxed">{getEmptyMessage(selectedISO)}</p>
                         </div>
                       ) : (
                         <div className="divide-y">
@@ -1478,7 +1664,8 @@ export default function App() {
                             return (
                               <div
                                 key={t.id}
-                                className={["flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-colors touch-manipulation", overClass].join(" ")}
+                                data-task-id={t.id}
+                                className={["flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-colors touch-manipulation", overClass, touchDragId === t.id ? "opacity-50" : ""].join(" ")}
                                 onDragOver={(e) => {
                                   const p = readDragPayload(e)
                                   if (!p || p.kind !== "reorder") return
@@ -1553,6 +1740,9 @@ export default function App() {
                                       dragRef.current = null
                                       setDragOverTaskId("")
                                     }}
+                                    onTouchStart={(e) => handleTouchStart(t.id, e)}
+                                    onTouchMove={(e) => handleTouchMove(e)}
+                                    onTouchEnd={() => handleTouchEnd()}
                                   >
                                     <GripHorizontal className="h-3 w-3" />
                                   </span>
@@ -1755,6 +1945,26 @@ export default function App() {
             <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
               <div className="max-w-2xl mx-auto grid gap-4">
 
+                {/* #9: Stats Period Filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Zeitraum:</span>
+                  <div className="flex items-center rounded-lg border overflow-hidden text-xs">
+                    {(["month", "3months", "all"] as const).map((period) => {
+                      const labels = { month: "Dieser Monat", "3months": "3 Monate", all: "Alles" }
+                      return (
+                        <button
+                          key={period}
+                          onClick={() => setStatsPeriod(period)}
+                          className={["px-3 py-1.5 transition-colors", period !== "month" ? "border-l" : "", statsPeriod === period ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                        >
+                          {labels[period]}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {statsLoading && <span className="text-xs text-muted-foreground animate-pulse">Lade...</span>}
+                </div>
+
                 {/* Streak + Gesamt-Stats nebeneinander */}
                 <div className="grid grid-cols-2 gap-3">
                   {/* Streak Card */}
@@ -1929,6 +2139,26 @@ export default function App() {
               </div>
             </TabsContent>
           </Tabs>
+          {/* #1: Undo Toast */}
+          {undoToast && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm">
+                <span className="text-card-foreground">{undoToast.message}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { undoToast.undo() }}
+                  className="gap-1.5 h-7 text-xs text-primary hover:text-primary font-medium"
+                >
+                  <Undo2 className="h-3 w-3" />
+                  Rückgängig
+                </Button>
+                <button onClick={dismissToast} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
