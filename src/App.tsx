@@ -1825,8 +1825,8 @@ export default function App() {
 
                 {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
                 <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start">
-                  <div className="space-y-3 sm:space-y-4">
-                    <Card ref={calendarCardRef} className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+                  <div ref={calendarCardRef} className="space-y-3 sm:space-y-4">
+                    <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                       <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                         <div className="flex items-center justify-between gap-2">
                           <CardTitle className="text-sm sm:text-base font-semibold">
