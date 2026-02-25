@@ -1,46 +1,94 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- Background Gradient (Subtle depth) -->
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#f8fafc"/>
+    <!-- Background Gradient: Deep premium dark theme -->
+    <linearGradient id="app-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+
+    <!-- Glossy Glass Panel Gradient -->
+    <linearGradient id="glass-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+
+    <!-- Glowing Accent Gradient (Vibrant Cyan/Purple) -->
+    <linearGradient id="glow-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#ec4899"/>
     </linearGradient>
     
-    <!-- Primary App Color (Deep Indigo/Blue) -->
-    <linearGradient id="primary" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#312e81"/>
-      <stop offset="100%" stop-color="#1e1b4b"/>
+    <!-- Warm Accent for subtle contrast -->
+    <linearGradient id="warm-accent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
     </linearGradient>
 
-    <!-- Vibrant Accent (Emerald/Mint) -->
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#34d399"/>
-      <stop offset="100%" stop-color="#059669"/>
-    </linearGradient>
+    <!-- Complex glowing shadow filters -->
+    <filter id="glow-blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="32" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
 
-    <!-- Drop Shadow for Calendar -->
-    <filter id="shadow" x="-5%" y="-5%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.08"/>
+    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.5"/>
     </filter>
   </defs>
 
-  <!-- App Icon Base Shape (iOS standard superellipse-like round rect) -->
-  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+  <!-- 1. Deep Space/Dark App Background -->
+  <rect width="512" height="512" rx="114" fill="url(#app-bg)"/>
   
-  <!-- Calendar Container Shape -->
-  <rect x="130" y="150" width="252" height="252" rx="32" fill="url(#primary)" filter="url(#shadow)"/>
-  
-  <!-- Calendar Top Header Fold -->
-  <path d="M130 182 C130 164.327 144.327 150 162 150 L350 150 C367.673 150 382 164.327 382 182 L382 220 L130 220 Z" fill="#4338ca"/>
-  
-  <!-- Minimalist Grid/Pages line -->
-  <line x1="170" y1="260" x2="342" y2="260" stroke="#4f46e5" stroke-width="12" stroke-linecap="round"/>
-  <line x1="170" y1="310" x2="270" y2="310" stroke="#4f46e5" stroke-width="12" stroke-linecap="round"/>
+  <!-- 2. Ambient Glow Effects behind the central shape -->
+  <circle cx="256" cy="256" r="160" fill="url(#glow-accent)" opacity="0.3" filter="url(#glow-blur)"/>
+  <circle cx="150" cy="150" r="120" fill="#0ea5e9" opacity="0.2" filter="url(#glow-blur)"/>
+  <circle cx="362" cy="362" r="120" fill="#ec4899" opacity="0.15" filter="url(#glow-blur)"/>
 
-  <!-- Dynamic Progress Swoosh / Checkmark -->
-  <path d="M 190 310 L 250 360 L 370 200" fill="none" stroke="url(#accent)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 3. Isometric/Abstract 3D-like Calendar Base (Glassmorphism) -->
+  <g transform="translate(116, 126)" filter="url(#soft-shadow)">
+    <!-- Base Glass Plate -->
+    <path d="M40 0 L240 0 C262.091 0 280 17.909 280 40 L280 220 C280 242.091 262.091 260 240 260 L40 260 C17.909 260 0 242.091 0 220 L0 40 C0 17.909 17.909 0 40 0 Z" fill="url(#glass-gradient)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    
+    <!-- Inner Panel -->
+    <rect x="20" y="60" width="240" height="180" rx="16" fill="rgba(0,0,0,0.4)"/>
+    
+    <!-- Header Accent Bar -->
+    <rect x="0" y="0" width="280" height="40" rx="16" fill="url(#glow-accent)"/>
+    <rect x="0" y="20" width="280" height="20" fill="url(#glow-accent)"/> <!-- To square the bottom edge of the header -->
+
+    <!-- Abstract Calendar Grid Details (Glowing Lines) -->
+    <!-- Rows -->
+    <rect x="40" y="100" width="80" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
+    <rect x="140" y="100" width="100" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
+    
+    <rect x="40" y="140" width="140" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
+    <rect x="200" y="140" width="40" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
+
+    <rect x="40" y="180" width="60" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
+    
+    <!-- Vibrant Progress Bar / Highlight across the grid -->
+    <rect x="120" y="180" width="120" height="12" rx="6" fill="url(#warm-accent)"/>
+
+    <!-- Binder Rings (Sleek metallic look) -->
+    <g transform="translate(60, -10)">
+      <rect x="0" y="0" width="16" height="40" rx="8" fill="url(#glass-gradient)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <circle cx="8" cy="8" r="3" fill="#0f172a"/>
+      <circle cx="8" cy="32" r="3" fill="#0f172a"/>
+    </g>
+    <g transform="translate(204, -10)">
+      <rect x="0" y="0" width="16" height="40" rx="8" fill="url(#glass-gradient)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+      <circle cx="8" cy="8" r="3" fill="#0f172a"/>
+      <circle cx="8" cy="32" r="3" fill="#0f172a"/>
+    </g>
+  </g>
+
+  <!-- 4. Overlay Graphic: A floating, elegant checkmark/geometric swoop -->
+  <path d="M 210 320 L 260 370 L 370 200" fill="none" stroke="url(#glow-accent)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow-blur)"/>
+  <!-- Core crisp line on top of the blur -->
+  <path d="M 210 320 L 260 370 L 370 200" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
   
-  <!-- Calendar Binder Rings -->
-  <rect x="180" y="130" width="16" height="40" rx="8" fill="#e2e8f0"/>
-  <rect x="316" y="130" width="16" height="40" rx="8" fill="#e2e8f0"/>
+  <!-- Little aesthetic sparkles/dots -->
+  <circle cx="160" cy="380" r="6" fill="#0ea5e9"/>
+  <circle cx="390" cy="140" r="8" fill="#ec4899"/>
 </svg>
