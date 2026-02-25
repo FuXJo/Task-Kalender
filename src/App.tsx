@@ -3275,145 +3275,147 @@ export default function App() {
                     </CardContent>
                   </Card>
                 </div>
-
+              </div>
             </TabsContent>
-    < TabsContent value = "support" className = "mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4" >
-      <div className="max-w-md mx-auto">
-        <Card className="rounded-2xl shadow-sm overflow-hidden">
-          <div className="bg-muted/40 px-5 py-3 border-b">
-            <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Projekt unterstützen</h2>
-          </div>
-          <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center text-center space-y-4">
-            <p className="text-sm text-muted-foreground">Wenn dir der Study Calendar gefällt, kannst du das Projekt mit einer kleinen Spende unterstützen. Jeder Beitrag hilft! ☕</p>
-            <img
-              src="/revolut-qr.jpg"
-              alt="Revolut QR Code"
-              className="w-40 h-40 object-contain border rounded-lg"
-            />
-            <a
-              href="https://revolut.me/eljoa"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Heart className="h-4 w-4" />
-              revolut.me/eljoa
-            </a>
-          </CardContent>
-        </Card>
-      </div>
-      </TabsContent >
-    </Tabs >
-    {/* #6: Search Overlay */ }
-  {
-    searchOpen && (
-      <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-[10vh]" onClick={() => { setSearchOpen(false); setSearchQuery("") }}>
-        <div className="bg-card border rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center gap-3 border-b px-4 py-3">
-            <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <input
-              ref={searchInputRef}
-              autoFocus
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tasks durchsuchen…"
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-              onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery("") } }}
-            />
-            <button onClick={() => { setSearchOpen(false); setSearchQuery("") }} className="text-muted-foreground hover:text-foreground">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          {searchQuery.trim() && (
-            <div className="max-h-[300px] overflow-y-auto">
-              {searchResults.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-muted-foreground">Keine Ergebnisse</div>
-              ) : (
-                searchResults.map(({ task, iso }) => (
-                  <button
-                    key={task.id}
-                    className="w-full text-left px-4 py-2.5 hover:bg-muted/50 border-b last:border-b-0 transition-colors"
-                    onClick={() => {
-                      setSelectedISO(iso)
-                      setCursorMonth(startOfMonth(parseISODate(iso)))
-                      setSearchOpen(false)
-                      setSearchQuery("")
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={["text-sm flex-1 truncate", task.done ? "line-through text-muted-foreground" : "font-medium"].join(" ")}>{task.title}</div>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{iso}</span>
+
+            {/* Unterstützen */}
+            <TabsContent value="support" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
+              <div className="max-w-md mx-auto">
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-muted/40 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Projekt unterstützen</h2>
+                  </div>
+                  <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center text-center space-y-4">
+                    <p className="text-sm text-muted-foreground">Wenn dir der Study Calendar gefällt, kannst du das Projekt mit einer kleinen Spende unterstützen. Jeder Beitrag hilft! ☕</p>
+                    <img
+                      src="/revolut-qr.jpg"
+                      alt="Revolut QR Code"
+                      className="w-40 h-40 object-contain border rounded-lg"
+                    />
+                    <a
+                      href="https://revolut.me/eljoa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      <Heart className="h-4 w-4" />
+                      revolut.me/eljoa
+                    </a>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent >
+          </Tabs >
+          {/* #6: Search Overlay */}
+          {
+            searchOpen && (
+              <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-[10vh]" onClick={() => { setSearchOpen(false); setSearchQuery("") }}>
+                <div className="bg-card border rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-3 border-b px-4 py-3">
+                    <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <input
+                      ref={searchInputRef}
+                      autoFocus
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Tasks durchsuchen…"
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                      onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery("") } }}
+                    />
+                    <button onClick={() => { setSearchOpen(false); setSearchQuery("") }} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {searchQuery.trim() && (
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {searchResults.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">Keine Ergebnisse</div>
+                      ) : (
+                        searchResults.map(({ task, iso }) => (
+                          <button
+                            key={task.id}
+                            className="w-full text-left px-4 py-2.5 hover:bg-muted/50 border-b last:border-b-0 transition-colors"
+                            onClick={() => {
+                              setSelectedISO(iso)
+                              setCursorMonth(startOfMonth(parseISODate(iso)))
+                              setSearchOpen(false)
+                              setSearchQuery("")
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className={["text-sm flex-1 truncate", task.done ? "line-through text-muted-foreground" : "font-medium"].join(" ")}>{task.title}</div>
+                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">{iso}</span>
+                            </div>
+                            {task.category && (
+                              <Badge variant="secondary" className="mt-0.5 h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(task.category), color: getCategoryColor(task.category) }}>
+                                {task.category}
+                              </Badge>
+                            )}
+                          </button>
+                        ))
+                      )}
                     </div>
-                    {task.category && (
-                      <Badge variant="secondary" className="mt-0.5 h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(task.category), color: getCategoryColor(task.category) }}>
-                        {task.category}
-                      </Badge>
-                    )}
+                  )}
+                  <div className="px-4 py-2 border-t text-[10px] text-muted-foreground">
+                    Drücke <kbd className="px-1 py-0.5 rounded border text-[10px]">/</kbd> zum Öffnen · <kbd className="px-1 py-0.5 rounded border text-[10px]">Esc</kbd> zum Schliessen
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          {/* #1: Undo Toast */}
+          {
+            undoToast && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm">
+                  <span className="text-card-foreground">{undoToast.message}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { undoToast.undo() }}
+                    className="gap-1.5 h-7 text-xs text-primary hover:text-primary font-medium"
+                  >
+                    <Undo2 className="h-3 w-3" />
+                    Rückgängig
+                  </Button>
+                  <button onClick={dismissToast} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="h-3.5 w-3.5" />
                   </button>
-                ))
-              )}
-            </div>
-          )}
-          <div className="px-4 py-2 border-t text-[10px] text-muted-foreground">
-            Drücke <kbd className="px-1 py-0.5 rounded border text-[10px]">/</kbd> zum Öffnen · <kbd className="px-1 py-0.5 rounded border text-[10px]">Esc</kbd> zum Schliessen
-          </div>
-        </div>
-      </div>
-    )
-  }
-  {/* #1: Undo Toast */ }
-  {
-    undoToast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm">
-          <span className="text-card-foreground">{undoToast.message}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { undoToast.undo() }}
-            className="gap-1.5 h-7 text-xs text-primary hover:text-primary font-medium"
-          >
-            <Undo2 className="h-3 w-3" />
-            Rückgängig
-          </Button>
-          <button onClick={dismissToast} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-    )
-  }
+                </div>
+              </div>
+            )
+          }
         </div >
       </div >
 
-    {/* Keyboard Help Dialog */ }
-    < Dialog open = { keyboardHelpOpen } onOpenChange = { setKeyboardHelpOpen } >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Tastaturkürzel</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
-          {[
-            ["N", "Neue Aufgabe"],
-            ["T", "Heute"],
-            ["/", "Suche"],
-            ["?", "Diese Hilfe"],
-            ["D", "Dark Mode"],
-            ["←  →", "Monat wechseln"],
-          ].map(([key, desc]) => (
-            <div key={key} className="flex items-center gap-3">
-              <kbd className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md border bg-muted px-2 text-xs font-mono font-medium text-muted-foreground">{key}</kbd>
-              <span className="text-muted-foreground">{desc}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground space-y-1">
-          <p><strong>Tipps:</strong></p>
-          <p>• Doppelklick auf Kalenderzelle → Aufgabe hinzufügen</p>
-          <p>• Drag & Drop → Aufgaben zwischen Tagen verschieben</p>
-          <p>• Mehrere auswählen → zusammen verschieben</p>
-        </div>
-      </DialogContent>
+      {/* Keyboard Help Dialog */}
+      < Dialog open={keyboardHelpOpen} onOpenChange={setKeyboardHelpOpen} >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tastaturkürzel</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            {[
+              ["N", "Neue Aufgabe"],
+              ["T", "Heute"],
+              ["/", "Suche"],
+              ["?", "Diese Hilfe"],
+              ["D", "Dark Mode"],
+              ["←  →", "Monat wechseln"],
+            ].map(([key, desc]) => (
+              <div key={key} className="flex items-center gap-3">
+                <kbd className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md border bg-muted px-2 text-xs font-mono font-medium text-muted-foreground">{key}</kbd>
+                <span className="text-muted-foreground">{desc}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t text-xs text-muted-foreground space-y-1">
+            <p><strong>Tipps:</strong></p>
+            <p>• Doppelklick auf Kalenderzelle → Aufgabe hinzufügen</p>
+            <p>• Drag & Drop → Aufgaben zwischen Tagen verschieben</p>
+            <p>• Mehrere auswählen → zusammen verschieben</p>
+          </div>
+        </DialogContent>
       </Dialog >
     </div >
   )
