@@ -2083,7 +2083,7 @@ export default function App() {
                                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Zeitplaner</span>
                                   <span className="text-[10px] text-muted-foreground">{timeBlocks.length} {timeBlocks.length === 1 ? "Block" : "Blöcke"}</span>
                                 </div>
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
                                   <div className="grid min-w-[600px]" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
                                     {/* Header row with day labels */}
                                     <div className="border-b border-r bg-muted/20 h-8" />
