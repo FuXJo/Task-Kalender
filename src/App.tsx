@@ -1695,8 +1695,8 @@ export default function App() {
 
           {/* Logo / Titel */}
           <div className="text-center space-y-2">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border bg-background shadow-sm mx-auto overflow-hidden">
-              <img src="/logo.png" alt="Study Calendar" className="h-10 w-10" />
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border bg-background shadow-sm mx-auto">
+              <CalendarDays className="h-7 w-7" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Study Calendar</h1>
             <p className="text-sm text-muted-foreground">Organisiere deinen Lernalltag</p>
@@ -1808,8 +1808,8 @@ export default function App() {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="grid h-11 w-11 sm:h-12 sm:w-12 place-items-center rounded-xl sm:rounded-2xl border flex-shrink-0 overflow-hidden">
-                  <img src="/logo.png" alt="Study Calendar" className="h-9 w-9 sm:h-10 sm:w-10" />
+                <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl sm:rounded-2xl border flex-shrink-0">
+                  <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-lg sm:text-xl font-semibold truncate">Study Calendar</div>
