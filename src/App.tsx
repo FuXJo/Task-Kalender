@@ -2316,7 +2316,7 @@ export default function App() {
                   </div>
 
                   {/* To-dos */}
-                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-4" style={{ maxHeight: calendarCardHeight ? `${calendarCardHeight}px` : "calc(100vh - 96px)" }}>
+                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-4" style={{ maxHeight: "calc(100vh - 96px)" }}>
                     <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                       <div>
                         <div className="text-sm font-semibold">To-dos</div>
