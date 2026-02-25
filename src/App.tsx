@@ -1808,8 +1808,8 @@ export default function App() {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl sm:rounded-2xl border flex-shrink-0 overflow-hidden">
-                  <img src="/logo.png" alt="Study Calendar" className="h-7 w-7 sm:h-8 sm:w-8" />
+                <div className="grid h-11 w-11 sm:h-12 sm:w-12 place-items-center rounded-xl sm:rounded-2xl border flex-shrink-0 overflow-hidden">
+                  <img src="/logo.png" alt="Study Calendar" className="h-9 w-9 sm:h-10 sm:w-10" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-lg sm:text-xl font-semibold truncate">Study Calendar</div>
