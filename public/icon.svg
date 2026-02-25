@@ -1,94 +1,103 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- Background Gradient: Deep premium dark theme -->
-    <linearGradient id="app-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="50%" stop-color="#1e1b4b"/>
-      <stop offset="100%" stop-color="#020617"/>
+    <!-- Studio Lighting Background -->
+    <radialGradient id="bg-grad" cx="50%" cy="30%" r="70%" fx="50%" fy="30%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </radialGradient>
+
+    <!-- Vibrant 3D Sphere Gradients -->
+    <radialGradient id="sphere-orange" cx="30%" cy="30%" r="70%" fx="20%" fy="20%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="40%" stop-color="#f97316" />
+      <stop offset="80%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#9a3412" />
+    </radialGradient>
+
+    <radialGradient id="sphere-blue" cx="30%" cy="30%" r="70%" fx="20%" fy="20%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="40%" stop-color="#3b82f6" />
+      <stop offset="80%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </radialGradient>
+
+    <!-- Frosted Glass Ribbon / Swoosh -->
+    <linearGradient id="glass-ribbon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="25%" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="75%" stop-color="#e2e8f0" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.8" />
     </linearGradient>
 
-    <!-- Glossy Glass Panel Gradient -->
-    <linearGradient id="glass-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.15"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02"/>
+    <linearGradient id="glass-edge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+      <stop offset="50%" stop-color="#cbd5e1" stop-opacity="0" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.8" />
     </linearGradient>
 
-    <!-- Glowing Accent Gradient (Vibrant Cyan/Purple) -->
-    <linearGradient id="glow-accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0ea5e9"/>
-      <stop offset="50%" stop-color="#8b5cf6"/>
-      <stop offset="100%" stop-color="#ec4899"/>
-    </linearGradient>
-    
-    <!-- Warm Accent for subtle contrast -->
-    <linearGradient id="warm-accent" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#f59e0b"/>
-      <stop offset="100%" stop-color="#f43f5e"/>
-    </linearGradient>
-
-    <!-- Complex glowing shadow filters -->
-    <filter id="glow-blur" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="32" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <!-- Premium Drop Shadows -->
+    <filter id="shadow-deep" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="32" flood-color="#0f172a" flood-opacity="0.15" />
     </filter>
 
-    <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#000000" flood-opacity="0.5"/>
+    <filter id="shadow-sharp" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.12" />
+    </filter>
+
+    <!-- Inner Glow for 3D depth -->
+    <filter id="inner-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="12" result="blur"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.5" result="glowColor"/>
+      <feComposite in="glowColor" in2="blur" operator="in" result="glow"/>
+      <feComposite in="SourceGraphic" in2="glow" operator="over"/>
     </filter>
   </defs>
 
-  <!-- 1. Deep Space/Dark App Background -->
-  <rect width="512" height="512" rx="114" fill="url(#app-bg)"/>
-  
-  <!-- 2. Ambient Glow Effects behind the central shape -->
-  <circle cx="256" cy="256" r="160" fill="url(#glow-accent)" opacity="0.3" filter="url(#glow-blur)"/>
-  <circle cx="150" cy="150" r="120" fill="#0ea5e9" opacity="0.2" filter="url(#glow-blur)"/>
-  <circle cx="362" cy="362" r="120" fill="#ec4899" opacity="0.15" filter="url(#glow-blur)"/>
+  <!-- Base App Icon Shape (Clean, modern white/gray drop) -->
+  <rect width="512" height="512" rx="114" fill="url(#bg-grad)" />
 
-  <!-- 3. Isometric/Abstract 3D-like Calendar Base (Glassmorphism) -->
-  <g transform="translate(116, 126)" filter="url(#soft-shadow)">
-    <!-- Base Glass Plate -->
-    <path d="M40 0 L240 0 C262.091 0 280 17.909 280 40 L280 220 C280 242.091 262.091 260 240 260 L40 260 C17.909 260 0 242.091 0 220 L0 40 C0 17.909 17.909 0 40 0 Z" fill="url(#glass-gradient)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+  <!-- The "Time/Progress" Abstract Core: Floating 3D Spheres -->
+  <g transform="translate(0, -16)">
+    <!-- Back Sphere (Blue/Indigo) -->
+    <circle cx="210" cy="190" r="100" fill="url(#sphere-blue)" filter="url(#shadow-deep)" />
     
-    <!-- Inner Panel -->
-    <rect x="20" y="60" width="240" height="180" rx="16" fill="rgba(0,0,0,0.4)"/>
-    
-    <!-- Header Accent Bar -->
-    <rect x="0" y="0" width="280" height="40" rx="16" fill="url(#glow-accent)"/>
-    <rect x="0" y="20" width="280" height="20" fill="url(#glow-accent)"/> <!-- To square the bottom edge of the header -->
+    <!-- Front Sphere (Vibrant Orange/Amber) -->
+    <circle cx="330" cy="310" r="80" fill="url(#sphere-orange)" filter="url(#shadow-deep)" />
 
-    <!-- Abstract Calendar Grid Details (Glowing Lines) -->
-    <!-- Rows -->
-    <rect x="40" y="100" width="80" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
-    <rect x="140" y="100" width="100" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
-    
-    <rect x="40" y="140" width="140" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
-    <rect x="200" y="140" width="40" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
-
-    <rect x="40" y="180" width="60" height="12" rx="6" fill="rgba(255,255,255,0.1)"/>
-    
-    <!-- Vibrant Progress Bar / Highlight across the grid -->
-    <rect x="120" y="180" width="120" height="12" rx="6" fill="url(#warm-accent)"/>
-
-    <!-- Binder Rings (Sleek metallic look) -->
-    <g transform="translate(60, -10)">
-      <rect x="0" y="0" width="16" height="40" rx="8" fill="url(#glass-gradient)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
-      <circle cx="8" cy="8" r="3" fill="#0f172a"/>
-      <circle cx="8" cy="32" r="3" fill="#0f172a"/>
-    </g>
-    <g transform="translate(204, -10)">
-      <rect x="0" y="0" width="16" height="40" rx="8" fill="url(#glass-gradient)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
-      <circle cx="8" cy="8" r="3" fill="#0f172a"/>
-      <circle cx="8" cy="32" r="3" fill="#0f172a"/>
-    </g>
+    <!-- Frosted Glass Infinity / Orbit Ribbon (representing ongoing continuous progress/planning) -->
+    <path d="M 140 340 
+             C 140 340, 80 260, 160 160 
+             C 240 60, 400 120, 420 220 
+             C 440 320, 360 400, 260 400 
+             C 160 400, 140 340, 140 340 Z" 
+          fill="none" 
+          stroke="url(#glass-edge)" 
+          stroke-width="1.5" 
+          filter="url(#shadow-sharp)" />
+          
+    <path d="M 140 340 
+             C 140 340, 80 260, 160 160 
+             C 240 60, 400 120, 420 220 
+             C 440 320, 360 400, 260 400 
+             C 160 400, 140 340, 140 340 Z" 
+          fill="url(#glass-ribbon)" 
+          filter="url(#inner-glow)" />
+          
+    <!-- Inner Ribbon Edge for extra thickness/glass refraction -->
+    <path d="M 160 330 
+             C 160 330, 100 260, 175 175 
+             C 250 90, 380 140, 395 225 
+             C 410 310, 345 380, 260 380 
+             C 175 380, 160 330, 160 330 Z" 
+          fill="none" 
+          stroke="#ffffff" 
+          stroke-width="12" 
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.8" />
   </g>
 
-  <!-- 4. Overlay Graphic: A floating, elegant checkmark/geometric swoop -->
-  <path d="M 210 320 L 260 370 L 370 200" fill="none" stroke="url(#glow-accent)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow-blur)"/>
-  <!-- Core crisp line on top of the blur -->
-  <path d="M 210 320 L 260 370 L 370 200" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  
-  <!-- Little aesthetic sparkles/dots -->
-  <circle cx="160" cy="380" r="6" fill="#0ea5e9"/>
-  <circle cx="390" cy="140" r="8" fill="#ec4899"/>
+  <!-- Ambient Light Reflection on the Glass -->
+  <circle cx="160" cy="180" r="20" fill="#ffffff" filter="blur(8px)" opacity="0.6" />
+  <circle cx="380" cy="240" r="15" fill="#ffffff" filter="blur(6px)" opacity="0.4" />
 </svg>
