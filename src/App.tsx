@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft, Heart } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -1896,867 +1896,840 @@ export default function App() {
                 <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Fortschritt
               </TabsTrigger>
+              <TabsTrigger value="support" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+                <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Unterstützen
+              </TabsTrigger>
             </TabsList>
 
             {/* Kalender */}
             <TabsContent value="kalender" className="mt-3 sm:mt-4 flex-1 min-h-0 flex flex-col overflow-hidden">
-              <div className="flex gap-3 sm:gap-4 flex-1 min-h-0 overflow-hidden">
-                {/* Spendenbox links - nur auf großen Desktop-Screens */}
-                <Card className="hidden xl:flex flex-col items-center justify-start rounded-2xl shadow-sm p-6 w-[240px] flex-shrink-0 h-fit sticky top-6">
-                  <div className="text-center space-y-4">
-                    <div className="text-base font-semibold">
-                      Projekt unterstützen
-                    </div>
-
-                    <img
-                      src="/revolut-qr.jpg"
-                      alt="Revolut QR Code"
-                      className="w-32 h-32 object-contain mx-auto border rounded-lg"
-                    />
-
-                    <a
-                      href="https://revolut.me/eljoa"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-sm text-primary underline hover:text-primary/80 transition-colors break-all"
-                    >
-                      revolut.me/eljoa
-                    </a>
-                  </div>
-                </Card>
-
-                {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-                <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start min-h-0 overflow-hidden">
-                  <div ref={calendarCardRef} className="space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-h-0">
-                    <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
-                      <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
-                        <div className="flex items-center justify-between gap-2">
-                          <CardTitle className="text-sm sm:text-base font-semibold">
-                            {calView === "year"
-                              ? cursorMonth.getFullYear().toString()
-                              : calView === "week"
-                                ? `KW ${weekCells.kw} · ${weekCells.year}`
-                                : cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
-                          </CardTitle>
-                          {/* Woche / Monat / Jahr Umschalter */}
-                          <div className="flex items-center rounded-lg border overflow-hidden text-xs">
-                            <button
-                              onClick={() => setCalView("week")}
-                              className={["px-3 py-1.5 transition-colors", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                            >
-                              Woche
-                            </button>
-                            <button
-                              onClick={() => setCalView("month")}
-                              className={["px-3 py-1.5 transition-colors border-l", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                            >
-                              Monat
-                            </button>
-                            <button
-                              onClick={() => setCalView("year")}
-                              className={["px-3 py-1.5 transition-colors border-l", calView === "year" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                            >
-                              Jahr
-                            </button>
-                          </div>
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 lg:items-start min-h-0 overflow-hidden">
+                <div ref={calendarCardRef} className="space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-h-0">
+                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+                    <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="text-sm sm:text-base font-semibold">
+                          {calView === "year"
+                            ? cursorMonth.getFullYear().toString()
+                            : calView === "week"
+                              ? `KW ${weekCells.kw} · ${weekCells.year}`
+                              : cursorMonth.toLocaleDateString("de-DE", { month: "long", year: "numeric" })}
+                        </CardTitle>
+                        {/* Woche / Monat / Jahr Umschalter */}
+                        <div className="flex items-center rounded-lg border overflow-hidden text-xs">
+                          <button
+                            onClick={() => setCalView("week")}
+                            className={["px-3 py-1.5 transition-colors", calView === "week" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                          >
+                            Woche
+                          </button>
+                          <button
+                            onClick={() => setCalView("month")}
+                            className={["px-3 py-1.5 transition-colors border-l", calView === "month" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                          >
+                            Monat
+                          </button>
+                          <button
+                            onClick={() => setCalView("year")}
+                            className={["px-3 py-1.5 transition-colors border-l", calView === "year" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
+                          >
+                            Jahr
+                          </button>
                         </div>
-                      </CardHeader>
-                      <CardContent className="px-3 sm:px-5 pt-4">
-                        {/* #3: View transition animation */}
-                        <div key={calView} className="view-transition">
-                          {calView === "month" ? (
-                            <>
-                              {/* Wochentage */}
-                              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
-                                {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
-                                  <div key={d} className="text-center py-1">{d}</div>
-                                ))}
-                              </div>
-
-                              {/* Monatsraster */}
-                              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                                {monthCells.map((cell) => {
-                                  const tasks = tasksByDate[cell.iso]
-                                  const { total, done, ratio } = dayCompletion(tasks)
-                                  const st = dayStatusClass(cell.iso, todayISO, tasks)
-                                  const isSelected = cell.iso === selectedISO
-                                  const isToday = cell.iso === todayISO
-                                  const isDragOver = dragOverISO === cell.iso
-                                  return (
-                                    <button
-                                      key={cell.iso}
-                                      type="button"
-                                      onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
-                                      onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
-                                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
-                                      onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                      onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                      className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
-                                      onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
-                                    >
-                                      <div className="flex items-start justify-between gap-1">
-                                        <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
-                                          {cell.day}
-                                        </div>
-                                        {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
-                                      </div>
-                                      {total > 0 && (
-                                        <div className="absolute bottom-1.5 left-1.5 right-1.5">
-                                          {/* Category dots */}
-                                          {(() => {
-                                            const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
-                                            return cats.length > 0 ? (
-                                              <div className="flex gap-0.5 mb-0.5">
-                                                {cats.slice(0, 4).map(c => (
-                                                  <span key={c} className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
-                                                ))}
-                                                {cats.length > 4 && <span className="text-[7px] text-muted-foreground leading-none">+{cats.length - 4}</span>}
-                                              </div>
-                                            ) : null
-                                          })()}
-                                          <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                            <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
-                                          </div>
-                                        </div>
-                                      )}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            </>
-                          ) : calView === "week" ? (
-                            <>
-                              {/* Wochenansicht */}
-                              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-                                {weekCells.days.map((cell) => {
-                                  const tasks = tasksByDate[cell.iso]
-                                  const { total, done, ratio } = dayCompletion(tasks)
-                                  const st = dayStatusClass(cell.iso, todayISO, tasks)
-                                  const isSelected = cell.iso === selectedISO
-                                  const isToday = cell.iso === todayISO
-                                  const isDragOver = dragOverISO === cell.iso
-                                  return (
-                                    <button
-                                      key={cell.iso}
-                                      type="button"
-                                      onClick={() => setSelectedISO(cell.iso)}
-                                      onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
-                                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
-                                      onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
-                                      onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                      className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-20 sm:h-24", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
-                                      onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
-                                    >
-                                      <div className="flex flex-col items-center gap-1">
-                                        <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
-                                        <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
-                                          {cell.day}
-                                        </div>
-                                      </div>
-                                      {total > 0 && (
-                                        <div className="mt-2">
-                                          <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
-                                          {/* Category dots */}
-                                          {(() => {
-                                            const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
-                                            return cats.length > 0 ? (
-                                              <div className="flex justify-center gap-0.5 mt-1">
-                                                {cats.slice(0, 5).map(c => (
-                                                  <span key={c} className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
-                                                ))}
-                                              </div>
-                                            ) : null
-                                          })()}
-                                          <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
-                                            <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
-                                          </div>
-                                        </div>
-                                      )}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-
-                              {/* Stundenraster / Time Planner */}
-                              <div className="mt-4 border rounded-xl overflow-hidden bg-background">
-                                <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
-                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Zeitplaner</span>
-                                  <span className="text-[10px] text-muted-foreground">{timeBlocks.length} {timeBlocks.length === 1 ? "Block" : "Blöcke"}</span>
-                                </div>
-                                <div className="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
-                                  <div className="grid min-w-[600px]" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
-                                    {/* Header row with day labels */}
-                                    <div className="border-b border-r bg-muted/20 h-8" />
-                                    {weekCells.days.map(cell => (
-                                      <div key={cell.iso} className="border-b border-r last:border-r-0 bg-muted/20 h-8 flex items-center justify-center text-[10px] font-medium text-muted-foreground">
-                                        {cell.label} {cell.day}
-                                      </div>
-                                    ))}
-
-                                    {/* Hour rows */}
-                                    {Array.from({ length: PLANNER_END - PLANNER_START }, (_, hi) => {
-                                      const hour = PLANNER_START + hi
-                                      return (
-                                        <React.Fragment key={hour}>
-                                          {/* Hour label */}
-                                          <div className="border-r border-b h-12 flex items-start justify-end pr-1.5 pt-0.5">
-                                            <span className="text-[9px] text-muted-foreground tabular-nums">{String(hour).padStart(2, "0")}:00</span>
-                                          </div>
-                                          {/* Day columns */}
-                                          {weekCells.days.map(cell => {
-                                            return (
-                                              <div
-                                                key={cell.iso}
-                                                className="border-b border-r last:border-r-0 h-12 relative group/slot"
-                                                onDragOver={(e) => {
-                                                  e.preventDefault()
-                                                  e.dataTransfer.dropEffect = "move"
-                                                }}
-                                                onDrop={(e) => {
-                                                  e.preventDefault()
-                                                  const p = readDragPayload(e)
-                                                  if (!p) return
-                                                  // Snap to nearest 30 min
-                                                  const rect = e.currentTarget.getBoundingClientRect()
-                                                  const yRatio = (e.clientY - rect.top) / rect.height
-                                                  const startHour = hour + (yRatio >= 0.5 ? 0.5 : 0)
-                                                  addTimeBlock(p.taskId, cell.iso, startHour, 1)
-                                                }}
-                                                onClick={() => setSelectedISO(cell.iso)}
-                                              >
-                                                {/* Half-hour line */}
-                                                <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-black/5" />
-                                                {/* Hover indicator */}
-                                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/slot:opacity-100 transition-opacity pointer-events-none" />
-
-                                                {/* Render time blocks that START in this hour */}
-                                                {timeBlocks
-                                                  .filter(b => b.date === cell.iso && Math.floor(b.start_hour) === hour)
-                                                  .map(block => {
-                                                    const allTasks = Object.values(tasksByDate).flat()
-                                                    const task = allTasks.find(t => t.id === block.task_id)
-                                                    if (!task) return null
-                                                    const topPx = (block.start_hour - hour) * 48 // 48px per hour
-                                                    const heightPx = block.duration_hours * 48
-                                                    const color = task.category ? getCategoryColor(task.category) : "#6b7280"
-                                                    return (
-                                                      <div
-                                                        key={block.id}
-                                                        className="absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 text-[10px] text-white font-medium overflow-hidden cursor-grab shadow-sm z-10 group/block"
-                                                        style={{
-                                                          top: `${topPx}px`,
-                                                          height: `${Math.max(heightPx, 20)}px`,
-                                                          backgroundColor: color,
-                                                          opacity: 0.9,
-                                                        }}
-                                                        draggable
-                                                        onDragStart={(e) => {
-                                                          setDragPayload(e, { kind: "schedule", taskId: block.task_id, fromISO: block.date })
-                                                          e.dataTransfer.effectAllowed = "move"
-                                                        }}
-                                                        title={`${task.title} (${block.duration_hours}h)`}
-                                                      >
-                                                        <div className="truncate leading-tight">{task.title}</div>
-                                                        {heightPx >= 36 && (
-                                                          <div className="text-[8px] opacity-70">
-                                                            {String(Math.floor(block.start_hour)).padStart(2, "0")}:{block.start_hour % 1 ? "30" : "00"}–{String(Math.floor(block.start_hour + block.duration_hours)).padStart(2, "0")}:{(block.start_hour + block.duration_hours) % 1 ? "30" : "00"}
-                                                          </div>
-                                                        )}
-                                                        {/* Delete button */}
-                                                        <button
-                                                          onClick={(e) => { e.stopPropagation(); deleteTimeBlock(block.id) }}
-                                                          className="absolute top-0.5 right-0.5 opacity-0 group-hover/block:opacity-100 transition-opacity bg-black/30 rounded-full p-0.5"
-                                                        >
-                                                          <X className="h-2.5 w-2.5" />
-                                                        </button>
-                                                        {/* Resize handle */}
-                                                        <div
-                                                          className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 group-hover/block:opacity-100 flex items-center justify-center"
-                                                          onMouseDown={(e) => {
-                                                            e.stopPropagation()
-                                                            e.preventDefault()
-                                                            const startY = e.clientY
-                                                            const startDuration = block.duration_hours
-                                                            const onMove = (ev: MouseEvent) => {
-                                                              const diff = ev.clientY - startY
-                                                              const hoursDiff = Math.round(diff / 24) * 0.5 // 24px = 30min
-                                                              const newDuration = Math.max(0.5, startDuration + hoursDiff)
-                                                              updateTimeBlock(block.id, { duration_hours: newDuration })
-                                                            }
-                                                            const onUp = () => {
-                                                              document.removeEventListener("mousemove", onMove)
-                                                              document.removeEventListener("mouseup", onUp)
-                                                            }
-                                                            document.addEventListener("mousemove", onMove)
-                                                            document.addEventListener("mouseup", onUp)
-                                                          }}
-                                                        >
-                                                          <div className="w-6 h-0.5 rounded-full bg-white/60" />
-                                                        </div>
-                                                      </div>
-                                                    )
-                                                  })}
-                                              </div>
-                                            )
-                                          })}
-                                        </React.Fragment>
-                                      )
-                                    })}
-                                  </div>
-                                </div>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              {/* Jahresansicht – 4×3 Monate */}
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                {yearCells.map((m) => {
-                                  const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
-                                  const tone =
-                                    m.total === 0 ? "border-border bg-background" :
-                                      m.ratio >= 1 ? "border-emerald-400/70 bg-emerald-400/15" :
-                                        m.ratio >= 0.5 ? "border-amber-400/70 bg-amber-400/15" :
-                                          "border-rose-400/70 bg-rose-400/15"
-                                  const barColor =
-                                    m.total === 0 ? "bg-muted" :
-                                      m.ratio >= 1 ? "bg-emerald-500" :
-                                        m.ratio >= 0.5 ? "bg-amber-400" :
-                                          "bg-rose-400"
-
-                                  return (
-                                    <button
-                                      key={m.monthIndex}
-                                      type="button"
-                                      onClick={() => {
-                                        setCursorMonth(new Date(m.year, m.monthIndex, 1))
-                                        setCalView("month")
-                                      }}
-                                      className={[
-                                        "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
-                                        tone,
-                                        isCurrentMonth ? "ring-2 ring-primary" : ""
-                                      ].join(" ")}
-                                    >
-                                      <div className="text-sm font-semibold">{m.label}</div>
-                                      {m.total > 0 ? (
-                                        <>
-                                          <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
-                                          {/* Mini heatmap dots */}
-                                          <div className="grid grid-cols-7 gap-[2px] mt-2">
-                                            {/* Empty cells for first day offset */}
-                                            {Array.from({ length: m.firstDow }, (_, i) => (
-                                              <span key={`pad-${i}`} className="h-2 w-2" />
-                                            ))}
-                                            {m.days.map(d => {
-                                              const bg = d.total === 0 ? "bg-muted/40" :
-                                                d.ratio >= 1 ? "bg-emerald-500" :
-                                                  d.ratio >= 0.5 ? "bg-amber-400" :
-                                                    "bg-rose-300"
-                                              return <span key={d.iso} className={`h-2 w-2 rounded-[2px] ${bg}`} />
-                                            })}
-                                          </div>
-                                          <div className="mt-1.5 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
-                                        </>
-                                      ) : (
-                                        <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
-                                      )}
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                              <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
-                            </>
-                          )}
-
-                        </div>{/* close view-transition wrapper */}
-
-                        {/* Legende */}
-                        <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
-                          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%</span>
-                          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%</span>
-                          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%</span>
-                        </div>
-
-                        {/* #6: Mobile Spendenbox – kompakter Banner */}
-                        <a href="https://revolut.me/eljoa" target="_blank" rel="noopener noreferrer" className="mt-3 xl:hidden flex items-center gap-2 rounded-lg border border-border/60 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-xs text-muted-foreground">
-                          <span className="text-base">☕</span>
-                          <span>Projekt unterstützen – <span className="text-primary underline">revolut.me/eljoa</span></span>
-                        </a>
-                      </CardContent>
-                    </Card>
-
-                    {/* Weekly Summary */}
-                    {(() => {
-                      const today = new Date()
-                      const dow = (today.getDay() + 6) % 7
-                      const monday = new Date(today)
-                      monday.setDate(today.getDate() - dow)
-                      let weekTotal = 0, weekDone = 0
-                      for (let i = 0; i < 7; i++) {
-                        const d = new Date(monday)
-                        d.setDate(monday.getDate() + i)
-                        const iso = toISODate(d)
-                        const tasks = tasksByDate[iso] ?? []
-                        weekTotal += tasks.length
-                        weekDone += tasks.filter(t => t.done).length
-                      }
-                      const weekOpen = weekTotal - weekDone
-                      if (weekTotal === 0) return null
-                      return (
-                        <div className="rounded-xl border bg-muted/20 px-4 py-2.5 flex items-center justify-between text-xs">
-                          <span className="font-medium text-muted-foreground">Diese Woche</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-muted-foreground">{weekTotal} Tasks</span>
-                            <span className="text-emerald-600 font-medium">{weekDone} ✓</span>
-                            {weekOpen > 0 && <span className="text-amber-600 font-medium">{weekOpen} offen</span>}
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </div>
-
-                  {/* To-dos */}
-                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "100%" }}>
-                    <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
-                      <div>
-                        <div className="text-sm font-semibold">To-dos</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">{selectedDateLabel}</div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        {/* #8: Multi-select toggle */}
-                        <Button
-                          variant={multiSelectMode ? "default" : "ghost"}
-                          size="icon"
-                          className={multiSelectMode ? "h-8 w-8 bg-rose-500 hover:bg-rose-600 text-white" : "h-8 w-8"}
-                          title="Mehrfachauswahl"
-                          onClick={() => { setMultiSelectMode(v => !v); setSelectedTaskIds(new Set()) }}
-                        >
-                          <CheckSquare className="h-3.5 w-3.5" />
-                        </Button>
-                        {/* Category filter */}
-                        <select
-                          value={filterCategory}
-                          onChange={(e) => setFilterCategory(e.target.value)}
-                          className="h-8 max-w-[80px] rounded-md border border-input bg-background px-1.5 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring truncate"
-                          title="Nach Kategorie filtern"
-                        >
-                          <option value="">Alle</option>
-                          {categories.map(c => (
-                            <option key={c} value={c}>{c}</option>
-                          ))}
-                        </select>
-                        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button className="gap-1 h-8 text-xs px-2 sm:px-3 flex-shrink-0">
-                              <Plus className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Hinzufügen</span>
-                            </Button>
-                          </DialogTrigger>
+                    </CardHeader>
+                    <CardContent className="px-3 sm:px-5 pt-4">
+                      {/* #3: View transition animation */}
+                      <div key={calView} className="view-transition">
+                        {calView === "month" ? (
+                          <>
+                            {/* Wochentage */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mb-2 font-medium">
+                              {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
+                                <div key={d} className="text-center py-1">{d}</div>
+                              ))}
+                            </div>
 
-                          <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
-                            <DialogHeader>
-                              <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
-                            </DialogHeader>
-
-                            <div className="grid gap-3">
-                              <div className="grid gap-2">
-                                <Label className="text-sm">Titel</Label>
-                                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
-                              </div>
-
-                              <div className="grid gap-2">
-                                <Label className="text-sm">Kategorie (optional)</Label>
-                                <Select value={newCategory} onValueChange={setNewCategory}>
-                                  <SelectTrigger className="h-10">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">– keine –</SelectItem>
-                                    {categories.map((c) => (
-                                      <SelectItem key={c} value={c}>
-                                        {c}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-
-                                {/* Neue Kategorie direkt im Dialog erstellen */}
-                                <div className="flex gap-2 mt-1">
-                                  <Input
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault()
-                                        const name = normalizeCategory(newCategoryName)
-                                        if (name) {
-                                          ensureCategory(name)
-                                          setNewCategory(name)
-                                          setNewCategoryName("")
-                                        }
-                                      }
-                                    }}
-                                    placeholder="Neue Kategorie erstellen…"
-                                    className="h-9 text-sm flex-1"
-                                  />
-                                  <Button
+                            {/* Monatsraster */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                              {monthCells.map((cell) => {
+                                const tasks = tasksByDate[cell.iso]
+                                const { total, done, ratio } = dayCompletion(tasks)
+                                const st = dayStatusClass(cell.iso, todayISO, tasks)
+                                const isSelected = cell.iso === selectedISO
+                                const isToday = cell.iso === todayISO
+                                const isDragOver = dragOverISO === cell.iso
+                                return (
+                                  <button
+                                    key={cell.iso}
                                     type="button"
-                                    variant="outline"
-                                    className="h-9 px-3 text-sm flex-shrink-0"
-                                    disabled={!newCategoryName.trim()}
+                                    onClick={() => { setSelectedISO(cell.iso); if (!cell.inMonth) setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
+                                    onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                                    onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                                    onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
+                                    className={["relative h-16 sm:h-[88px] rounded-xl border p-1.5 sm:p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation", cell.inMonth ? "" : "opacity-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                    onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
+                                  >
+                                    <div className="flex items-start justify-between gap-1">
+                                      <div className={["text-xs sm:text-sm font-semibold h-5 w-5 sm:h-6 sm:w-6 flex items-center justify-center rounded-full leading-none", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                        {cell.day}
+                                      </div>
+                                      {total > 0 && <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium leading-none mt-0.5">{done}/{total}</span>}
+                                    </div>
+                                    {total > 0 && (
+                                      <div className="absolute bottom-1.5 left-1.5 right-1.5">
+                                        {/* Category dots */}
+                                        {(() => {
+                                          const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
+                                          return cats.length > 0 ? (
+                                            <div className="flex gap-0.5 mb-0.5">
+                                              {cats.slice(0, 4).map(c => (
+                                                <span key={c} className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
+                                              ))}
+                                              {cats.length > 4 && <span className="text-[7px] text-muted-foreground leading-none">+{cats.length - 4}</span>}
+                                            </div>
+                                          ) : null
+                                        })()}
+                                        <div className="h-1 sm:h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                          <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </>
+                        ) : calView === "week" ? (
+                          <>
+                            {/* Wochenansicht */}
+                            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                              {weekCells.days.map((cell) => {
+                                const tasks = tasksByDate[cell.iso]
+                                const { total, done, ratio } = dayCompletion(tasks)
+                                const st = dayStatusClass(cell.iso, todayISO, tasks)
+                                const isSelected = cell.iso === selectedISO
+                                const isToday = cell.iso === todayISO
+                                const isDragOver = dragOverISO === cell.iso
+                                return (
+                                  <button
+                                    key={cell.iso}
+                                    type="button"
+                                    onClick={() => setSelectedISO(cell.iso)}
+                                    onDragEnter={(e) => { e.preventDefault(); setDragOverISO(cell.iso) }}
+                                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
+                                    onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
+                                    onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
+                                    className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-20 sm:h-24", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                    onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
+                                  >
+                                    <div className="flex flex-col items-center gap-1">
+                                      <span className="text-[10px] text-muted-foreground font-medium">{cell.label}</span>
+                                      <div className={["text-base font-bold h-8 w-8 flex items-center justify-center rounded-full", isToday ? "bg-primary text-primary-foreground" : ""].join(" ")}>
+                                        {cell.day}
+                                      </div>
+                                    </div>
+                                    {total > 0 && (
+                                      <div className="mt-2">
+                                        <div className="text-[10px] text-center text-muted-foreground">{done}/{total}</div>
+                                        {/* Category dots */}
+                                        {(() => {
+                                          const cats = [...new Set(tasks!.filter(t => t.category).map(t => t.category!))]
+                                          return cats.length > 0 ? (
+                                            <div className="flex justify-center gap-0.5 mt-1">
+                                              {cats.slice(0, 5).map(c => (
+                                                <span key={c} className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: getCategoryColor(c) }} />
+                                              ))}
+                                            </div>
+                                          ) : null
+                                        })()}
+                                        <div className="mt-1 h-1.5 rounded-full bg-black/10 overflow-hidden">
+                                          <div className={["h-full rounded-full transition-all", ratio >= 1 ? "bg-emerald-500" : ratio >= 0.5 ? "bg-amber-400" : "bg-rose-400"].join(" ")} style={{ width: `${percent(ratio)}%` }} />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+
+                            {/* Stundenraster / Time Planner */}
+                            <div className="mt-4 border rounded-xl overflow-hidden bg-background">
+                              <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
+                                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Zeitplaner</span>
+                                <span className="text-[10px] text-muted-foreground">{timeBlocks.length} {timeBlocks.length === 1 ? "Block" : "Blöcke"}</span>
+                              </div>
+                              <div className="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
+                                <div className="grid min-w-[600px]" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
+                                  {/* Header row with day labels */}
+                                  <div className="border-b border-r bg-muted/20 h-8" />
+                                  {weekCells.days.map(cell => (
+                                    <div key={cell.iso} className="border-b border-r last:border-r-0 bg-muted/20 h-8 flex items-center justify-center text-[10px] font-medium text-muted-foreground">
+                                      {cell.label} {cell.day}
+                                    </div>
+                                  ))}
+
+                                  {/* Hour rows */}
+                                  {Array.from({ length: PLANNER_END - PLANNER_START }, (_, hi) => {
+                                    const hour = PLANNER_START + hi
+                                    return (
+                                      <React.Fragment key={hour}>
+                                        {/* Hour label */}
+                                        <div className="border-r border-b h-12 flex items-start justify-end pr-1.5 pt-0.5">
+                                          <span className="text-[9px] text-muted-foreground tabular-nums">{String(hour).padStart(2, "0")}:00</span>
+                                        </div>
+                                        {/* Day columns */}
+                                        {weekCells.days.map(cell => {
+                                          return (
+                                            <div
+                                              key={cell.iso}
+                                              className="border-b border-r last:border-r-0 h-12 relative group/slot"
+                                              onDragOver={(e) => {
+                                                e.preventDefault()
+                                                e.dataTransfer.dropEffect = "move"
+                                              }}
+                                              onDrop={(e) => {
+                                                e.preventDefault()
+                                                const p = readDragPayload(e)
+                                                if (!p) return
+                                                // Snap to nearest 30 min
+                                                const rect = e.currentTarget.getBoundingClientRect()
+                                                const yRatio = (e.clientY - rect.top) / rect.height
+                                                const startHour = hour + (yRatio >= 0.5 ? 0.5 : 0)
+                                                addTimeBlock(p.taskId, cell.iso, startHour, 1)
+                                              }}
+                                              onClick={() => setSelectedISO(cell.iso)}
+                                            >
+                                              {/* Half-hour line */}
+                                              <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-black/5" />
+                                              {/* Hover indicator */}
+                                              <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/slot:opacity-100 transition-opacity pointer-events-none" />
+
+                                              {/* Render time blocks that START in this hour */}
+                                              {timeBlocks
+                                                .filter(b => b.date === cell.iso && Math.floor(b.start_hour) === hour)
+                                                .map(block => {
+                                                  const allTasks = Object.values(tasksByDate).flat()
+                                                  const task = allTasks.find(t => t.id === block.task_id)
+                                                  if (!task) return null
+                                                  const topPx = (block.start_hour - hour) * 48 // 48px per hour
+                                                  const heightPx = block.duration_hours * 48
+                                                  const color = task.category ? getCategoryColor(task.category) : "#6b7280"
+                                                  return (
+                                                    <div
+                                                      key={block.id}
+                                                      className="absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 text-[10px] text-white font-medium overflow-hidden cursor-grab shadow-sm z-10 group/block"
+                                                      style={{
+                                                        top: `${topPx}px`,
+                                                        height: `${Math.max(heightPx, 20)}px`,
+                                                        backgroundColor: color,
+                                                        opacity: 0.9,
+                                                      }}
+                                                      draggable
+                                                      onDragStart={(e) => {
+                                                        setDragPayload(e, { kind: "schedule", taskId: block.task_id, fromISO: block.date })
+                                                        e.dataTransfer.effectAllowed = "move"
+                                                      }}
+                                                      title={`${task.title} (${block.duration_hours}h)`}
+                                                    >
+                                                      <div className="truncate leading-tight">{task.title}</div>
+                                                      {heightPx >= 36 && (
+                                                        <div className="text-[8px] opacity-70">
+                                                          {String(Math.floor(block.start_hour)).padStart(2, "0")}:{block.start_hour % 1 ? "30" : "00"}–{String(Math.floor(block.start_hour + block.duration_hours)).padStart(2, "0")}:{(block.start_hour + block.duration_hours) % 1 ? "30" : "00"}
+                                                        </div>
+                                                      )}
+                                                      {/* Delete button */}
+                                                      <button
+                                                        onClick={(e) => { e.stopPropagation(); deleteTimeBlock(block.id) }}
+                                                        className="absolute top-0.5 right-0.5 opacity-0 group-hover/block:opacity-100 transition-opacity bg-black/30 rounded-full p-0.5"
+                                                      >
+                                                        <X className="h-2.5 w-2.5" />
+                                                      </button>
+                                                      {/* Resize handle */}
+                                                      <div
+                                                        className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 group-hover/block:opacity-100 flex items-center justify-center"
+                                                        onMouseDown={(e) => {
+                                                          e.stopPropagation()
+                                                          e.preventDefault()
+                                                          const startY = e.clientY
+                                                          const startDuration = block.duration_hours
+                                                          const onMove = (ev: MouseEvent) => {
+                                                            const diff = ev.clientY - startY
+                                                            const hoursDiff = Math.round(diff / 24) * 0.5 // 24px = 30min
+                                                            const newDuration = Math.max(0.5, startDuration + hoursDiff)
+                                                            updateTimeBlock(block.id, { duration_hours: newDuration })
+                                                          }
+                                                          const onUp = () => {
+                                                            document.removeEventListener("mousemove", onMove)
+                                                            document.removeEventListener("mouseup", onUp)
+                                                          }
+                                                          document.addEventListener("mousemove", onMove)
+                                                          document.addEventListener("mouseup", onUp)
+                                                        }}
+                                                      >
+                                                        <div className="w-6 h-0.5 rounded-full bg-white/60" />
+                                                      </div>
+                                                    </div>
+                                                  )
+                                                })}
+                                            </div>
+                                          )
+                                        })}
+                                      </React.Fragment>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Jahresansicht – 4×3 Monate */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                              {yearCells.map((m) => {
+                                const isCurrentMonth = m.monthIndex === cursorMonth.getMonth() && m.year === cursorMonth.getFullYear()
+                                const tone =
+                                  m.total === 0 ? "border-border bg-background" :
+                                    m.ratio >= 1 ? "border-emerald-400/70 bg-emerald-400/15" :
+                                      m.ratio >= 0.5 ? "border-amber-400/70 bg-amber-400/15" :
+                                        "border-rose-400/70 bg-rose-400/15"
+                                const barColor =
+                                  m.total === 0 ? "bg-muted" :
+                                    m.ratio >= 1 ? "bg-emerald-500" :
+                                      m.ratio >= 0.5 ? "bg-amber-400" :
+                                        "bg-rose-400"
+
+                                return (
+                                  <button
+                                    key={m.monthIndex}
+                                    type="button"
                                     onClick={() => {
+                                      setCursorMonth(new Date(m.year, m.monthIndex, 1))
+                                      setCalView("month")
+                                    }}
+                                    className={[
+                                      "rounded-xl border p-3 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100",
+                                      tone,
+                                      isCurrentMonth ? "ring-2 ring-primary" : ""
+                                    ].join(" ")}
+                                  >
+                                    <div className="text-sm font-semibold">{m.label}</div>
+                                    {m.total > 0 ? (
+                                      <>
+                                        <div className="text-xs text-muted-foreground mt-1">{m.done}/{m.total} erledigt</div>
+                                        {/* Mini heatmap dots */}
+                                        <div className="grid grid-cols-7 gap-[2px] mt-2">
+                                          {/* Empty cells for first day offset */}
+                                          {Array.from({ length: m.firstDow }, (_, i) => (
+                                            <span key={`pad-${i}`} className="h-2 w-2" />
+                                          ))}
+                                          {m.days.map(d => {
+                                            const bg = d.total === 0 ? "bg-muted/40" :
+                                              d.ratio >= 1 ? "bg-emerald-500" :
+                                                d.ratio >= 0.5 ? "bg-amber-400" :
+                                                  "bg-rose-300"
+                                            return <span key={d.iso} className={`h-2 w-2 rounded-[2px] ${bg}`} />
+                                          })}
+                                        </div>
+                                        <div className="mt-1.5 text-[10px] text-muted-foreground font-medium">{percent(m.ratio)}%</div>
+                                      </>
+                                    ) : (
+                                      <div className="text-[10px] text-muted-foreground mt-1">Keine Tasks</div>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            <div className="mt-3 text-xs text-center text-muted-foreground">Klicke auf einen Monat um zur Monatsansicht zu wechseln</div>
+                          </>
+                        )}
+
+                      </div>{/* close view-transition wrapper */}
+
+                      {/* Legende */}
+                      <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground border-t pt-3">
+                        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-rose-400" /> &lt; 50%</span>
+                        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /> 50–99%</span>
+                        <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> 100%</span>
+                      </div>
+
+
+                    </CardContent>
+                  </Card>
+
+                  {/* Weekly Summary */}
+                  {(() => {
+                    const today = new Date()
+                    const dow = (today.getDay() + 6) % 7
+                    const monday = new Date(today)
+                    monday.setDate(today.getDate() - dow)
+                    let weekTotal = 0, weekDone = 0
+                    for (let i = 0; i < 7; i++) {
+                      const d = new Date(monday)
+                      d.setDate(monday.getDate() + i)
+                      const iso = toISODate(d)
+                      const tasks = tasksByDate[iso] ?? []
+                      weekTotal += tasks.length
+                      weekDone += tasks.filter(t => t.done).length
+                    }
+                    const weekOpen = weekTotal - weekDone
+                    if (weekTotal === 0) return null
+                    return (
+                      <div className="rounded-xl border bg-muted/20 px-4 py-2.5 flex items-center justify-between text-xs">
+                        <span className="font-medium text-muted-foreground">Diese Woche</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-muted-foreground">{weekTotal} Tasks</span>
+                          <span className="text-emerald-600 font-medium">{weekDone} ✓</span>
+                          {weekOpen > 0 && <span className="text-amber-600 font-medium">{weekOpen} offen</span>}
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* To-dos */}
+                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "100%" }}>
+                  <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
+                    <div>
+                      <div className="text-sm font-semibold">To-dos</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{selectedDateLabel}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {/* #8: Multi-select toggle */}
+                      <Button
+                        variant={multiSelectMode ? "default" : "ghost"}
+                        size="icon"
+                        className={multiSelectMode ? "h-8 w-8 bg-rose-500 hover:bg-rose-600 text-white" : "h-8 w-8"}
+                        title="Mehrfachauswahl"
+                        onClick={() => { setMultiSelectMode(v => !v); setSelectedTaskIds(new Set()) }}
+                      >
+                        <CheckSquare className="h-3.5 w-3.5" />
+                      </Button>
+                      {/* Category filter */}
+                      <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="h-8 max-w-[80px] rounded-md border border-input bg-background px-1.5 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring truncate"
+                        title="Nach Kategorie filtern"
+                      >
+                        <option value="">Alle</option>
+                        {categories.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button className="gap-1 h-8 text-xs px-2 sm:px-3 flex-shrink-0">
+                            <Plus className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Hinzufügen</span>
+                          </Button>
+                        </DialogTrigger>
+
+                        <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
+                          <DialogHeader>
+                            <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
+                          </DialogHeader>
+
+                          <div className="grid gap-3">
+                            <div className="grid gap-2">
+                              <Label className="text-sm">Titel</Label>
+                              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
+                            </div>
+
+                            <div className="grid gap-2">
+                              <Label className="text-sm">Kategorie (optional)</Label>
+                              <Select value={newCategory} onValueChange={setNewCategory}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">– keine –</SelectItem>
+                                  {categories.map((c) => (
+                                    <SelectItem key={c} value={c}>
+                                      {c}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              {/* Neue Kategorie direkt im Dialog erstellen */}
+                              <div className="flex gap-2 mt-1">
+                                <Input
+                                  value={newCategoryName}
+                                  onChange={(e) => setNewCategoryName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault()
                                       const name = normalizeCategory(newCategoryName)
                                       if (name) {
                                         ensureCategory(name)
                                         setNewCategory(name)
                                         setNewCategoryName("")
                                       }
-                                    }}
-                                  >
-                                    <Plus className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
-                                <span className="text-sm">Hohe Priorität</span>
-                              </div>
-
-                              {/* #5: Repeat field */}
-                              <div className="grid gap-2">
-                                <Label className="text-sm flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Wiederholen (optional)</Label>
-                                <Select value={String(newRepeatDays)} onValueChange={(v) => setNewRepeatDays(Number(v))}>
-                                  <SelectTrigger className="h-10">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="0">Kein Repeat</SelectItem>
-                                    <SelectItem value="1">Täglich</SelectItem>
-                                    <SelectItem value="2">Alle 2 Tage</SelectItem>
-                                    <SelectItem value="7">Wöchentlich</SelectItem>
-                                    <SelectItem value="14">Alle 2 Wochen</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              {/* #10: Notes field */}
-                              <div className="grid gap-2">
-                                <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
-                                <textarea
-                                  value={newNotes}
-                                  onChange={(e) => setNewNotes(e.target.value)}
-                                  placeholder="z.B. Kapitel 3-5 lesen"
-                                  className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                                  rows={2}
+                                    }
+                                  }}
+                                  placeholder="Neue Kategorie erstellen…"
+                                  className="h-9 text-sm flex-1"
                                 />
-                              </div>
-                            </div>
-
-                            <DialogFooter className="sm:justify-end">
-                              <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
-                                Speichern
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                    {/* #8: Multi-select toolbar */}
-                    {multiSelectMode && selectedTaskIds.size > 0 && (
-                      <div className="border-b px-4 py-2 flex items-center gap-2 bg-muted/30">
-                        <span className="text-xs font-medium">{selectedTaskIds.size} ausgewählt</span>
-                        <div className="flex-1" />
-                        <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={deleteSelectedTasks}>
-                          <Trash2 className="h-3 w-3 mr-1" /> Löschen
-                        </Button>
-                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setSelectedTaskIds(new Set()); setMultiSelectMode(false) }}>
-                          Abbrechen
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Task-Liste */}
-                    <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
-                      {selectedTasks.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-                          <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
-                            <CalendarDays className="h-6 w-6 opacity-30" />
-                          </div>
-                          <p className="text-sm font-medium">Keine Aufgaben für diesen Tag.</p>
-                          <p className="text-xs text-muted-foreground/60 max-w-[200px] text-center leading-relaxed">{getEmptyMessage(selectedISO)}</p>
-                          <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs" onClick={() => setAddDialogOpen(true)}>
-                            <Plus className="h-3.5 w-3.5" /> Aufgabe hinzufügen
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="divide-y">
-                          {getSortedDayTasks(selectedISO).map((t) => {
-                            const isOver = dragOverTaskId === t.id
-                            const indicatorClass =
-                              isOver && dragRef.current?.kind === "reorder"
-                                ? (dragPos === "above" ? "drag-indicator-above" : "drag-indicator-below")
-                                : ""
-
-                            return (
-                              <div
-                                key={t.id}
-                                data-task-id={t.id}
-                                className={[
-                                  "task-item flex items-start gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
-                                  indicatorClass,
-                                  draggingTaskId === t.id ? "task-dragging" : "",
-                                  draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
-                                  touchDragId === t.id ? "task-dragging" : "",
-                                  selectedTaskIds.has(t.id) && !draggingTaskId ? "bg-primary/5" : ""
-                                ].join(" ")}
-                                style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
-                                onDragOver={(e) => {
-                                  const p = readDragPayload(e)
-                                  if (!p || p.kind !== "reorder") return
-                                  if (p.fromISO !== selectedISO) return
-                                  if (p.taskId === t.id) return
-
-                                  e.preventDefault()
-                                  e.dataTransfer.dropEffect = "move"
-
-                                  const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
-                                  const mid = rect.top + rect.height / 2
-                                  const pos = e.clientY < mid ? "above" : "below"
-                                  setDragOverTaskId(t.id)
-                                  setDragPos(pos)
-                                }}
-                                onDragLeave={() => {
-                                  if (dragOverTaskId === t.id) setDragOverTaskId("")
-                                }}
-                                onDrop={(e) => {
-                                  const p = readDragPayload(e)
-                                  dragRef.current = null
-                                  setDragOverTaskId("")
-                                  if (!p || p.kind !== "reorder") return
-                                  if (p.fromISO !== selectedISO) return
-                                  e.preventDefault()
-                                  applyReorderWithinDay(p.taskId, t.id, dragPos)
-                                }}
-                                draggable
-                                onDragStart={(e) => {
-                                  setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })
-                                  setDraggingTaskId(t.id)
-                                }}
-                                onDragEnd={() => {
-                                  dragRef.current = null
-                                  setDragOverISO("")
-                                  setDragOverTaskId("")
-                                  setDraggingTaskId("")
-                                }}
-                              >
-                                {/* #8: Multi-select checkbox */}
-                                {multiSelectMode ? (
-                                  <Checkbox
-                                    className="h-4 w-4 flex-shrink-0 mt-0.5"
-                                    checked={selectedTaskIds.has(t.id)}
-                                    onCheckedChange={() => {
-                                      setSelectedTaskIds(prev => {
-                                        const next = new Set(prev)
-                                        if (next.has(t.id)) next.delete(t.id)
-                                        else next.add(t.id)
-                                        return next
-                                      })
-                                    }}
-                                  />
-                                ) : (
-                                  <div className={bouncingId === t.id ? "check-bounce mt-0.5" : "mt-0.5"}>
-                                    <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
-                                  </div>
-                                )}
-
-                                <div className="min-w-0 flex-1">
-                                  <div className={[
-                                    "text-sm break-words leading-snug",
-                                    t.done ? "line-through text-muted-foreground" : "font-medium"
-                                  ].join(" ")}>
-                                    {t.title}
-                                  </div>
-                                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                    {t.category && (
-                                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(t.category), color: getCategoryColor(t.category) }}>
-                                        {t.category}
-                                      </Badge>
-                                    )}
-                                    {(t.priority ?? 1) >= 2 && (
-                                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black leading-none text-white">!</span>
-                                    )}
-                                    {t.repeat_every_days && t.repeat_every_days > 0 && (
-                                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"><Repeat className="h-2.5 w-2.5" /> {t.repeat_every_days === 1 ? "täglich" : t.repeat_every_days === 7 ? "wöchentlich" : `alle ${t.repeat_every_days}d`}</span>
-                                    )}
-                                  </div>
-                                  {t.notes && (
-                                    <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
-                                      <FileText className="h-2.5 w-2.5 inline mr-0.5" />{t.notes}
-                                    </div>
-                                  )}
-                                  {/* Subtasks */}
-                                  {((t.subtasks && t.subtasks.length > 0) || !t.done) && (
-                                    <div className="mt-1.5 space-y-0.5">
-                                      {(t.subtasks ?? []).map((sub, si) => (
-                                        <div key={si} className="flex items-center gap-1.5 group/sub">
-                                          <Checkbox
-                                            className="h-3 w-3 flex-shrink-0"
-                                            checked={sub.done}
-                                            onCheckedChange={() => toggleSubtask(t, si)}
-                                          />
-                                          <span className={["text-[11px] flex-1 leading-tight", sub.done ? "line-through text-muted-foreground/60" : "text-muted-foreground"].join(" ")}>{sub.title}</span>
-                                          <button
-                                            onClick={() => removeSubtask(t, si)}
-                                            className="opacity-0 group-hover/sub:opacity-60 hover:!opacity-100 text-muted-foreground transition-opacity"
-                                          >
-                                            <X className="h-2.5 w-2.5" />
-                                          </button>
-                                        </div>
-                                      ))}
-                                      {!t.done && (
-                                        <SubtaskAddInput onAdd={(title) => addSubtaskToTask(t, title)} />
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity mt-0.5">
-                                  <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-7 w-7">
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => duplicateTask(t)} aria-label="Duplizieren" className="h-7 w-7" title="Duplizieren">
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                  <span
-                                    className="drag-handle inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
-                                    draggable
-                                    onDragStart={(e) => {
-                                      e.stopPropagation()
-                                      setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
-                                      setDraggingTaskId(t.id)
-                                    }}
-                                    onDragEnd={() => {
-                                      dragRef.current = null
-                                      setDragOverTaskId("")
-                                      setDraggingTaskId("")
-                                    }}
-                                    onTouchStart={(e) => handleTouchStart(t.id, e)}
-                                    onTouchMove={(e) => handleTouchMove(e)}
-                                    onTouchEnd={() => handleTouchEnd()}
-                                  >
-                                    <GripVertical className="h-3.5 w-3.5" />
-                                  </span>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                      <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
-                        <DialogHeader>
-                          <DialogTitle className="text-base sm:text-lg">Task bearbeiten</DialogTitle>
-                        </DialogHeader>
-
-                        <div className="grid gap-3">
-                          <div className="grid gap-2">
-                            <Label className="text-sm">Titel</Label>
-                            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" className="h-10" />
-                          </div>
-
-                          <div className="grid gap-2">
-                            <Label className="text-sm">Kategorie (optional)</Label>
-                            <Select value={editCategory} onValueChange={setEditCategory}>
-                              <SelectTrigger className="h-10">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">– keine –</SelectItem>
-                                {categories.map((c) => (
-                                  <SelectItem key={c} value={c}>
-                                    {c}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-
-                            {/* Neue Kategorie direkt im Edit-Dialog erstellen */}
-                            <div className="flex gap-2 mt-1">
-                              <Input
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault()
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="h-9 px-3 text-sm flex-shrink-0"
+                                  disabled={!newCategoryName.trim()}
+                                  onClick={() => {
                                     const name = normalizeCategory(newCategoryName)
                                     if (name) {
                                       ensureCategory(name)
-                                      setEditCategory(name)
+                                      setNewCategory(name)
                                       setNewCategoryName("")
                                     }
-                                  }
-                                }}
-                                placeholder="Neue Kategorie erstellen…"
-                                className="h-9 text-sm flex-1"
+                                  }}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
+                              <span className="text-sm">Hohe Priorität</span>
+                            </div>
+
+                            {/* #5: Repeat field */}
+                            <div className="grid gap-2">
+                              <Label className="text-sm flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Wiederholen (optional)</Label>
+                              <Select value={String(newRepeatDays)} onValueChange={(v) => setNewRepeatDays(Number(v))}>
+                                <SelectTrigger className="h-10">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="0">Kein Repeat</SelectItem>
+                                  <SelectItem value="1">Täglich</SelectItem>
+                                  <SelectItem value="2">Alle 2 Tage</SelectItem>
+                                  <SelectItem value="7">Wöchentlich</SelectItem>
+                                  <SelectItem value="14">Alle 2 Wochen</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* #10: Notes field */}
+                            <div className="grid gap-2">
+                              <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
+                              <textarea
+                                value={newNotes}
+                                onChange={(e) => setNewNotes(e.target.value)}
+                                placeholder="z.B. Kapitel 3-5 lesen"
+                                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                                rows={2}
                               />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="h-9 px-3 text-sm flex-shrink-0"
-                                disabled={!newCategoryName.trim()}
-                                onClick={() => {
+                            </div>
+                          </div>
+
+                          <DialogFooter className="sm:justify-end">
+                            <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
+                              Speichern
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                  {/* #8: Multi-select toolbar */}
+                  {multiSelectMode && selectedTaskIds.size > 0 && (
+                    <div className="border-b px-4 py-2 flex items-center gap-2 bg-muted/30">
+                      <span className="text-xs font-medium">{selectedTaskIds.size} ausgewählt</span>
+                      <div className="flex-1" />
+                      <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={deleteSelectedTasks}>
+                        <Trash2 className="h-3 w-3 mr-1" /> Löschen
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setSelectedTaskIds(new Set()); setMultiSelectMode(false) }}>
+                        Abbrechen
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Task-Liste */}
+                  <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+                    {selectedTasks.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                        <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
+                          <CalendarDays className="h-6 w-6 opacity-30" />
+                        </div>
+                        <p className="text-sm font-medium">Keine Aufgaben für diesen Tag.</p>
+                        <p className="text-xs text-muted-foreground/60 max-w-[200px] text-center leading-relaxed">{getEmptyMessage(selectedISO)}</p>
+                        <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs" onClick={() => setAddDialogOpen(true)}>
+                          <Plus className="h-3.5 w-3.5" /> Aufgabe hinzufügen
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {getSortedDayTasks(selectedISO).map((t) => {
+                          const isOver = dragOverTaskId === t.id
+                          const indicatorClass =
+                            isOver && dragRef.current?.kind === "reorder"
+                              ? (dragPos === "above" ? "drag-indicator-above" : "drag-indicator-below")
+                              : ""
+
+                          return (
+                            <div
+                              key={t.id}
+                              data-task-id={t.id}
+                              className={[
+                                "task-item flex items-start gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
+                                indicatorClass,
+                                draggingTaskId === t.id ? "task-dragging" : "",
+                                draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
+                                touchDragId === t.id ? "task-dragging" : "",
+                                selectedTaskIds.has(t.id) && !draggingTaskId ? "bg-primary/5" : ""
+                              ].join(" ")}
+                              style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
+                              onDragOver={(e) => {
+                                const p = readDragPayload(e)
+                                if (!p || p.kind !== "reorder") return
+                                if (p.fromISO !== selectedISO) return
+                                if (p.taskId === t.id) return
+
+                                e.preventDefault()
+                                e.dataTransfer.dropEffect = "move"
+
+                                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+                                const mid = rect.top + rect.height / 2
+                                const pos = e.clientY < mid ? "above" : "below"
+                                setDragOverTaskId(t.id)
+                                setDragPos(pos)
+                              }}
+                              onDragLeave={() => {
+                                if (dragOverTaskId === t.id) setDragOverTaskId("")
+                              }}
+                              onDrop={(e) => {
+                                const p = readDragPayload(e)
+                                dragRef.current = null
+                                setDragOverTaskId("")
+                                if (!p || p.kind !== "reorder") return
+                                if (p.fromISO !== selectedISO) return
+                                e.preventDefault()
+                                applyReorderWithinDay(p.taskId, t.id, dragPos)
+                              }}
+                              draggable
+                              onDragStart={(e) => {
+                                setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })
+                                setDraggingTaskId(t.id)
+                              }}
+                              onDragEnd={() => {
+                                dragRef.current = null
+                                setDragOverISO("")
+                                setDragOverTaskId("")
+                                setDraggingTaskId("")
+                              }}
+                            >
+                              {/* #8: Multi-select checkbox */}
+                              {multiSelectMode ? (
+                                <Checkbox
+                                  className="h-4 w-4 flex-shrink-0 mt-0.5"
+                                  checked={selectedTaskIds.has(t.id)}
+                                  onCheckedChange={() => {
+                                    setSelectedTaskIds(prev => {
+                                      const next = new Set(prev)
+                                      if (next.has(t.id)) next.delete(t.id)
+                                      else next.add(t.id)
+                                      return next
+                                    })
+                                  }}
+                                />
+                              ) : (
+                                <div className={bouncingId === t.id ? "check-bounce mt-0.5" : "mt-0.5"}>
+                                  <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                                </div>
+                              )}
+
+                              <div className="min-w-0 flex-1">
+                                <div className={[
+                                  "text-sm break-words leading-snug",
+                                  t.done ? "line-through text-muted-foreground" : "font-medium"
+                                ].join(" ")}>
+                                  {t.title}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                  {t.category && (
+                                    <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(t.category), color: getCategoryColor(t.category) }}>
+                                      {t.category}
+                                    </Badge>
+                                  )}
+                                  {(t.priority ?? 1) >= 2 && (
+                                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black leading-none text-white">!</span>
+                                  )}
+                                  {t.repeat_every_days && t.repeat_every_days > 0 && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"><Repeat className="h-2.5 w-2.5" /> {t.repeat_every_days === 1 ? "täglich" : t.repeat_every_days === 7 ? "wöchentlich" : `alle ${t.repeat_every_days}d`}</span>
+                                  )}
+                                </div>
+                                {t.notes && (
+                                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
+                                    <FileText className="h-2.5 w-2.5 inline mr-0.5" />{t.notes}
+                                  </div>
+                                )}
+                                {/* Subtasks */}
+                                {((t.subtasks && t.subtasks.length > 0) || !t.done) && (
+                                  <div className="mt-1.5 space-y-0.5">
+                                    {(t.subtasks ?? []).map((sub, si) => (
+                                      <div key={si} className="flex items-center gap-1.5 group/sub">
+                                        <Checkbox
+                                          className="h-3 w-3 flex-shrink-0"
+                                          checked={sub.done}
+                                          onCheckedChange={() => toggleSubtask(t, si)}
+                                        />
+                                        <span className={["text-[11px] flex-1 leading-tight", sub.done ? "line-through text-muted-foreground/60" : "text-muted-foreground"].join(" ")}>{sub.title}</span>
+                                        <button
+                                          onClick={() => removeSubtask(t, si)}
+                                          className="opacity-0 group-hover/sub:opacity-60 hover:!opacity-100 text-muted-foreground transition-opacity"
+                                        >
+                                          <X className="h-2.5 w-2.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                    {!t.done && (
+                                      <SubtaskAddInput onAdd={(title) => addSubtaskToTask(t, title)} />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity mt-0.5">
+                                <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-7 w-7">
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => duplicateTask(t)} aria-label="Duplizieren" className="h-7 w-7" title="Duplizieren">
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                                <span
+                                  className="drag-handle inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.stopPropagation()
+                                    setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
+                                    setDraggingTaskId(t.id)
+                                  }}
+                                  onDragEnd={() => {
+                                    dragRef.current = null
+                                    setDragOverTaskId("")
+                                    setDraggingTaskId("")
+                                  }}
+                                  onTouchStart={(e) => handleTouchStart(t.id, e)}
+                                  onTouchMove={(e) => handleTouchMove(e)}
+                                  onTouchEnd={() => handleTouchEnd()}
+                                >
+                                  <GripVertical className="h-3.5 w-3.5" />
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                    <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-base sm:text-lg">Task bearbeiten</DialogTitle>
+                      </DialogHeader>
+
+                      <div className="grid gap-3">
+                        <div className="grid gap-2">
+                          <Label className="text-sm">Titel</Label>
+                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" className="h-10" />
+                        </div>
+
+                        <div className="grid gap-2">
+                          <Label className="text-sm">Kategorie (optional)</Label>
+                          <Select value={editCategory} onValueChange={setEditCategory}>
+                            <SelectTrigger className="h-10">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">– keine –</SelectItem>
+                              {categories.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+
+                          {/* Neue Kategorie direkt im Edit-Dialog erstellen */}
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              value={newCategoryName}
+                              onChange={(e) => setNewCategoryName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault()
                                   const name = normalizeCategory(newCategoryName)
                                   if (name) {
                                     ensureCategory(name)
                                     setEditCategory(name)
                                     setNewCategoryName("")
                                   }
-                                }}
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} className="h-4 w-4" />
-                            <span className="text-sm">Hohe Priorit&auml;t</span>
-                          </div>
-
-                          {/* #10: Notes field in edit dialog */}
-                          <div className="grid gap-2">
-                            <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
-                            <textarea
-                              value={editNotes}
-                              onChange={(e) => setEditNotes(e.target.value)}
-                              placeholder="z.B. Kapitel 3-5 lesen"
-                              className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                              rows={2}
+                                }
+                              }}
+                              placeholder="Neue Kategorie erstellen…"
+                              className="h-9 text-sm flex-1"
                             />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-9 px-3 text-sm flex-shrink-0"
+                              disabled={!newCategoryName.trim()}
+                              onClick={() => {
+                                const name = normalizeCategory(newCategoryName)
+                                if (name) {
+                                  ensureCategory(name)
+                                  setEditCategory(name)
+                                  setNewCategoryName("")
+                                }
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
 
-                        <DialogFooter className="sm:justify-end">
-                          <Button onClick={saveEditTask} disabled={editTitle.trim().length === 0} className="w-full sm:w-auto">
-                            Speichern
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </Card>
-                </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} className="h-4 w-4" />
+                          <span className="text-sm">Hohe Priorit&auml;t</span>
+                        </div>
+
+                        {/* #10: Notes field in edit dialog */}
+                        <div className="grid gap-2">
+                          <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
+                          <textarea
+                            value={editNotes}
+                            onChange={(e) => setEditNotes(e.target.value)}
+                            placeholder="z.B. Kapitel 3-5 lesen"
+                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+
+                      <DialogFooter className="sm:justify-end">
+                        <Button onClick={saveEditTask} disabled={editTitle.trim().length === 0} className="w-full sm:w-auto">
+                          Speichern
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </Card>
               </div>
             </TabsContent>
 
             {/* Kategorien – neu gestaltet */}
             <TabsContent value="kategorien" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="max-w-2xl mx-auto grid gap-4">
+              <div className="max-w-4xl mx-auto grid gap-4">
 
                 {/* Neue Kategorie */}
                 <Card className="rounded-2xl shadow-sm overflow-hidden">
@@ -3111,7 +3084,7 @@ export default function App() {
 
             {/* Fortschritt – neu gestaltet */}
             <TabsContent value="fortschritt" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="max-w-2xl mx-auto grid gap-4">
+              <div className="max-w-4xl mx-auto grid gap-4">
 
                 {/* #9: Stats Period Filter */}
                 <div className="flex items-center gap-2">
@@ -3346,6 +3319,34 @@ export default function App() {
 
               </div>
             </TabsContent>
+
+            {/* Unterstützen */}
+            <TabsContent value="support" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
+              <div className="max-w-md mx-auto">
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-muted/40 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Projekt unterstützen</h2>
+                  </div>
+                  <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center text-center space-y-4">
+                    <p className="text-sm text-muted-foreground">Wenn dir der Study Calendar gefällt, kannst du das Projekt mit einer kleinen Spende unterstützen. Jeder Beitrag hilft! ☕</p>
+                    <img
+                      src="/revolut-qr.jpg"
+                      alt="Revolut QR Code"
+                      className="w-40 h-40 object-contain border rounded-lg"
+                    />
+                    <a
+                      href="https://revolut.me/eljoa"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      <Heart className="h-4 w-4" />
+                      revolut.me/eljoa
+                    </a>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
           </Tabs>
           {/* #6: Search Overlay */}
           {searchOpen && (
@@ -3454,6 +3455,6 @@ export default function App() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   )
 }
