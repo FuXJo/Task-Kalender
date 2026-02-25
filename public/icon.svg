@@ -1,44 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- Simple, clean background: Bright, pristine white -->
-    <rect id="bg" width="512" height="512" rx="114" fill="#ffffff" />
-    
-    <!-- Primary App Color: A deep, professional Slate/Indigo -->
-    <linearGradient id="primary-tint" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#334155" />
-      <stop offset="100%" stop-color="#0f172a" />
+    <!-- Background Gradient (Very soft, elegant off-white to pristine white) -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
     </linearGradient>
 
-    <!-- Vibrant subtle accent (optional, but keeps it modern) -->
-    <linearGradient id="accent" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#2563eb" />
+    <!-- Very subtle shadow for the app icon container itself -->
+    <filter id="shadow" x="-5%" y="-5%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.04"/>
+    </filter>
+
+    <!-- The fine stroke gradient (Gold/Champagne or sleek Slate/Teal) -->
+    <linearGradient id="fine-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/> <!-- Slate 600 -->
+      <stop offset="100%" stop-color="#0f172a"/> <!-- Slate 900 -->
+    </linearGradient>
+    
+    <linearGradient id="accent-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/> <!-- Primary Blue/Cyan -->
+      <stop offset="100%" stop-color="#3b82f6"/> <!-- Blue 500 -->
     </linearGradient>
   </defs>
 
-  <!-- Base -->
-  <use href="#bg" />
+  <!-- Base iOS Icon Shape -->
+  <rect width="512" height="512" rx="114" fill="url(#bg)" filter="url(#shadow)"/>
 
-  <!-- The Icon Core: A sophisticated, minimalist calendar page with a checkmark -->
+  <!-- FINE DESIGN: Geometric overlapping circles representing time, focus, and progress -->
+  <!-- We use very thin, elegant strokes (stroke-width: 4 to 8) -->
   
-  <!-- Back square / Shadow representation (very subtle, clean flat design) -->
-  <rect x="140" y="140" width="220" height="220" rx="24" fill="#f1f5f9" />
-  
-  <!-- Main Front Square -->
-  <rect x="160" y="120" width="220" height="220" rx="24" fill="url(#primary-tint)" />
+  <g transform="translate(256, 256)">
+    <!-- Main Focus Circle (Clock/Time representation) -->
+    <circle cx="0" cy="0" r="100" fill="none" stroke="url(#fine-gradient)" stroke-width="6" opacity="0.8"/>
+    
+    <!-- Secondary Orbit (Progress/Goals) offset and smaller -->
+    <circle cx="30" cy="-30" r="80" fill="none" stroke="url(#accent-gradient)" stroke-width="4" opacity="0.6"/>
+    <circle cx="-30" cy="30" r="80" fill="none" stroke="url(#accent-gradient)" stroke-width="4" opacity="0.4"/>
 
-  <!-- Calendar header fold / top accent line -->
-  <path d="M160 176 C160 162.745 170.745 152 184 152 L356 152 C369.255 152 380 162.745 380 176 L380 184 L160 184 Z" fill="#2563eb" />
+    <!-- Central Point of Focus -->
+    <circle cx="0" cy="0" r="4" fill="url(#fine-gradient)"/>
+    
+    <!-- Fine hands/lines indicating structure and progression -->
+    <!-- Vertical line -->
+    <line x1="0" y1="-100" x2="0" y2="-40" stroke="url(#fine-gradient)" stroke-width="6" stroke-linecap="round"/>
+    <!-- Angled hand (like a clock pointing to 2 or indicating upward progress) -->
+    <line x1="0" y1="0" x2="50" y2="-50" stroke="url(#accent-gradient)" stroke-width="6" stroke-linecap="round"/>
 
-  <!-- Minimalist Checkmark (Focusing on completion/tasks) -->
-  <path d="M 220 240 L 250 270 L 320 190" fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
-
-  <!-- Subtle grid dots or lines representing planning -->
-  <circle cx="210" cy="300" r="8" fill="#94a3b8" opacity="0.5" />
-  <rect x="236" y="294" width="70" height="12" rx="6" fill="#94a3b8" opacity="0.5" />
-
-  <!-- Second row of planning -->
-  <circle cx="210" cy="340" r="8" fill="#94a3b8" opacity="0.5" />
-  <rect x="236" y="334" width="100" height="12" rx="6" fill="#94a3b8" opacity="0.5" />
+    <!-- Decorative fine ticks/points along the outer ring to suggest a calendar/planner -->
+    <circle cx="0" cy="-120" r="3" fill="#cbd5e1"/>
+    <circle cx="120" cy="0" r="3" fill="#cbd5e1"/>
+    <circle cx="0" cy="120" r="3" fill="#cbd5e1"/>
+    <circle cx="-120" cy="0" r="3" fill="#cbd5e1"/>
+    
+    <circle cx="-85" cy="-85" r="2" fill="#e2e8f0"/>
+    <circle cx="85" cy="85" r="2" fill="#e2e8f0"/>
+  </g>
 
 </svg>
