@@ -1801,9 +1801,9 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-background">
-      <div className="h-full overflow-y-auto">
-        <div className="mx-auto max-w-[1800px] p-3 sm:p-4 md:p-6">
+    <div className="h-screen overflow-hidden bg-background flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="mx-auto max-w-[1800px] w-full p-3 sm:p-4 md:p-6 flex flex-col flex-1 min-h-0">
           {/* Header */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -1882,7 +1882,7 @@ export default function App() {
             </div>
           </div>
 
-          <Tabs defaultValue="kalender" className="mt-4 sm:mt-6">
+          <Tabs defaultValue="kalender" className="mt-4 sm:mt-6 flex-1 min-h-0 flex flex-col">
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="kalender" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -1899,8 +1899,8 @@ export default function App() {
             </TabsList>
 
             {/* Kalender */}
-            <TabsContent value="kalender" className="mt-3 sm:mt-4">
-              <div className="flex gap-3 sm:gap-4">
+            <TabsContent value="kalender" className="mt-3 sm:mt-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+              <div className="flex gap-3 sm:gap-4 flex-1 min-h-0 overflow-hidden">
                 {/* Spendenbox links - nur auf großen Desktop-Screens */}
                 <Card className="hidden xl:flex flex-col items-center justify-start rounded-2xl shadow-sm p-6 w-[240px] flex-shrink-0 h-fit sticky top-6">
                   <div className="text-center space-y-4">
@@ -1926,8 +1926,8 @@ export default function App() {
                 </Card>
 
                 {/* Kalender und To-dos Container - behält ursprüngliche max-width */}
-                <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start">
-                  <div ref={calendarCardRef} className="space-y-3 sm:space-y-4">
+                <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 max-w-6xl lg:items-start min-h-0 overflow-hidden">
+                  <div ref={calendarCardRef} className="space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-h-0">
                     <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                       <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
                         <div className="flex items-center justify-between gap-2">
@@ -2316,7 +2316,7 @@ export default function App() {
                   </div>
 
                   {/* To-dos */}
-                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col lg:sticky lg:top-4" style={{ maxHeight: "calc(100vh - 96px)" }}>
+                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "100%" }}>
                     <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
                       <div>
                         <div className="text-sm font-semibold">To-dos</div>
