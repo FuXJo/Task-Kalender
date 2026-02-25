@@ -393,6 +393,42 @@ export default function App() {
   // Color picker popup state
   const [colorPickerOpen, setColorPickerOpen] = useState<string>("")
 
+  // Category notes (same pattern as colors: JSON map in user_settings)
+  const [categoryNotesMap, setCategoryNotesMap] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem("categoryNotes")
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })
+  const [notesDialogCategory, setNotesDialogCategory] = useState<string>("")
+
+  useEffect(() => {
+    if (!userId) return
+    const loadNotes = async () => {
+      const { data } = await supabase
+        .from("user_settings")
+        .select("category_notes")
+        .eq("user_id", userId)
+        .single()
+      if (data?.category_notes && typeof data.category_notes === "object") {
+        setCategoryNotesMap(data.category_notes as Record<string, string>)
+      }
+    }
+    loadNotes()
+  }, [userId])
+
+  const notesSaveTimerRef = useRef<number>(0)
+  useEffect(() => {
+    localStorage.setItem("categoryNotes", JSON.stringify(categoryNotesMap))
+    if (!userId) return
+    clearTimeout(notesSaveTimerRef.current)
+    notesSaveTimerRef.current = window.setTimeout(async () => {
+      await supabase
+        .from("user_settings")
+        .upsert({ user_id: userId, category_notes: categoryNotesMap }, { onConflict: "user_id" })
+    }, 500)
+  }, [categoryNotesMap, userId])
+
   // Category management UI
   const [newCategoryName, setNewCategoryName] = useState("")
   const [renameFrom, setRenameFrom] = useState<string>("")
@@ -2649,6 +2685,18 @@ export default function App() {
                                 <Button
                                   type="button"
                                   variant="ghost"
+                                  size="icon"
+                                  onClick={() => setNotesDialogCategory(c)}
+                                  aria-label="Notizen"
+                                  className="h-8 w-8 relative"
+                                  title="Notizen"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                  {categoryNotesMap[c] && <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
                                   size="sm"
                                   onClick={() => { setRenameFrom(c); setRenameTo(c) }}
                                   className="h-8 px-3 text-xs gap-1.5"
@@ -2677,6 +2725,28 @@ export default function App() {
                     <p className="text-[11px] text-muted-foreground">Klicke auf den farbigen Kreis um die Farbe zu ändern.</p>
                   </div>
                 </Card>
+
+                {/* Notizen-Dialog */}
+                <Dialog open={!!notesDialogCategory} onOpenChange={(open) => { if (!open) setNotesDialogCategory("") }}>
+                  <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2 text-base">
+                        <FileText className="h-4 w-4" />
+                        Notizen – {notesDialogCategory}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <textarea
+                      value={categoryNotesMap[notesDialogCategory] ?? ""}
+                      onChange={(e) => setCategoryNotesMap(prev => ({ ...prev, [notesDialogCategory]: e.target.value }))}
+                      placeholder="Notizen, Zusammenfassungen, Links…"
+                      className="w-full min-h-[200px] max-h-[50vh] p-3 rounded-lg border bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-muted-foreground">Wird automatisch gespeichert</span>
+                      <Button variant="outline" size="sm" onClick={() => setNotesDialogCategory("")}>Schliessen</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Umbenennen – nur anzeigen wenn eine Kategorie ausgewählt */}
                 {renameFrom && renameFrom !== "—" && (
