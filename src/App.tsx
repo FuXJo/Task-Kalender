@@ -2755,7 +2755,7 @@ export default function App() {
             </TabsContent>
 
             {/* Kategorien – neu gestaltet */}
-            <TabsContent value="kategorien" className="mt-3 sm:mt-4">
+            <TabsContent value="kategorien" className="mt-3 sm:mt-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
               <div className="max-w-2xl mx-auto grid gap-4">
 
                 {/* Neue Kategorie */}
@@ -3110,7 +3110,7 @@ export default function App() {
             </TabsContent>
 
             {/* Fortschritt – neu gestaltet */}
-            <TabsContent value="fortschritt" className="mt-3 sm:mt-4">
+            <TabsContent value="fortschritt" className="mt-3 sm:mt-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
               <div className="max-w-2xl mx-auto grid gap-4">
 
                 {/* #9: Stats Period Filter */}
