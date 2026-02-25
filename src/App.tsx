@@ -2107,10 +2107,8 @@ export default function App() {
                                                 key={cell.iso}
                                                 className="border-b border-r last:border-r-0 h-12 relative group/slot"
                                                 onDragOver={(e) => {
-                                                  const p = (() => { try { return JSON.parse(e.dataTransfer.types.includes(DND_MIME) ? e.dataTransfer.getData(DND_MIME) : "") } catch { return null } })()
-                                                  // Allow drop for move and schedule payloads
                                                   e.preventDefault()
-                                                  e.dataTransfer.dropEffect = "copy"
+                                                  e.dataTransfer.dropEffect = "move"
                                                 }}
                                                 onDrop={(e) => {
                                                   e.preventDefault()
