@@ -1904,7 +1904,7 @@ export default function App() {
 
             {/* Kalender */}
             <TabsContent value="kalender" className="mt-3 sm:mt-4 flex-1 min-h-0 flex flex-col overflow-hidden">
-              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_380px] flex-1 lg:items-start min-h-0 overflow-hidden">
+              <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_0.618fr] flex-1 lg:items-start min-h-0 overflow-hidden">
                 <div ref={calendarCardRef} className="space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-h-0">
                   <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
                     <CardHeader className="pb-2 sm:pb-3 border-b bg-muted/30">
@@ -3084,377 +3084,337 @@ export default function App() {
 
             {/* Fortschritt – neu gestaltet */}
             <TabsContent value="fortschritt" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="max-w-4xl mx-auto grid gap-4">
+              <div className="grid lg:grid-cols-[1fr_1fr] gap-4">
 
-                {/* #9: Stats Period Filter */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Zeitraum:</span>
-                  <div className="flex items-center rounded-lg border overflow-hidden text-xs">
-                    {(["month", "3months", "all"] as const).map((period) => {
-                      const labels = { month: "Dieser Monat", "3months": "3 Monate", all: "Alles" }
-                      return (
-                        <button
-                          key={period}
-                          onClick={() => setStatsPeriod(period)}
-                          className={["px-3 py-1.5 transition-colors", period !== "month" ? "border-l" : "", statsPeriod === period ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}
-                        >
-                          {labels[period]}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {statsLoading && <span className="text-xs text-muted-foreground animate-pulse">Lade...</span>}
-                  <div className="flex-1" />
-                  {/* #9: CSV Export */}
-                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={exportCSV}>
-                    <Download className="h-3.5 w-3.5" /> CSV Export
-                  </Button>
-                </div>
-
-                {/* Streak + Gesamt-Stats nebeneinander */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Streak Card */}
+                {/* LINKE SPALTE: Individueller Fortschritt nach Kategorie */}
+                <div className="space-y-4">
                   <Card className="rounded-2xl shadow-sm overflow-hidden">
-                    <CardContent className="p-4 flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                        <Flame className="h-5 w-5 text-orange-500" />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold tabular-nums">{streak}</div>
-                        <div className="text-xs text-muted-foreground">Tage Streak</div>
-                      </div>
+                    <div className="bg-muted/40 px-5 py-3 border-b">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Nach Kategorie</h2>
+                    </div>
+                    <CardContent className="p-0">
+                      {categoryStats.rows.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                          <List className="h-8 w-8 opacity-30" />
+                          <p className="text-sm">Noch keine Tasks für Statistik.</p>
+                        </div>
+                      ) : (
+                        <ul className="divide-y">
+                          {categoryStats.rows.map((r) => {
+                            const tone =
+                              r.ratio >= 1 ? "bg-emerald-500" :
+                                r.ratio >= 0.5 ? "bg-amber-400" :
+                                  r.total === 0 ? "bg-muted" : "bg-rose-400"
+                            return (
+                              <li key={r.label} className="px-5 py-4 hover:bg-muted/20 transition-colors">
+                                <div className="flex items-center justify-between gap-3 mb-2">
+                                  <span className="text-sm font-medium truncate">{r.label}</span>
+                                  <div className="flex items-center gap-3 flex-shrink-0">
+                                    <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
+                                    <span className={["text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full text-white min-w-[3rem] text-center", tone].join(" ")}>
+                                      {percent(r.ratio)}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                  <div className={["h-full rounded-full transition-all duration-500", tone].join(" ")} style={{ width: `${percent(r.ratio)}%` }} />
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
                     </CardContent>
                   </Card>
+                </div>
 
-                  {/* Gesamt-Abschlussrate */}
+                {/* RECHTE SPALTE: Statistiken */}
+                <div className="space-y-4">
+                  {/* Period Filter */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Zeitraum:</span>
+                    <div className="flex items-center rounded-lg border overflow-hidden text-xs">
+                      {(["month", "3months", "all"] as const).map((period) => {
+                        const labels = { month: "Dieser Monat", "3months": "3 Monate", all: "Alles" }
+                        return (
+                          <button key={period} onClick={() => setStatsPeriod(period)} className={["px-3 py-1.5 transition-colors", period !== "month" ? "border-l" : "", statsPeriod === period ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}>
+                            {labels[period]}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {statsLoading && <span className="text-xs text-muted-foreground animate-pulse">Lade...</span>}
+                    <div className="flex-1" />
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={exportCSV}>
+                      <Download className="h-3.5 w-3.5" /> CSV Export
+                    </Button>
+                  </div>
+
+                  {/* Streak + Gesamt-Stats */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Card className="rounded-2xl shadow-sm overflow-hidden">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                          <Flame className="h-5 w-5 text-orange-500" />
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold tabular-nums">{streak}</div>
+                          <div className="text-xs text-muted-foreground">Tage Streak</div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    {categoryStats.rows.length > 0 && (() => {
+                      const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
+                      const doneAll = categoryStats.rows.reduce((s, r) => s + r.done, 0)
+                      const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
+                      return (
+                        <Card className="rounded-2xl shadow-sm overflow-hidden">
+                          <CardContent className="p-4 flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <BarChart2 className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <div className="text-2xl font-bold tabular-nums">{percent(ratioAll)}%</div>
+                              <div className="text-xs text-muted-foreground">{doneAll}/{totalAll} erledigt</div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Gesamt-Übersicht */}
                   {categoryStats.rows.length > 0 && (() => {
                     const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
                     const doneAll = categoryStats.rows.reduce((s, r) => s + r.done, 0)
                     const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
                     return (
                       <Card className="rounded-2xl shadow-sm overflow-hidden">
-                        <CardContent className="p-4 flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <BarChart2 className="h-5 w-5 text-primary" />
+                        <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
+                          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Gesamt</h2>
+                          <span className="text-xs text-muted-foreground">{doneAll} von {totalAll} erledigt</span>
+                        </div>
+                        <CardContent className="px-5 pt-4 pb-5">
+                          <div className="flex items-end justify-between mb-2">
+                            <span className="text-3xl font-bold tabular-nums">{percent(ratioAll)}%</span>
+                            <span className="text-sm text-muted-foreground mb-1">{categoryStats.rows.length} Kategorien</span>
                           </div>
-                          <div>
-                            <div className="text-2xl font-bold tabular-nums">{percent(ratioAll)}%</div>
-                            <div className="text-xs text-muted-foreground">{doneAll}/{totalAll} erledigt</div>
-                          </div>
+                          <Progress value={percent(ratioAll)} className="h-3 rounded-full" />
                         </CardContent>
                       </Card>
                     )
                   })()}
+
+                  {/* Heatmap */}
+                  <Card className="rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-muted/40 px-5 py-3 border-b">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Aktivität (letzte 12 Wochen)</h2>
+                    </div>
+                    <CardContent className="px-4 pt-4 pb-5">
+                      {(() => {
+                        const today = new Date()
+                        const dow = (today.getDay() + 6) % 7
+                        const endDate = new Date(today)
+                        endDate.setDate(today.getDate() - dow + 6)
+                        const weeks: Array<Array<{ iso: ISODate; ratio: number; total: number; done: number }>> = []
+                        for (let w = 11; w >= 0; w--) {
+                          const week: Array<{ iso: ISODate; ratio: number; total: number; done: number }> = []
+                          for (let d = 0; d < 7; d++) {
+                            const date = new Date(endDate)
+                            date.setDate(endDate.getDate() - w * 7 - (6 - d))
+                            const iso = toISODate(date)
+                            const tasks = tasksByDate[iso]
+                            const { total, done, ratio } = dayCompletion(tasks)
+                            week.push({ iso, ratio, total, done })
+                          }
+                          weeks.push(week)
+                        }
+                        const monthLabels: Array<{ label: string; col: number }> = []
+                        let lastMonth = -1
+                        weeks.forEach((week, wi) => {
+                          const firstDay = parseISODate(week[0].iso)
+                          const m = firstDay.getMonth()
+                          if (m !== lastMonth) { monthLabels.push({ label: firstDay.toLocaleDateString("de-DE", { month: "short" }), col: wi }); lastMonth = m }
+                        })
+                        const dayLabels = ["Mo", "", "Mi", "", "Fr", "", ""]
+                        return (
+                          <div className="overflow-x-auto">
+                            <div className="flex gap-1 mb-1 ml-7">
+                              {weeks.map((_, wi) => { const ml = monthLabels.find(m => m.col === wi); return <div key={wi} className="h-4 w-5 text-[9px] text-muted-foreground font-medium">{ml?.label ?? ""}</div> })}
+                            </div>
+                            <div className="flex gap-0">
+                              <div className="flex flex-col gap-1 mr-1.5 pt-0.5">
+                                {dayLabels.map((label, i) => (<div key={i} className="h-5 flex items-center text-[9px] text-muted-foreground font-medium w-5 justify-end pr-0.5">{label}</div>))}
+                              </div>
+                              <div className="flex gap-1 min-w-fit">
+                                {weeks.map((week, wi) => (
+                                  <div key={wi} className="flex flex-col gap-1">
+                                    {week.map((cell) => {
+                                      const isSelected = cell.iso === selectedISO
+                                      const bg = cell.total === 0 ? "bg-muted/50" : cell.ratio >= 1 ? "bg-emerald-500" : cell.ratio >= 0.5 ? "bg-amber-400" : "bg-rose-300"
+                                      const d = parseISODate(cell.iso)
+                                      const dateLabel = d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" })
+                                      const tooltip = cell.total > 0 ? `${dateLabel}: ${cell.done}/${cell.total} erledigt (${Math.round(cell.ratio * 100)}%)` : `${dateLabel}: Keine Tasks`
+                                      return (<button key={cell.iso} onClick={() => { setSelectedISO(cell.iso); setCursorMonth(startOfMonth(parseISODate(cell.iso))) }} title={tooltip} className={["h-5 w-5 rounded-sm transition-[transform,box-shadow] duration-150 hover:scale-125", bg, isSelected ? "ring-2 ring-primary ring-offset-1" : ""].join(" ")} />)
+                                    })}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground">
+                              <span>Weniger</span>
+                              <span className="h-3 w-3 rounded-sm bg-muted/50" />
+                              <span className="h-3 w-3 rounded-sm bg-rose-300" />
+                              <span className="h-3 w-3 rounded-sm bg-amber-400" />
+                              <span className="h-3 w-3 rounded-sm bg-emerald-500" />
+                              <span>Mehr</span>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </CardContent>
+                  </Card>
                 </div>
 
-                {/* Heatmap – letzte 12 Wochen */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-muted/40 px-5 py-3 border-b">
-                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Aktivität (letzte 12 Wochen)</h2>
-                  </div>
-                  <CardContent className="px-4 pt-4 pb-5">
-                    {(() => {
-                      // Baue 12 Wochen à 7 Tage auf (Mo–So), neueste rechts
-                      const today = new Date()
-                      const dow = (today.getDay() + 6) % 7
-                      const endDate = new Date(today)
-                      endDate.setDate(today.getDate() - dow + 6) // Sonntag dieser Woche
-
-                      const weeks: Array<Array<{ iso: ISODate; ratio: number; total: number; done: number }>> = []
-                      for (let w = 11; w >= 0; w--) {
-                        const week: Array<{ iso: ISODate; ratio: number; total: number; done: number }> = []
-                        for (let d = 0; d < 7; d++) {
-                          const date = new Date(endDate)
-                          date.setDate(endDate.getDate() - w * 7 - (6 - d))
-                          const iso = toISODate(date)
-                          const tasks = tasksByDate[iso]
-                          const { total, done, ratio } = dayCompletion(tasks)
-                          week.push({ iso, ratio, total, done })
-                        }
-                        weeks.push(week)
-                      }
-
-                      // Month labels for top row
-                      const monthLabels: Array<{ label: string; col: number }> = []
-                      let lastMonth = -1
-                      weeks.forEach((week, wi) => {
-                        const firstDay = parseISODate(week[0].iso)
-                        const m = firstDay.getMonth()
-                        if (m !== lastMonth) {
-                          monthLabels.push({ label: firstDay.toLocaleDateString("de-DE", { month: "short" }), col: wi })
-                          lastMonth = m
-                        }
-                      })
-
-                      const dayLabels = ["Mo", "", "Mi", "", "Fr", "", ""]
-
-                      return (
-                        <div className="overflow-x-auto">
-                          {/* Month labels */}
-                          <div className="flex gap-1 mb-1 ml-7">
-                            {weeks.map((_, wi) => {
-                              const ml = monthLabels.find(m => m.col === wi)
-                              return <div key={wi} className="h-4 w-5 text-[9px] text-muted-foreground font-medium">{ml?.label ?? ""}</div>
-                            })}
-                          </div>
-                          <div className="flex gap-0">
-                            {/* Day-of-week labels */}
-                            <div className="flex flex-col gap-1 mr-1.5 pt-0.5">
-                              {dayLabels.map((label, i) => (
-                                <div key={i} className="h-5 flex items-center text-[9px] text-muted-foreground font-medium w-5 justify-end pr-0.5">{label}</div>
-                              ))}
-                            </div>
-                            {/* Heatmap grid */}
-                            <div className="flex gap-1 min-w-fit">
-                              {weeks.map((week, wi) => (
-                                <div key={wi} className="flex flex-col gap-1">
-                                  {week.map((cell) => {
-                                    const isSelected = cell.iso === selectedISO
-                                    const bg =
-                                      cell.total === 0 ? "bg-muted/50" :
-                                        cell.ratio >= 1 ? "bg-emerald-500" :
-                                          cell.ratio >= 0.5 ? "bg-amber-400" :
-                                            "bg-rose-300"
-                                    const d = parseISODate(cell.iso)
-                                    const dateLabel = d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" })
-                                    const tooltip = cell.total > 0
-                                      ? `${dateLabel}: ${cell.done}/${cell.total} erledigt (${Math.round(cell.ratio * 100)}%)`
-                                      : `${dateLabel}: Keine Tasks`
-                                    return (
-                                      <button
-                                        key={cell.iso}
-                                        onClick={() => { setSelectedISO(cell.iso); setCursorMonth(startOfMonth(parseISODate(cell.iso))) }}
-                                        title={tooltip}
-                                        className={["h-5 w-5 rounded-sm transition-[transform,box-shadow] duration-150 hover:scale-125", bg, isSelected ? "ring-2 ring-primary ring-offset-1" : ""].join(" ")}
-                                      />
-                                    )
-                                  })}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground">
-                            <span>Weniger</span>
-                            <span className="h-3 w-3 rounded-sm bg-muted/50" />
-                            <span className="h-3 w-3 rounded-sm bg-rose-300" />
-                            <span className="h-3 w-3 rounded-sm bg-amber-400" />
-                            <span className="h-3 w-3 rounded-sm bg-emerald-500" />
-                            <span>Mehr</span>
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </CardContent>
-                </Card>
-
-                {/* Gesamt-Übersicht oben */}
-                {categoryStats.rows.length > 0 && (() => {
-                  const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
-                  const doneAll = categoryStats.rows.reduce((s, r) => s + r.done, 0)
-                  const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
-                  return (
-                    <Card className="rounded-2xl shadow-sm overflow-hidden">
-                      <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
-                        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Gesamt</h2>
-                        <span className="text-xs text-muted-foreground">{doneAll} von {totalAll} erledigt</span>
-                      </div>
-                      <CardContent className="px-5 pt-4 pb-5">
-                        <div className="flex items-end justify-between mb-2">
-                          <span className="text-3xl font-bold tabular-nums">{percent(ratioAll)}%</span>
-                          <span className="text-sm text-muted-foreground mb-1">{categoryStats.rows.length} Kategorien</span>
-                        </div>
-                        <Progress value={percent(ratioAll)} className="h-3 rounded-full" />
-                      </CardContent>
-                    </Card>
-                  )
-                })()}
-
-                {/* Kategorien-Liste */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-muted/40 px-5 py-3 border-b">
-                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Nach Kategorie</h2>
-                  </div>
-                  <CardContent className="p-0">
-                    {categoryStats.rows.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                        <List className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">Noch keine Tasks für Statistik.</p>
-                      </div>
-                    ) : (
-                      <ul className="divide-y">
-                        {categoryStats.rows.map((r) => {
-                          const tone =
-                            r.ratio >= 1 ? "bg-emerald-500" :
-                              r.ratio >= 0.5 ? "bg-amber-400" :
-                                r.total === 0 ? "bg-muted" : "bg-rose-400"
-
-                          return (
-                            <li key={r.label} className="px-5 py-4 hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center justify-between gap-3 mb-2">
-                                <span className="text-sm font-medium truncate">{r.label}</span>
-                                <div className="flex items-center gap-3 flex-shrink-0">
-                                  <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
-                                  <span className={[
-                                    "text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full text-white min-w-[3rem] text-center",
-                                    tone
-                                  ].join(" ")}>
-                                    {percent(r.ratio)}%
-                                  </span>
-                                </div>
-                              </div>
-                              {/* Progress mit farbiger Bar */}
-                              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className={["h-full rounded-full transition-all duration-500", tone].join(" ")}
-                                  style={{ width: `${percent(r.ratio)}%` }}
-                                />
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
+            </TabsContent>
+    < TabsContent value = "support" className = "mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4" >
+      <div className="max-w-md mx-auto">
+        <Card className="rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-muted/40 px-5 py-3 border-b">
+            <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Projekt unterstützen</h2>
+          </div>
+          <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center text-center space-y-4">
+            <p className="text-sm text-muted-foreground">Wenn dir der Study Calendar gefällt, kannst du das Projekt mit einer kleinen Spende unterstützen. Jeder Beitrag hilft! ☕</p>
+            <img
+              src="/revolut-qr.jpg"
+              alt="Revolut QR Code"
+              className="w-40 h-40 object-contain border rounded-lg"
+            />
+            <a
+              href="https://revolut.me/eljoa"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <Heart className="h-4 w-4" />
+              revolut.me/eljoa
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+      </TabsContent >
+    </Tabs >
+    {/* #6: Search Overlay */ }
+  {
+    searchOpen && (
+      <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-[10vh]" onClick={() => { setSearchOpen(false); setSearchQuery("") }}>
+        <div className="bg-card border rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3 border-b px-4 py-3">
+            <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <input
+              ref={searchInputRef}
+              autoFocus
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tasks durchsuchen…"
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery("") } }}
+            />
+            <button onClick={() => { setSearchOpen(false); setSearchQuery("") }} className="text-muted-foreground hover:text-foreground">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          {searchQuery.trim() && (
+            <div className="max-h-[300px] overflow-y-auto">
+              {searchResults.length === 0 ? (
+                <div className="px-4 py-6 text-center text-sm text-muted-foreground">Keine Ergebnisse</div>
+              ) : (
+                searchResults.map(({ task, iso }) => (
+                  <button
+                    key={task.id}
+                    className="w-full text-left px-4 py-2.5 hover:bg-muted/50 border-b last:border-b-0 transition-colors"
+                    onClick={() => {
+                      setSelectedISO(iso)
+                      setCursorMonth(startOfMonth(parseISODate(iso)))
+                      setSearchOpen(false)
+                      setSearchQuery("")
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={["text-sm flex-1 truncate", task.done ? "line-through text-muted-foreground" : "font-medium"].join(" ")}>{task.title}</div>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{iso}</span>
+                    </div>
+                    {task.category && (
+                      <Badge variant="secondary" className="mt-0.5 h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(task.category), color: getCategoryColor(task.category) }}>
+                        {task.category}
+                      </Badge>
                     )}
-                  </CardContent>
-                </Card>
-
-              </div>
-            </TabsContent>
-
-            {/* Unterstützen */}
-            <TabsContent value="support" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="max-w-md mx-auto">
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-muted/40 px-5 py-3 border-b">
-                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Projekt unterstützen</h2>
-                  </div>
-                  <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">Wenn dir der Study Calendar gefällt, kannst du das Projekt mit einer kleinen Spende unterstützen. Jeder Beitrag hilft! ☕</p>
-                    <img
-                      src="/revolut-qr.jpg"
-                      alt="Revolut QR Code"
-                      className="w-40 h-40 object-contain border rounded-lg"
-                    />
-                    <a
-                      href="https://revolut.me/eljoa"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
-                    >
-                      <Heart className="h-4 w-4" />
-                      revolut.me/eljoa
-                    </a>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-          {/* #6: Search Overlay */}
-          {searchOpen && (
-            <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-[10vh]" onClick={() => { setSearchOpen(false); setSearchQuery("") }}>
-              <div className="bg-card border rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center gap-3 border-b px-4 py-3">
-                  <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <input
-                    ref={searchInputRef}
-                    autoFocus
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tasks durchsuchen…"
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearchQuery("") } }}
-                  />
-                  <button onClick={() => { setSearchOpen(false); setSearchQuery("") }} className="text-muted-foreground hover:text-foreground">
-                    <X className="h-4 w-4" />
                   </button>
-                </div>
-                {searchQuery.trim() && (
-                  <div className="max-h-[300px] overflow-y-auto">
-                    {searchResults.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-sm text-muted-foreground">Keine Ergebnisse</div>
-                    ) : (
-                      searchResults.map(({ task, iso }) => (
-                        <button
-                          key={task.id}
-                          className="w-full text-left px-4 py-2.5 hover:bg-muted/50 border-b last:border-b-0 transition-colors"
-                          onClick={() => {
-                            setSelectedISO(iso)
-                            setCursorMonth(startOfMonth(parseISODate(iso)))
-                            setSearchOpen(false)
-                            setSearchQuery("")
-                          }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className={["text-sm flex-1 truncate", task.done ? "line-through text-muted-foreground" : "font-medium"].join(" ")}>{task.title}</div>
-                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">{iso}</span>
-                          </div>
-                          {task.category && (
-                            <Badge variant="secondary" className="mt-0.5 h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(task.category), color: getCategoryColor(task.category) }}>
-                              {task.category}
-                            </Badge>
-                          )}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-                <div className="px-4 py-2 border-t text-[10px] text-muted-foreground">
-                  Drücke <kbd className="px-1 py-0.5 rounded border text-[10px]">/</kbd> zum Öffnen · <kbd className="px-1 py-0.5 rounded border text-[10px]">Esc</kbd> zum Schliessen
-                </div>
-              </div>
+                ))
+              )}
             </div>
           )}
-          {/* #1: Undo Toast */}
-          {undoToast && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm">
-                <span className="text-card-foreground">{undoToast.message}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { undoToast.undo() }}
-                  className="gap-1.5 h-7 text-xs text-primary hover:text-primary font-medium"
-                >
-                  <Undo2 className="h-3 w-3" />
-                  Rückgängig
-                </Button>
-                <button onClick={dismissToast} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="px-4 py-2 border-t text-[10px] text-muted-foreground">
+            Drücke <kbd className="px-1 py-0.5 rounded border text-[10px]">/</kbd> zum Öffnen · <kbd className="px-1 py-0.5 rounded border text-[10px]">Esc</kbd> zum Schliessen
+          </div>
         </div>
       </div>
+    )
+  }
+  {/* #1: Undo Toast */ }
+  {
+    undoToast && (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm">
+          <span className="text-card-foreground">{undoToast.message}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { undoToast.undo() }}
+            className="gap-1.5 h-7 text-xs text-primary hover:text-primary font-medium"
+          >
+            <Undo2 className="h-3 w-3" />
+            Rückgängig
+          </Button>
+          <button onClick={dismissToast} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+        </div >
+      </div >
 
-      {/* Keyboard Help Dialog */}
-      <Dialog open={keyboardHelpOpen} onOpenChange={setKeyboardHelpOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tastaturkürzel</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
-            {[
-              ["N", "Neue Aufgabe"],
-              ["T", "Heute"],
-              ["/", "Suche"],
-              ["?", "Diese Hilfe"],
-              ["D", "Dark Mode"],
-              ["←  →", "Monat wechseln"],
-            ].map(([key, desc]) => (
-              <div key={key} className="flex items-center gap-3">
-                <kbd className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md border bg-muted px-2 text-xs font-mono font-medium text-muted-foreground">{key}</kbd>
-                <span className="text-muted-foreground">{desc}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 pt-3 border-t text-xs text-muted-foreground space-y-1">
-            <p><strong>Tipps:</strong></p>
-            <p>• Doppelklick auf Kalenderzelle → Aufgabe hinzufügen</p>
-            <p>• Drag & Drop → Aufgaben zwischen Tagen verschieben</p>
-            <p>• Mehrere auswählen → zusammen verschieben</p>
-          </div>
-        </DialogContent>
-      </Dialog>
+    {/* Keyboard Help Dialog */ }
+    < Dialog open = { keyboardHelpOpen } onOpenChange = { setKeyboardHelpOpen } >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Tastaturkürzel</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+          {[
+            ["N", "Neue Aufgabe"],
+            ["T", "Heute"],
+            ["/", "Suche"],
+            ["?", "Diese Hilfe"],
+            ["D", "Dark Mode"],
+            ["←  →", "Monat wechseln"],
+          ].map(([key, desc]) => (
+            <div key={key} className="flex items-center gap-3">
+              <kbd className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md border bg-muted px-2 text-xs font-mono font-medium text-muted-foreground">{key}</kbd>
+              <span className="text-muted-foreground">{desc}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground space-y-1">
+          <p><strong>Tipps:</strong></p>
+          <p>• Doppelklick auf Kalenderzelle → Aufgabe hinzufügen</p>
+          <p>• Drag & Drop → Aufgaben zwischen Tagen verschieben</p>
+          <p>• Mehrere auswählen → zusammen verschieben</p>
+        </div>
+      </DialogContent>
+      </Dialog >
     </div >
   )
 }
