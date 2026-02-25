@@ -37,11 +37,21 @@ type DbTask = {
   subtasks?: Subtask[] | null  // #7: optional subtasks
 }
 
+type TimeBlock = {
+  id: string
+  user_id: string
+  task_id: string
+  date: ISODate
+  start_hour: number   // e.g. 8.5 = 08:30
+  duration_hours: number  // e.g. 1.5 = 90min
+}
+
 // Drag payload
 const DND_MIME = "application/x-taskkalender"
 type DragPayload =
   | { kind: "move"; taskId: string; fromISO: ISODate }
   | { kind: "reorder"; taskId: string; fromISO: ISODate }
+  | { kind: "schedule"; taskId: string; fromISO: ISODate }
 
 function pad2(n: number) {
   return String(n).padStart(2, "0")
@@ -337,6 +347,12 @@ export default function App() {
   const [multiSelectMode, setMultiSelectMode] = useState(false)
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false)
   const [filterCategory, setFilterCategory] = useState<string>("")
+
+  // Time planner blocks
+  const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
+  const PLANNER_START = 6 // 06:00
+  const PLANNER_END = 23 // 23:00
+  const PLANNER_SLOT = 0.5 // 30-minute slots
 
   // #4: Checkbox bounce tracking
   const [bouncingId, setBouncingId] = useState<string>("")
@@ -968,6 +984,47 @@ export default function App() {
     updateSubtasksForTask(task.id, task.date, subs)
   }
 
+  // Time blocks – CRUD
+  const loadTimeBlocks = useCallback(async (dates: ISODate[]) => {
+    if (!userId || dates.length === 0) return
+    const { data } = await supabase
+      .from("time_blocks")
+      .select("id,user_id,task_id,date,start_hour,duration_hours")
+      .eq("user_id", userId)
+      .in("date", dates)
+    if (data) setTimeBlocks(data as TimeBlock[])
+  }, [userId])
+
+  const addTimeBlock = async (taskId: string, date: ISODate, startHour: number, durationHours: number = 1) => {
+    if (!userId) return
+    const tempId = crypto.randomUUID()
+    const optimistic: TimeBlock = { id: tempId, user_id: userId, task_id: taskId, date, start_hour: startHour, duration_hours: durationHours }
+    setTimeBlocks(prev => [...prev, optimistic])
+
+    const { data, error } = await supabase
+      .from("time_blocks")
+      .insert({ user_id: userId, task_id: taskId, date, start_hour: startHour, duration_hours: durationHours })
+      .select("id,user_id,task_id,date,start_hour,duration_hours")
+      .single()
+    if (error || !data) {
+      setTimeBlocks(prev => prev.filter(b => b.id !== tempId))
+      return
+    }
+    setTimeBlocks(prev => prev.map(b => b.id === tempId ? (data as TimeBlock) : b))
+  }
+
+  const updateTimeBlock = async (blockId: string, updates: Partial<Pick<TimeBlock, "start_hour" | "duration_hours" | "date">>) => {
+    if (!userId) return
+    setTimeBlocks(prev => prev.map(b => b.id === blockId ? { ...b, ...updates } : b))
+    await supabase.from("time_blocks").update(updates).eq("id", blockId).eq("user_id", userId)
+  }
+
+  const deleteTimeBlock = async (blockId: string) => {
+    if (!userId) return
+    setTimeBlocks(prev => prev.filter(b => b.id !== blockId))
+    await supabase.from("time_blocks").delete().eq("id", blockId).eq("user_id", userId)
+  }
+
   const renormalizeGroup = async (iso: ISODate, done: boolean, priority: number) => {
     const day = getSortedDayTasks(iso)
     const group = day.filter((t) => Number(t.done) === Number(done) && (t.priority ?? 1) === (priority ?? 1))
@@ -1557,6 +1614,13 @@ export default function App() {
     }
   }, [selectedISO])
 
+  // Load time blocks for the displayed week
+  useEffect(() => {
+    if (calView !== "week" || !userId) return
+    const dates = weekCells.days.map(d => d.iso)
+    loadTimeBlocks(dates)
+  }, [calView, weekCells, userId, loadTimeBlocks])
+
   // ── Keyboard Shortcuts ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) return
@@ -2009,6 +2073,137 @@ export default function App() {
                                     </button>
                                   )
                                 })}
+                              </div>
+
+                              {/* Stundenraster / Time Planner */}
+                              <div className="mt-4 border rounded-xl overflow-hidden bg-background">
+                                <div className="px-3 py-2 border-b bg-muted/30 flex items-center justify-between">
+                                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Zeitplaner</span>
+                                  <span className="text-[10px] text-muted-foreground">{timeBlocks.length} {timeBlocks.length === 1 ? "Block" : "Blöcke"}</span>
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <div className="grid min-w-[600px]" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
+                                    {/* Header row with day labels */}
+                                    <div className="border-b border-r bg-muted/20 h-8" />
+                                    {weekCells.days.map(cell => (
+                                      <div key={cell.iso} className="border-b border-r last:border-r-0 bg-muted/20 h-8 flex items-center justify-center text-[10px] font-medium text-muted-foreground">
+                                        {cell.label} {cell.day}
+                                      </div>
+                                    ))}
+
+                                    {/* Hour rows */}
+                                    {Array.from({ length: PLANNER_END - PLANNER_START }, (_, hi) => {
+                                      const hour = PLANNER_START + hi
+                                      return (
+                                        <React.Fragment key={hour}>
+                                          {/* Hour label */}
+                                          <div className="border-r border-b h-12 flex items-start justify-end pr-1.5 pt-0.5">
+                                            <span className="text-[9px] text-muted-foreground tabular-nums">{String(hour).padStart(2, "0")}:00</span>
+                                          </div>
+                                          {/* Day columns */}
+                                          {weekCells.days.map(cell => {
+                                            return (
+                                              <div
+                                                key={cell.iso}
+                                                className="border-b border-r last:border-r-0 h-12 relative group/slot"
+                                                onDragOver={(e) => {
+                                                  const p = (() => { try { return JSON.parse(e.dataTransfer.types.includes(DND_MIME) ? e.dataTransfer.getData(DND_MIME) : "") } catch { return null } })()
+                                                  // Allow drop for move and schedule payloads
+                                                  e.preventDefault()
+                                                  e.dataTransfer.dropEffect = "copy"
+                                                }}
+                                                onDrop={(e) => {
+                                                  e.preventDefault()
+                                                  const p = readDragPayload(e)
+                                                  if (!p) return
+                                                  // Snap to nearest 30 min
+                                                  const rect = e.currentTarget.getBoundingClientRect()
+                                                  const yRatio = (e.clientY - rect.top) / rect.height
+                                                  const startHour = hour + (yRatio >= 0.5 ? 0.5 : 0)
+                                                  addTimeBlock(p.taskId, cell.iso, startHour, 1)
+                                                }}
+                                                onClick={() => setSelectedISO(cell.iso)}
+                                              >
+                                                {/* Half-hour line */}
+                                                <div className="absolute left-0 right-0 top-1/2 border-t border-dashed border-black/5" />
+                                                {/* Hover indicator */}
+                                                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/slot:opacity-100 transition-opacity pointer-events-none" />
+
+                                                {/* Render time blocks that START in this hour */}
+                                                {timeBlocks
+                                                  .filter(b => b.date === cell.iso && Math.floor(b.start_hour) === hour)
+                                                  .map(block => {
+                                                    const allTasks = Object.values(tasksByDate).flat()
+                                                    const task = allTasks.find(t => t.id === block.task_id)
+                                                    if (!task) return null
+                                                    const topPx = (block.start_hour - hour) * 48 // 48px per hour
+                                                    const heightPx = block.duration_hours * 48
+                                                    const color = task.category ? getCategoryColor(task.category) : "#6b7280"
+                                                    return (
+                                                      <div
+                                                        key={block.id}
+                                                        className="absolute left-0.5 right-0.5 rounded-md px-1.5 py-0.5 text-[10px] text-white font-medium overflow-hidden cursor-grab shadow-sm z-10 group/block"
+                                                        style={{
+                                                          top: `${topPx}px`,
+                                                          height: `${Math.max(heightPx, 20)}px`,
+                                                          backgroundColor: color,
+                                                          opacity: 0.9,
+                                                        }}
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                          setDragPayload(e, { kind: "schedule", taskId: block.task_id, fromISO: block.date })
+                                                          e.dataTransfer.effectAllowed = "move"
+                                                        }}
+                                                        title={`${task.title} (${block.duration_hours}h)`}
+                                                      >
+                                                        <div className="truncate leading-tight">{task.title}</div>
+                                                        {heightPx >= 36 && (
+                                                          <div className="text-[8px] opacity-70">
+                                                            {String(Math.floor(block.start_hour)).padStart(2, "0")}:{block.start_hour % 1 ? "30" : "00"}–{String(Math.floor(block.start_hour + block.duration_hours)).padStart(2, "0")}:{(block.start_hour + block.duration_hours) % 1 ? "30" : "00"}
+                                                          </div>
+                                                        )}
+                                                        {/* Delete button */}
+                                                        <button
+                                                          onClick={(e) => { e.stopPropagation(); deleteTimeBlock(block.id) }}
+                                                          className="absolute top-0.5 right-0.5 opacity-0 group-hover/block:opacity-100 transition-opacity bg-black/30 rounded-full p-0.5"
+                                                        >
+                                                          <X className="h-2.5 w-2.5" />
+                                                        </button>
+                                                        {/* Resize handle */}
+                                                        <div
+                                                          className="absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize opacity-0 group-hover/block:opacity-100 flex items-center justify-center"
+                                                          onMouseDown={(e) => {
+                                                            e.stopPropagation()
+                                                            e.preventDefault()
+                                                            const startY = e.clientY
+                                                            const startDuration = block.duration_hours
+                                                            const onMove = (ev: MouseEvent) => {
+                                                              const diff = ev.clientY - startY
+                                                              const hoursDiff = Math.round(diff / 24) * 0.5 // 24px = 30min
+                                                              const newDuration = Math.max(0.5, startDuration + hoursDiff)
+                                                              updateTimeBlock(block.id, { duration_hours: newDuration })
+                                                            }
+                                                            const onUp = () => {
+                                                              document.removeEventListener("mousemove", onMove)
+                                                              document.removeEventListener("mouseup", onUp)
+                                                            }
+                                                            document.addEventListener("mousemove", onMove)
+                                                            document.addEventListener("mouseup", onUp)
+                                                          }}
+                                                        >
+                                                          <div className="w-6 h-0.5 rounded-full bg-white/60" />
+                                                        </div>
+                                                      </div>
+                                                    )
+                                                  })}
+                                              </div>
+                                            )
+                                          })}
+                                        </React.Fragment>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
                               </div>
                             </>
                           ) : (
