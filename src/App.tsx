@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
 
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 type ISODate = string
 
 type Subtask = { title: string; done: boolean }
+type CategoryNote = { id: string; title: string; content: string; created_at: string }
 
 type DbTask = {
   id: string
@@ -409,14 +410,15 @@ export default function App() {
   // Color picker popup state
   const [colorPickerOpen, setColorPickerOpen] = useState<string>("")
 
-  // Category notes (same pattern as colors: JSON map in user_settings)
-  const [categoryNotesMap, setCategoryNotesMap] = useState<Record<string, string>>(() => {
+  // Category notes – folder of multiple notes per category
+  const [categoryNotesMap, setCategoryNotesMap] = useState<Record<string, CategoryNote[]>>(() => {
     try {
       const saved = localStorage.getItem("categoryNotes")
       return saved ? JSON.parse(saved) : {}
     } catch { return {} }
   })
   const [notesDialogCategory, setNotesDialogCategory] = useState<string>("")
+  const [editingNoteId, setEditingNoteId] = useState<string>("")
 
   useEffect(() => {
     if (!userId) return
@@ -427,7 +429,7 @@ export default function App() {
         .eq("user_id", userId)
         .single()
       if (data?.category_notes && typeof data.category_notes === "object") {
-        setCategoryNotesMap(data.category_notes as Record<string, string>)
+        setCategoryNotesMap(data.category_notes as Record<string, CategoryNote[]>)
       }
     }
     loadNotes()
@@ -2884,8 +2886,8 @@ export default function App() {
                                   className="h-8 w-8 relative"
                                   title="Notizen"
                                 >
-                                  <FileText className="h-3.5 w-3.5" />
-                                  {categoryNotesMap[c] && <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />}
+                                  <FolderOpen className="h-3.5 w-3.5" />
+                                  {(categoryNotesMap[c]?.length ?? 0) > 0 && <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary text-[8px] text-primary-foreground flex items-center justify-center font-bold">{categoryNotesMap[c].length}</span>}
                                 </Button>
                                 <Button
                                   type="button"
@@ -2919,24 +2921,133 @@ export default function App() {
                   </div>
                 </Card>
 
-                {/* Notizen-Dialog */}
-                <Dialog open={!!notesDialogCategory} onOpenChange={(open) => { if (!open) setNotesDialogCategory("") }}>
+                {/* Notizen-Ordner Dialog */}
+                <Dialog open={!!notesDialogCategory} onOpenChange={(open) => { if (!open) { setNotesDialogCategory(""); setEditingNoteId("") } }}>
                   <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2 text-base">
-                        <FileText className="h-4 w-4" />
-                        Notizen – {notesDialogCategory}
+                        {editingNoteId ? (
+                          <>
+                            <button onClick={() => setEditingNoteId("")} className="hover:bg-muted rounded-md p-0.5 transition-colors">
+                              <ArrowLeft className="h-4 w-4" />
+                            </button>
+                            {(() => { const n = (categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId); return n?.title ?? "Notiz" })()}
+                          </>
+                        ) : (
+                          <>
+                            <FolderOpen className="h-4 w-4" />
+                            Notizen – {notesDialogCategory}
+                          </>
+                        )}
                       </DialogTitle>
                     </DialogHeader>
-                    <textarea
-                      value={categoryNotesMap[notesDialogCategory] ?? ""}
-                      onChange={(e) => setCategoryNotesMap(prev => ({ ...prev, [notesDialogCategory]: e.target.value }))}
-                      placeholder="Notizen, Zusammenfassungen, Links…"
-                      className="w-full min-h-[200px] max-h-[50vh] p-3 rounded-lg border bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-                    />
+
+                    {editingNoteId ? (
+                      /* Note editor view */
+                      <textarea
+                        value={(categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId)?.content ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setCategoryNotesMap(prev => ({
+                            ...prev,
+                            [notesDialogCategory]: (prev[notesDialogCategory] ?? []).map(n =>
+                              n.id === editingNoteId ? { ...n, content: val } : n
+                            )
+                          }))
+                        }}
+                        placeholder="Notiz schreiben…"
+                        className="w-full min-h-[250px] max-h-[50vh] p-3 rounded-lg border bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                        autoFocus
+                      />
+                    ) : (
+                      /* Note list view */
+                      <div className="space-y-2">
+                        {/* Add note input */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Neue Notiz (z.B. Vorlesung 1)…"
+                            className="flex-1 h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                                const title = (e.target as HTMLInputElement).value.trim()
+                                const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
+                                setCategoryNotesMap(prev => ({
+                                  ...prev,
+                                  [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
+                                }))
+                                  ; (e.target as HTMLInputElement).value = ""
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            className="h-9 px-3 gap-1"
+                            onClick={() => {
+                              const input = document.querySelector<HTMLInputElement>('[placeholder*="Neue Notiz"]')
+                              if (input && input.value.trim()) {
+                                const title = input.value.trim()
+                                const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
+                                setCategoryNotesMap(prev => ({
+                                  ...prev,
+                                  [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
+                                }))
+                                input.value = ""
+                              }
+                            }}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        {/* Note list */}
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-1">
+                          {(categoryNotesMap[notesDialogCategory] ?? []).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+                              <FileText className="h-8 w-8 opacity-30" />
+                              <p className="text-sm">Noch keine Notizen vorhanden.</p>
+                            </div>
+                          ) : (
+                            (categoryNotesMap[notesDialogCategory] ?? []).map(note => (
+                              <div
+                                key={note.id}
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg border hover:bg-muted/40 transition-colors cursor-pointer group"
+                                onClick={() => setEditingNoteId(note.id)}
+                              >
+                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{note.title}</div>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {note.content ? `${note.content.slice(0, 50)}${note.content.length > 50 ? "…" : ""}` : "Leer"}
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setCategoryNotesMap(prev => ({
+                                      ...prev,
+                                      [notesDialogCategory]: (prev[notesDialogCategory] ?? []).filter(n => n.id !== note.id)
+                                    }))
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] text-muted-foreground">Wird automatisch gespeichert</span>
-                      <Button variant="outline" size="sm" onClick={() => setNotesDialogCategory("")}>Schliessen</Button>
+                      <Button variant="outline" size="sm" onClick={() => { if (editingNoteId) { setEditingNoteId("") } else { setNotesDialogCategory("") } }}>
+                        {editingNoteId ? "Zurück" : "Schliessen"}
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
