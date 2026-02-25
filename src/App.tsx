@@ -2044,7 +2044,7 @@ export default function App() {
                                       onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverISO !== cell.iso) setDragOverISO(cell.iso) }}
                                       onDragLeave={() => { if (dragOverISO === cell.iso) setDragOverISO("") }}
                                       onDrop={(e) => { e.preventDefault(); setDraggingTaskId(""); const p = readDragPayload(e); dragRef.current = null; setDragOverISO(""); if (!p || p.kind !== "move") return; if (selectedTaskIds.size > 0 && selectedTaskIds.has(p.taskId)) { moveTasks(cell.iso, Array.from(selectedTaskIds)) } else { moveTask(p.fromISO, cell.iso, p.taskId) } }}
-                                      className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-32 sm:h-40", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
+                                      className={["relative rounded-xl border p-2 text-left transition-[box-shadow,transform,border-color] duration-200 touch-manipulation h-20 sm:h-24", st.border, st.bg, isSelected ? "ring-2 ring-primary shadow-sm" : "hover:shadow-sm hover:border-primary/30", isDragOver ? "calendar-drop-target" : ""].join(" ")}
                                       onDoubleClick={(e) => { e.preventDefault(); setSelectedISO(cell.iso); setAddDialogOpen(true) }}
                                     >
                                       <div className="flex flex-col items-center gap-1">
