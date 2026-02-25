@@ -1882,7 +1882,7 @@ export default function App() {
             </div>
           </div>
 
-          <Tabs defaultValue="kalender" className="mt-4 sm:mt-6 flex-1 min-h-0 flex flex-col">
+          <Tabs defaultValue="kalender" className="mt-4 sm:mt-6 flex-1 min-h-0 flex flex-col justify-start">
             <TabsList className="w-full justify-start overflow-x-auto">
               <TabsTrigger value="kalender" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -1903,7 +1903,7 @@ export default function App() {
             </TabsList>
 
             {/* Kalender */}
-            <TabsContent value="kalender" className="mt-3 sm:mt-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+            <TabsContent value="kalender" className="mt-3 sm:mt-4 flex-1 min-h-0 data-[state=active]:flex flex-col overflow-hidden">
               <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_0.618fr] flex-1 lg:items-start min-h-0 overflow-hidden">
                 <div ref={calendarCardRef} className="space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar min-h-0">
                   <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
@@ -2729,370 +2729,398 @@ export default function App() {
 
             {/* Kategorien – neu gestaltet */}
             <TabsContent value="kategorien" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="max-w-4xl mx-auto grid gap-4">
+              <div className="w-full h-full grid lg:grid-cols-[0.618fr_1fr] gap-4 sm:gap-6 items-start">
 
-                {/* Neue Kategorie */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-muted/40 px-5 py-3 border-b">
-                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Neue Kategorie</h2>
-                  </div>
-                  <CardContent className="pt-4 pb-5 px-5">
-                    <div className="flex gap-2">
-                      <Input
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addCategoryFromInput()}
-                        placeholder="z.B. Sport, Mathe, Projekt…"
-                        className="h-10 text-sm flex-1"
-                      />
-                      <Button onClick={addCategoryFromInput} className="h-10 px-5 text-sm gap-2 flex-shrink-0">
-                        <Plus className="h-4 w-4" />
-                        Hinzufügen
-                      </Button>
+                {/* LINKE SPALTE: Kategorien verwalten */}
+                <div className="grid gap-4">
+
+                  {/* Neue Kategorie */}
+                  <Card className="rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-muted/40 px-5 py-3 border-b">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Neue Kategorie</h2>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Bestehende Kategorien */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "60vh" }}>
-                  <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between flex-shrink-0">
-                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
-                    <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">
-                      {categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}
-                    </span>
-                  </div>
-                  <CardContent className="p-0 overflow-y-auto custom-scrollbar flex-1">
-                    {categories.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                        <Tag className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">Noch keine Kategorien vorhanden.</p>
-                      </div>
-                    ) : (
-                      <ul className="divide-y">
-                        {categories.map((c) => {
-                          const color = getCategoryColor(c)
-                          const taskCount = Object.values(tasksByDate).flat().filter(t => t.category === c).length
-                          return (
-                            <li key={c} className="relative flex items-center gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors group">
-                              {/* Color dot - clickable for picker */}
-                              <div className="relative">
-                                <button
-                                  onClick={() => setColorPickerOpen(colorPickerOpen === c ? "" : c)}
-                                  className="h-9 w-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 shadow-sm"
-                                  style={{ backgroundColor: color }}
-                                  title="Farbe ändern"
-                                >
-                                  <Palette className="h-3.5 w-3.5 text-white/80" />
-                                </button>
-
-                                {/* Color picker popup - centered overlay */}
-                                {colorPickerOpen === c && (
-                                  <>
-                                    <div className="fixed inset-0 z-[99]" onClick={() => setColorPickerOpen("")} />
-                                    <div
-                                      className="fixed z-[100] bg-card border rounded-xl shadow-2xl p-3 w-[220px] max-h-[320px] overflow-y-auto custom-scrollbar"
-                                      style={{
-                                        left: "50%",
-                                        top: "50%",
-                                        transform: "translate(-50%, -50%)",
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <div className="flex items-center justify-between mb-2">
-                                        <div className="text-xs font-semibold text-foreground">Farbe wählen</div>
-                                        <button onClick={() => setColorPickerOpen("")} className="text-muted-foreground hover:text-foreground">
-                                          <X className="h-3.5 w-3.5" />
-                                        </button>
-                                      </div>
-                                      {CATEGORY_COLOR_GROUPS.map((group) => (
-                                        <div key={group.label} className="mb-2 last:mb-0">
-                                          <div className="text-[9px] font-medium text-muted-foreground mb-1 uppercase tracking-widest">{group.label}</div>
-                                          <div className="grid grid-cols-6 gap-1.5">
-                                            {group.colors.map((clr) => (
-                                              <button
-                                                key={clr}
-                                                onClick={() => { setCategoryColor(c, clr); setColorPickerOpen("") }}
-                                                className="h-7 w-7 rounded-full transition-all hover:scale-125"
-                                                style={{
-                                                  backgroundColor: clr,
-                                                  outline: getCategoryColor(c) === clr ? "2.5px solid currentColor" : "none",
-                                                  outlineOffset: "2px",
-                                                  boxShadow: getCategoryColor(c) === clr ? `0 0 0 1px ${clr}` : "none",
-                                                }}
-                                              />
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ))}
-                                      <button
-                                        onClick={() => {
-                                          setCategoryColorMap(prev => {
-                                            const next = { ...prev }
-                                            delete next[c]
-                                            return next
-                                          })
-                                          setColorPickerOpen("")
-                                        }}
-                                        className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1 border-t"
-                                      >
-                                        Zurücksetzen
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-
-                              {/* Category info */}
-                              <div className="flex-1 min-w-0">
-                                <span className="text-sm font-semibold truncate block" style={{ color }}>{c}</span>
-                                <span className="text-[10px] text-muted-foreground">{taskCount} {taskCount === 1 ? "Task" : "Tasks"}</span>
-                              </div>
-
-                              {/* Actions */}
-                              <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setNotesDialogCategory(c)}
-                                  aria-label="Notizen"
-                                  className="h-8 w-8 relative"
-                                  title="Notizen"
-                                >
-                                  <FolderOpen className="h-3.5 w-3.5" />
-                                  {(categoryNotesMap[c]?.length ?? 0) > 0 && <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary text-[8px] text-primary-foreground flex items-center justify-center font-bold">{categoryNotesMap[c].length}</span>}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => { setRenameFrom(c); setRenameTo(c) }}
-                                  className="h-8 px-3 text-xs gap-1.5"
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                  <span className="hidden sm:inline">Umbenennen</span>
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => deleteCategory(c)}
-                                  aria-label="Löschen"
-                                  className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    )}
-                  </CardContent>
-                  <div className="px-5 py-2.5 border-t bg-muted/20 flex-shrink-0">
-                    <p className="text-[11px] text-muted-foreground">Klicke auf den farbigen Kreis um die Farbe zu ändern.</p>
-                  </div>
-                </Card>
-
-                {/* Notizen-Ordner Dialog */}
-                <Dialog open={!!notesDialogCategory} onOpenChange={(open) => { if (!open) { setNotesDialogCategory(""); setEditingNoteId("") } }}>
-                  <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2 text-base">
-                        {editingNoteId ? (
-                          <>
-                            <button onClick={() => setEditingNoteId("")} className="hover:bg-muted rounded-md p-0.5 transition-colors">
-                              <ArrowLeft className="h-4 w-4" />
-                            </button>
-                            {(() => { const n = (categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId); return n?.title ?? "Notiz" })()}
-                          </>
-                        ) : (
-                          <>
-                            <FolderOpen className="h-4 w-4" />
-                            Notizen – {notesDialogCategory}
-                          </>
-                        )}
-                      </DialogTitle>
-                    </DialogHeader>
-
-                    {editingNoteId ? (
-                      /* Note editor view */
-                      <textarea
-                        value={(categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId)?.content ?? ""}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setCategoryNotesMap(prev => ({
-                            ...prev,
-                            [notesDialogCategory]: (prev[notesDialogCategory] ?? []).map(n =>
-                              n.id === editingNoteId ? { ...n, content: val } : n
-                            )
-                          }))
-                        }}
-                        placeholder="Notiz schreiben…"
-                        className="w-full min-h-[250px] max-h-[50vh] p-3 rounded-lg border bg-background text-sm resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-                        autoFocus
-                      />
-                    ) : (
-                      /* Note list view */
-                      <div className="space-y-2">
-                        {/* Add note input */}
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="Neue Notiz (z.B. Vorlesung 1)…"
-                            className="flex-1 h-9 px-3 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                                const title = (e.target as HTMLInputElement).value.trim()
-                                const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
-                                setCategoryNotesMap(prev => ({
-                                  ...prev,
-                                  [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
-                                }))
-                                  ; (e.target as HTMLInputElement).value = ""
-                              }
-                            }}
-                          />
-                          <Button
-                            size="sm"
-                            className="h-9 px-3 gap-1"
-                            onClick={() => {
-                              const input = document.querySelector<HTMLInputElement>('[placeholder*="Neue Notiz"]')
-                              if (input && input.value.trim()) {
-                                const title = input.value.trim()
-                                const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
-                                setCategoryNotesMap(prev => ({
-                                  ...prev,
-                                  [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
-                                }))
-                                input.value = ""
-                              }
-                            }}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-
-                        {/* Note list */}
-                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-1">
-                          {(categoryNotesMap[notesDialogCategory] ?? []).length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
-                              <FileText className="h-8 w-8 opacity-30" />
-                              <p className="text-sm">Noch keine Notizen vorhanden.</p>
-                            </div>
-                          ) : (
-                            (categoryNotesMap[notesDialogCategory] ?? []).map(note => (
-                              <div
-                                key={note.id}
-                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg border hover:bg-muted/40 transition-colors cursor-pointer group"
-                                onClick={() => setEditingNoteId(note.id)}
-                              >
-                                <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium truncate">{note.title}</div>
-                                  <div className="text-[10px] text-muted-foreground">
-                                    {note.content ? `${note.content.slice(0, 50)}${note.content.length > 50 ? "…" : ""}` : "Leer"}
-                                  </div>
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setCategoryNotesMap(prev => ({
-                                      ...prev,
-                                      [notesDialogCategory]: (prev[notesDialogCategory] ?? []).filter(n => n.id !== note.id)
-                                    }))
-                                  }}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-muted-foreground">Wird automatisch gespeichert</span>
-                      <Button variant="outline" size="sm" onClick={() => { if (editingNoteId) { setEditingNoteId("") } else { setNotesDialogCategory("") } }}>
-                        {editingNoteId ? "Zurück" : "Schliessen"}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                {/* Umbenennen – nur anzeigen wenn eine Kategorie ausgewählt */}
-                {renameFrom && renameFrom !== "—" && (
-                  <Card className="rounded-2xl shadow-sm overflow-hidden border-primary/30">
-                    <div className="bg-primary/5 px-5 py-3 border-b border-primary/20">
-                      <h2 className="text-sm font-semibold tracking-wide uppercase text-primary/70">Umbenennen</h2>
-                    </div>
-                    <CardContent className="pt-4 pb-5 px-5 grid gap-3">
-                      <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-2.5">
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">Aktuell:</span>
-                        <Badge variant="secondary" className="text-sm font-medium">{renameFrom}</Badge>
-                      </div>
-                      <div className="grid gap-1.5">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Neuer Name</Label>
+                    <CardContent className="pt-4 pb-5 px-5">
+                      <div className="flex gap-2">
                         <Input
-                          value={renameTo}
-                          onChange={(e) => setRenameTo(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && renameFrom && renameFrom !== "—") {
-                              renameCategory(renameFrom, renameTo)
-                              setRenameFrom("")
-                              setRenameTo("")
-                            }
-                          }}
-                          placeholder="Neuer Name…"
-                          className="h-10 text-sm"
-                          autoFocus
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && addCategoryFromInput()}
+                          placeholder="z.B. Sport, Mathe, Projekt…"
+                          className="h-10 text-sm flex-1"
                         />
-                      </div>
-                      <div className="flex gap-2 pt-1">
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            renameCategory(renameFrom, renameTo)
-                            setRenameFrom("")
-                            setRenameTo("")
-                          }}
-                          disabled={!renameTo.trim() || renameTo === renameFrom}
-                          className="flex-1 h-9 text-sm"
-                        >
-                          Speichern
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => { setRenameFrom(""); setRenameTo("") }}
-                          className="h-9 px-4 text-sm"
-                        >
-                          Abbrechen
+                        <Button onClick={addCategoryFromInput} className="h-10 px-5 text-sm gap-2 flex-shrink-0">
+                          <Plus className="h-4 w-4" />
+                          Hinzufügen
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
-                )}
+
+                  {/* Bestehende Kategorien */}
+                  <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "60vh" }}>
+                    <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between flex-shrink-0">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
+                      <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">
+                        {categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}
+                      </span>
+                    </div>
+                    <CardContent className="p-0 overflow-y-auto custom-scrollbar flex-1">
+                      {categories.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+                          <Tag className="h-8 w-8 opacity-30" />
+                          <p className="text-sm">Noch keine Kategorien vorhanden.</p>
+                        </div>
+                      ) : (
+                        <ul className="divide-y">
+                          {categories.map((c) => {
+                            const color = getCategoryColor(c)
+                            const taskCount = Object.values(tasksByDate).flat().filter(t => t.category === c).length
+                            return (
+                              <li key={c} className="relative flex items-center gap-3 px-5 py-3.5 hover:bg-muted/30 transition-colors group">
+                                {/* Color dot - clickable for picker */}
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setColorPickerOpen(colorPickerOpen === c ? "" : c)}
+                                    className="h-9 w-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 shadow-sm"
+                                    style={{ backgroundColor: color }}
+                                    title="Farbe ändern"
+                                  >
+                                    <Palette className="h-3.5 w-3.5 text-white/80" />
+                                  </button>
+
+                                  {/* Color picker popup - centered overlay */}
+                                  {colorPickerOpen === c && (
+                                    <>
+                                      <div className="fixed inset-0 z-[99]" onClick={() => setColorPickerOpen("")} />
+                                      <div
+                                        className="fixed z-[100] bg-card border rounded-xl shadow-2xl p-3 w-[220px] max-h-[320px] overflow-y-auto custom-scrollbar"
+                                        style={{
+                                          left: "50%",
+                                          top: "50%",
+                                          transform: "translate(-50%, -50%)",
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div className="text-xs font-semibold text-foreground">Farbe wählen</div>
+                                          <button onClick={() => setColorPickerOpen("")} className="text-muted-foreground hover:text-foreground">
+                                            <X className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
+                                        {CATEGORY_COLOR_GROUPS.map((group) => (
+                                          <div key={group.label} className="mb-2 last:mb-0">
+                                            <div className="text-[9px] font-medium text-muted-foreground mb-1 uppercase tracking-widest">{group.label}</div>
+                                            <div className="grid grid-cols-6 gap-1.5">
+                                              {group.colors.map((clr) => (
+                                                <button
+                                                  key={clr}
+                                                  onClick={() => { setCategoryColor(c, clr); setColorPickerOpen("") }}
+                                                  className="h-7 w-7 rounded-full transition-all hover:scale-125"
+                                                  style={{
+                                                    backgroundColor: clr,
+                                                    outline: getCategoryColor(c) === clr ? "2.5px solid currentColor" : "none",
+                                                    outlineOffset: "2px",
+                                                    boxShadow: getCategoryColor(c) === clr ? `0 0 0 1px ${clr}` : "none",
+                                                  }}
+                                                />
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ))}
+                                        <button
+                                          onClick={() => {
+                                            setCategoryColorMap(prev => {
+                                              const next = { ...prev }
+                                              delete next[c]
+                                              return next
+                                            })
+                                            setColorPickerOpen("")
+                                          }}
+                                          className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1 border-t"
+                                        >
+                                          Zurücksetzen
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Category info */}
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm font-semibold truncate block" style={{ color }}>{c}</span>
+                                  <span className="text-[10px] text-muted-foreground">{taskCount} {taskCount === 1 ? "Task" : "Tasks"}</span>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setNotesDialogCategory(c)}
+                                    aria-label="Notizen"
+                                    className="h-8 w-8 relative"
+                                    title="Notizen"
+                                  >
+                                    <FolderOpen className="h-3.5 w-3.5" />
+                                    {(categoryNotesMap[c]?.length ?? 0) > 0 && <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-primary text-[8px] text-primary-foreground flex items-center justify-center font-bold">{categoryNotesMap[c].length}</span>}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setRenameFrom(c); setRenameTo(c) }}
+                                    className="h-8 px-3 text-xs gap-1.5"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                    <span className="hidden sm:inline">Umbenennen</span>
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => deleteCategory(c)}
+                                    aria-label="Löschen"
+                                    className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                    </CardContent>
+                    <div className="px-5 py-2.5 border-t bg-muted/20 flex-shrink-0">
+                      <p className="text-[11px] text-muted-foreground">Klicke auf den farbigen Kreis um die Farbe zu ändern.</p>
+                    </div>
+                  </Card>
+
+                  {/* Umbenennen – nur anzeigen wenn eine Kategorie ausgewählt */}
+                  {renameFrom && renameFrom !== "—" && (
+                    <Card className="rounded-2xl shadow-sm overflow-hidden border-primary/30">
+                      <div className="bg-primary/5 px-5 py-3 border-b border-primary/20">
+                        <h2 className="text-sm font-semibold tracking-wide uppercase text-primary/70">Umbenennen</h2>
+                      </div>
+                      <CardContent className="pt-4 pb-5 px-5 grid gap-3">
+                        <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-2.5">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">Aktuell:</span>
+                          <Badge variant="secondary" className="text-sm font-medium">{renameFrom}</Badge>
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wide">Neuer Name</Label>
+                          <Input
+                            value={renameTo}
+                            onChange={(e) => setRenameTo(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && renameFrom && renameFrom !== "—") {
+                                renameCategory(renameFrom, renameTo)
+                                setRenameFrom("")
+                                setRenameTo("")
+                              }
+                            }}
+                            placeholder="Neuer Name…"
+                            className="h-10 text-sm"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              renameCategory(renameFrom, renameTo)
+                              setRenameFrom("")
+                              setRenameTo("")
+                            }}
+                            disabled={!renameTo.trim() || renameTo === renameFrom}
+                            className="flex-1 h-9 text-sm"
+                          >
+                            Speichern
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => { setRenameFrom(""); setRenameTo("") }}
+                            className="h-9 px-4 text-sm"
+                          >
+                            Abbrechen
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                </div>
+
+                {/* RECHTE SPALTE: Notizen Editor */}
+                <div className="h-full min-h-[400px]">
+                  {notesDialogCategory ? (
+                    <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col h-full" style={{ minHeight: "60vh" }}>
+                      <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between flex-shrink-0">
+                        <div className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                          {editingNoteId ? (
+                            <>
+                              <button onClick={() => setEditingNoteId("")} className="hover:bg-muted text-foreground rounded-md p-1 transition-colors">
+                                <ArrowLeft className="h-4 w-4" />
+                              </button>
+                              <span className="text-foreground">{(() => { const n = (categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId); return n?.title ?? "Notiz" })()}</span>
+                            </>
+                          ) : (
+                            <>
+                              <FolderOpen className="h-4 w-4" />
+                              Notizen – <span className="text-foreground">{notesDialogCategory}</span>
+                            </>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => { setNotesDialogCategory(""); setEditingNoteId("") }}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <CardContent className="p-4 sm:p-5 flex-1 flex flex-col min-h-0 overflow-hidden">
+                        {editingNoteId ? (
+                          /* Note editor view */
+                          <textarea
+                            value={(categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId)?.content ?? ""}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              setCategoryNotesMap(prev => ({
+                                ...prev,
+                                [notesDialogCategory]: (prev[notesDialogCategory] ?? []).map(n =>
+                                  n.id === editingNoteId ? { ...n, content: val } : n
+                                )
+                              }))
+                            }}
+                            placeholder="Notiz schreiben…"
+                            className="flex-1 w-full p-3 rounded-xl border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                            autoFocus
+                          />
+                        ) : (
+                          /* Note list view */
+                          <div className="flex flex-col h-full min-h-0">
+                            {/* Add note input */}
+                            <div className="flex gap-2 mb-4 flex-shrink-0">
+                              <input
+                                id="new-note-input"
+                                type="text"
+                                placeholder="Neue Notiz (z.B. Vorlesung 1)…"
+                                className="flex-1 h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                                    const title = (e.target as HTMLInputElement).value.trim()
+                                    const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
+                                    setCategoryNotesMap(prev => ({
+                                      ...prev,
+                                      [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
+                                    }))
+                                      ; (e.target as HTMLInputElement).value = ""
+                                  }
+                                }}
+                              />
+                              <Button
+                                className="h-10 px-4 gap-2 flex-shrink-0 rounded-xl"
+                                onClick={() => {
+                                  const input = document.getElementById("new-note-input") as HTMLInputElement
+                                  if (input && input.value.trim()) {
+                                    const title = input.value.trim()
+                                    const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
+                                    setCategoryNotesMap(prev => ({
+                                      ...prev,
+                                      [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
+                                    }))
+                                    input.value = ""
+                                  }
+                                }}
+                              >
+                                <Plus className="h-4 w-4" />
+                                Hinzufügen
+                              </Button>
+                            </div>
+
+                            {/* Note list */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                              {(categoryNotesMap[notesDialogCategory] ?? []).length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3 h-full">
+                                  <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
+                                    <FileText className="h-6 w-6 opacity-40" />
+                                  </div>
+                                  <p className="text-sm">Noch keine Notizen in dieser Kategorie.</p>
+                                </div>
+                              ) : (
+                                (categoryNotesMap[notesDialogCategory] ?? []).map(note => (
+                                  <div
+                                    key={note.id}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-card hover:bg-muted/40 transition-colors shadow-sm cursor-pointer group"
+                                    onClick={() => setEditingNoteId(note.id)}
+                                  >
+                                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                      <FileText className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-semibold text-foreground truncate">{note.title}</div>
+                                      <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                                        {note.content ? note.content : "Leere Notiz"}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0 rounded-lg"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setCategoryNotesMap(prev => ({
+                                          ...prev,
+                                          [notesDialogCategory]: (prev[notesDialogCategory] ?? []).filter(n => n.id !== note.id)
+                                        }))
+                                      }}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+
+                      {/* Footer for auto-save hint */}
+                      <div className="bg-muted/20 px-5 py-2.5 border-t text-[10px] text-muted-foreground flex items-center justify-between">
+                        <span>Wird automatisch gespeichert</span>
+                        {editingNoteId && (
+                          <span className="text-primary font-medium cursor-pointer hover:underline" onClick={() => setEditingNoteId("")}>Zurück zur Übersicht</span>
+                        )}
+                      </div>
+                    </Card>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full min-h-[400px] border-2 border-dashed border-muted-foreground/20 rounded-2xl bg-muted/5 text-muted-foreground gap-4 p-8 text-center">
+                      <div className="h-16 w-16 rounded-3xl bg-muted/40 flex items-center justify-center transform -rotate-6">
+                        <FolderOpen className="h-8 w-8 opacity-40 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-base font-semibold text-foreground/70">Keine Kategorie ausgewählt</h3>
+                        <p className="text-sm max-w-[250px] mx-auto">Klicke auf das Ordner-Symbol neben einer Kategorie, um deren Notizen anzuzeigen und zu bearbeiten.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
               </div>
             </TabsContent>
 
             {/* Fortschritt – neu gestaltet */}
             <TabsContent value="fortschritt" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="grid lg:grid-cols-[1fr_1fr] gap-4">
+              <div className="w-full h-full grid lg:grid-cols-[1fr_0.618fr] gap-4 sm:gap-6 items-start">
 
                 {/* LINKE SPALTE: Individueller Fortschritt nach Kategorie */}
                 <div className="space-y-4">
-                  <Card className="rounded-2xl shadow-sm overflow-hidden">
-                    <div className="bg-muted/40 px-5 py-3 border-b">
+                  <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col h-full">
+                    <div className="bg-muted/40 px-5 py-3 border-b flex-shrink-0">
                       <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Nach Kategorie</h2>
                     </div>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 flex-1 overflow-y-auto custom-scrollbar">
                       {categoryStats.rows.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
                           <List className="h-8 w-8 opacity-30" />
@@ -3116,7 +3144,7 @@ export default function App() {
                                     </span>
                                   </div>
                                 </div>
-                                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                                <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
                                   <div className={["h-full rounded-full transition-all duration-500", tone].join(" ")} style={{ width: `${percent(r.ratio)}%` }} />
                                 </div>
                               </li>
@@ -3128,82 +3156,137 @@ export default function App() {
                   </Card>
                 </div>
 
-                {/* RECHTE SPALTE: Statistiken */}
+                {/* RECHTE SPALTE: Statistiken & Top Features */}
                 <div className="space-y-4">
-                  {/* Period Filter */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Zeitraum:</span>
-                    <div className="flex items-center rounded-lg border overflow-hidden text-xs">
+                  {/* Period Filter & Export */}
+                  <div className="flex items-center gap-2 flex-wrap bg-card rounded-2xl p-2 shadow-sm border border-border/50">
+                    <div className="flex items-center rounded-lg border overflow-hidden text-xs bg-muted/20 ml-2">
                       {(["month", "3months", "all"] as const).map((period) => {
                         const labels = { month: "Dieser Monat", "3months": "3 Monate", all: "Alles" }
                         return (
-                          <button key={period} onClick={() => setStatsPeriod(period)} className={["px-3 py-1.5 transition-colors", period !== "month" ? "border-l" : "", statsPeriod === period ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"].join(" ")}>
+                          <button key={period} onClick={() => setStatsPeriod(period)} className={["px-3 py-1.5 transition-colors", period !== "month" ? "border-l" : "", statsPeriod === period ? "bg-primary text-primary-foreground font-medium shadow-sm" : "hover:bg-muted"].join(" ")}>
                             {labels[period]}
                           </button>
                         )
                       })}
                     </div>
-                    {statsLoading && <span className="text-xs text-muted-foreground animate-pulse">Lade...</span>}
+                    {statsLoading && <span className="text-xs text-muted-foreground animate-pulse ml-2">Lade...</span>}
                     <div className="flex-1" />
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={exportCSV}>
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 mr-2 rounded-xl" onClick={exportCSV}>
                       <Download className="h-3.5 w-3.5" /> CSV Export
                     </Button>
                   </div>
 
                   {/* Streak + Gesamt-Stats */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <Card className="rounded-2xl shadow-sm overflow-hidden">
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                          <Flame className="h-5 w-5 text-orange-500" />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Card className="rounded-2xl shadow-sm overflow-hidden border-orange-100/50 bg-gradient-to-br from-orange-50/50 to-white dark:from-orange-950/20 dark:to-background">
+                      <CardContent className="p-5 flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-inner">
+                          <Flame className="h-6 w-6 text-white" />
                         </div>
                         <div>
-                          <div className="text-2xl font-bold tabular-nums">{streak}</div>
-                          <div className="text-xs text-muted-foreground">Tage Streak</div>
+                          <div className="text-3xl font-bold tabular-nums tracking-tight">{streak}</div>
+                          <div className="text-sm font-medium text-muted-foreground">Tage Streak</div>
                         </div>
                       </CardContent>
                     </Card>
-                    {categoryStats.rows.length > 0 && (() => {
+                    {categoryStats.rows.length > 0 ? (() => {
                       const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
                       const doneAll = categoryStats.rows.reduce((s, r) => s + r.done, 0)
                       const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
                       return (
-                        <Card className="rounded-2xl shadow-sm overflow-hidden">
-                          <CardContent className="p-4 flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <BarChart2 className="h-5 w-5 text-primary" />
+                        <Card className="rounded-2xl shadow-sm overflow-hidden border-primary/10 bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-background">
+                          <CardContent className="p-5 flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center flex-shrink-0 shadow-inner">
+                              <BarChart2 className="h-6 w-6 text-primary-foreground" />
                             </div>
-                            <div>
-                              <div className="text-2xl font-bold tabular-nums">{percent(ratioAll)}%</div>
-                              <div className="text-xs text-muted-foreground">{doneAll}/{totalAll} erledigt</div>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <div className="text-3xl font-bold tabular-nums tracking-tight">{percent(ratioAll)}%</div>
+                                <span className="text-xs font-semibold text-primary/70 bg-primary/10 px-2 py-1 rounded-md">{doneAll}/{totalAll}</span>
+                              </div>
+                              <div className="text-sm font-medium text-muted-foreground">Erledigte Tasks Gesamt</div>
                             </div>
                           </CardContent>
                         </Card>
                       )
-                    })()}
-                  </div>
-
-                  {/* Gesamt-Übersicht */}
-                  {categoryStats.rows.length > 0 && (() => {
-                    const totalAll = categoryStats.rows.reduce((s, r) => s + r.total, 0)
-                    const doneAll = categoryStats.rows.reduce((s, r) => s + r.done, 0)
-                    const ratioAll = totalAll === 0 ? 0 : doneAll / totalAll
-                    return (
-                      <Card className="rounded-2xl shadow-sm overflow-hidden">
-                        <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between">
-                          <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Gesamt</h2>
-                          <span className="text-xs text-muted-foreground">{doneAll} von {totalAll} erledigt</span>
-                        </div>
-                        <CardContent className="px-5 pt-4 pb-5">
-                          <div className="flex items-end justify-between mb-2">
-                            <span className="text-3xl font-bold tabular-nums">{percent(ratioAll)}%</span>
-                            <span className="text-sm text-muted-foreground mb-1">{categoryStats.rows.length} Kategorien</span>
+                    })() : (
+                      <Card className="rounded-2xl shadow-sm overflow-hidden border-primary/10 bg-gradient-to-br from-primary/5 to-white dark:from-primary/10 dark:to-background">
+                        <CardContent className="p-5 flex items-center gap-4 text-muted-foreground">
+                          <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center flex-shrink-0 shadow-inner">
+                            <BarChart2 className="h-6 w-6 opacity-50" />
                           </div>
-                          <Progress value={percent(ratioAll)} className="h-3 rounded-full" />
+                          <div>Keine Daten verfügbar</div>
                         </CardContent>
                       </Card>
-                    )
-                  })()}
+                    )}
+                  </div>
+
+                  {/* NEUES FEATURE: Produktivste Wochentage */}
+                  <Card className="rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-muted/40 px-5 py-3 border-b flex justify-between items-center">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Produktivste Wochentage</h2>
+                    </div>
+                    <CardContent className="px-6 pt-5 pb-6">
+                      {(() => {
+                        const days = [
+                          { label: "Mo", done: 0, total: 0 },
+                          { label: "Di", done: 0, total: 0 },
+                          { label: "Mi", done: 0, total: 0 },
+                          { label: "Do", done: 0, total: 0 },
+                          { label: "Fr", done: 0, total: 0 },
+                          { label: "Sa", done: 0, total: 0 },
+                          { label: "So", done: 0, total: 0 },
+                        ];
+
+                        Object.entries(statsData).forEach(([iso, tasks]) => {
+                          const d = parseISODate(iso);
+
+                          const dayIndex = (d.getDay() + 6) % 7;
+                          const done = tasks.filter(t => t.done).length;
+                          const total = tasks.length;
+
+                          days[dayIndex].done += done;
+                          days[dayIndex].total += total;
+                        });
+
+                        const maxDone = Math.max(...days.map(d => d.done), 1);
+                        const hasAnyTasks = days.some(d => d.total > 0);
+
+                        if (!hasAnyTasks) {
+                          return (
+                            <div className="flex flex-col items-center justify-center py-6 text-muted-foreground gap-2">
+                              <BarChart2 className="h-8 w-8 opacity-30" />
+                              <p className="text-sm">Keine ausreichenden Daten in diesem Zeitraum.</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex items-end justify-between h-36 gap-3 mt-2">
+                            {days.map((day, i) => {
+                              const heightPercentage = day.done === 0 ? 0 : Math.max((day.done / maxDone) * 100, 4);
+                              const isWeekend = i >= 5;
+                              return (
+                                <div key={day.label} className="flex flex-col items-center gap-2 flex-1 group h-full justify-end">
+                                  <div className="text-xs font-semibold text-primary/80 opacity-0 group-hover:opacity-100 transition-opacity mb-1">
+                                    {day.done}
+                                  </div>
+                                  <div className="w-full bg-muted/10 rounded-t-lg relative flex items-end justify-center h-full border-b-[3px] border-muted">
+                                    <div
+                                      className={["w-full rounded-t-lg transition-all duration-500", isWeekend ? "bg-primary/40" : "bg-primary/80 group-hover:bg-primary"].join(" ")}
+                                      style={{ height: `${heightPercentage}%` }}
+                                    />
+                                  </div>
+                                  <span className={["text-xs font-medium pt-1", isWeekend ? "text-muted-foreground/60" : "text-foreground/80"].join(" ")}>{day.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
 
                   {/* Heatmap */}
                   <Card className="rounded-2xl shadow-sm overflow-hidden">
@@ -3238,36 +3321,43 @@ export default function App() {
                         })
                         const dayLabels = ["Mo", "", "Mi", "", "Fr", "", ""]
                         return (
-                          <div className="overflow-x-auto">
-                            <div className="flex gap-1 mb-1 ml-7">
-                              {weeks.map((_, wi) => { const ml = monthLabels.find(m => m.col === wi); return <div key={wi} className="h-4 w-5 text-[9px] text-muted-foreground font-medium">{ml?.label ?? ""}</div> })}
-                            </div>
-                            <div className="flex gap-0">
-                              <div className="flex flex-col gap-1 mr-1.5 pt-0.5">
-                                {dayLabels.map((label, i) => (<div key={i} className="h-5 flex items-center text-[9px] text-muted-foreground font-medium w-5 justify-end pr-0.5">{label}</div>))}
-                              </div>
-                              <div className="flex gap-1 min-w-fit">
-                                {weeks.map((week, wi) => (
-                                  <div key={wi} className="flex flex-col gap-1">
-                                    {week.map((cell) => {
-                                      const isSelected = cell.iso === selectedISO
-                                      const bg = cell.total === 0 ? "bg-muted/50" : cell.ratio >= 1 ? "bg-emerald-500" : cell.ratio >= 0.5 ? "bg-amber-400" : "bg-rose-300"
-                                      const d = parseISODate(cell.iso)
-                                      const dateLabel = d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" })
-                                      const tooltip = cell.total > 0 ? `${dateLabel}: ${cell.done}/${cell.total} erledigt (${Math.round(cell.ratio * 100)}%)` : `${dateLabel}: Keine Tasks`
-                                      return (<button key={cell.iso} onClick={() => { setSelectedISO(cell.iso); setCursorMonth(startOfMonth(parseISODate(cell.iso))) }} title={tooltip} className={["h-5 w-5 rounded-sm transition-[transform,box-shadow] duration-150 hover:scale-125", bg, isSelected ? "ring-2 ring-primary ring-offset-1" : ""].join(" ")} />)
-                                    })}
+                          <div className="overflow-x-auto pb-2">
+                            <div className="min-w-max mx-auto flex flex-col items-center">
+                              <div className="w-full relative">
+                                {/* Month labels */}
+                                <div className="flex gap-1 mb-1.5 ml-7">
+                                  {weeks.map((_, wi) => { const ml = monthLabels.find(m => m.col === wi); return <div key={wi} className="h-4 w-5 text-[10px] text-muted-foreground font-medium">{ml?.label ?? ""}</div> })}
+                                </div>
+                                <div className="flex gap-0">
+                                  {/* Day-of-week labels */}
+                                  <div className="flex flex-col gap-1 mr-2 pt-0.5">
+                                    {dayLabels.map((label, i) => (<div key={i} className="h-5 flex items-center text-[10px] text-muted-foreground font-medium w-5 justify-end pr-0.5">{label}</div>))}
                                   </div>
-                                ))}
+                                  {/* Heatmap grid */}
+                                  <div className="flex gap-1.5 min-w-fit">
+                                    {weeks.map((week, wi) => (
+                                      <div key={wi} className="flex flex-col gap-1.5">
+                                        {week.map((cell) => {
+                                          const isSelected = cell.iso === selectedISO
+                                          const bg = cell.total === 0 ? "bg-muted/30" : cell.ratio >= 1 ? "bg-emerald-500 shadow-sm" : cell.ratio >= 0.5 ? "bg-amber-400 shadow-sm" : "bg-rose-400 shadow-sm"
+                                          const d = parseISODate(cell.iso)
+                                          const dateLabel = d.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" })
+                                          const tooltip = cell.total > 0 ? `${dateLabel}: ${cell.done}/${cell.total} erledigt (${Math.round(cell.ratio * 100)}%)` : `${dateLabel}: Keine Tasks`
+                                          return (<button key={cell.iso} onClick={() => { setSelectedISO(cell.iso); setCursorMonth(startOfMonth(parseISODate(cell.iso))) }} title={tooltip} className={["h-5 w-5 rounded-md transition-[transform,box-shadow,background-color] duration-200 hover:scale-125 hover:z-10", bg, isSelected ? "ring-2 ring-primary ring-offset-2 scale-110 z-10" : ""].join(" ")} />)
+                                        })}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground">
-                              <span>Weniger</span>
-                              <span className="h-3 w-3 rounded-sm bg-muted/50" />
-                              <span className="h-3 w-3 rounded-sm bg-rose-300" />
-                              <span className="h-3 w-3 rounded-sm bg-amber-400" />
-                              <span className="h-3 w-3 rounded-sm bg-emerald-500" />
-                              <span>Mehr</span>
+                              <div className="flex items-center gap-2 mt-5 text-[11px] font-medium text-muted-foreground bg-muted/30 px-3 py-1.5 rounded-full">
+                                <span>Weniger</span>
+                                <span className="h-3 w-3 rounded-sm bg-muted/30" />
+                                <span className="h-3 w-3 rounded-sm bg-rose-400" />
+                                <span className="h-3 w-3 rounded-sm bg-amber-400" />
+                                <span className="h-3 w-3 rounded-sm bg-emerald-500" />
+                                <span>Mehr</span>
+                              </div>
                             </div>
                           </div>
                         )
@@ -3280,7 +3370,7 @@ export default function App() {
 
             {/* Unterstützen */}
             <TabsContent value="support" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="max-w-md mx-auto">
+              <div className="max-w-md mx-auto w-full">
                 <Card className="rounded-2xl shadow-sm overflow-hidden">
                   <div className="bg-muted/40 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Projekt unterstützen</h2>

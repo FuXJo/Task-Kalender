@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Background Gradient (Subtle depth) -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+    
+    <!-- Primary App Color (Deep Indigo/Blue) -->
+    <linearGradient id="primary" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#312e81"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+
+    <!-- Vibrant Accent (Emerald/Mint) -->
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Drop Shadow for Calendar -->
+    <filter id="shadow" x="-5%" y="-5%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- App Icon Base Shape (iOS standard superellipse-like round rect) -->
+  <rect width="512" height="512" rx="115" fill="url(#bg)"/>
+  
+  <!-- Calendar Container Shape -->
+  <rect x="130" y="150" width="252" height="252" rx="32" fill="url(#primary)" filter="url(#shadow)"/>
+  
+  <!-- Calendar Top Header Fold -->
+  <path d="M130 182 C130 164.327 144.327 150 162 150 L350 150 C367.673 150 382 164.327 382 182 L382 220 L130 220 Z" fill="#4338ca"/>
+  
+  <!-- Minimalist Grid/Pages line -->
+  <line x1="170" y1="260" x2="342" y2="260" stroke="#4f46e5" stroke-width="12" stroke-linecap="round"/>
+  <line x1="170" y1="310" x2="270" y2="310" stroke="#4f46e5" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Dynamic Progress Swoosh / Checkmark -->
+  <path d="M 190 310 L 250 360 L 370 200" fill="none" stroke="url(#accent)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Calendar Binder Rings -->
+  <rect x="180" y="130" width="16" height="40" rx="8" fill="#e2e8f0"/>
+  <rect x="316" y="130" width="16" height="40" rx="8" fill="#e2e8f0"/>
+</svg>
