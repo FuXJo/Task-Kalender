@@ -1,133 +1,109 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- Background Gradient: Clean, soft, inviting Sky Blue tint -->
+    <!-- Background Gradient (A very clean, soft off-white to give the app icon a pristine base) -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f0f9ff"/> <!-- Sky 50 -->
-      <stop offset="100%" stop-color="#e0f2fe"/> <!-- Sky 100 -->
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
     </linearGradient>
 
-    <!-- Calendar Header Gradient (Classic vibrant Red) -->
-    <linearGradient id="cal-red" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ef4444"/> <!-- Red 500 -->
-      <stop offset="100%" stop-color="#b91c1c"/> <!-- Red 700 -->
-    </linearGradient>
-
-    <!-- Task List Accent Gradient (Primary Blue) -->
-    <linearGradient id="todo-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Calendar Side Gradient (Vibrant Blue/Indigo for planning) -->
+    <linearGradient id="cal-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#3b82f6"/> <!-- Blue 500 -->
-      <stop offset="100%" stop-color="#1d4ed8"/> <!-- Blue 700 -->
+      <stop offset="100%" stop-color="#312e81"/> <!-- Indigo 900 -->
     </linearGradient>
 
-    <!-- Clip metal gradient -->
-    <linearGradient id="metal" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#cbd5e1"/>
-      <stop offset="100%" stop-color="#64748b"/>
+    <!-- To-Do Side Gradient (Emerald for completion/success) -->
+    <linearGradient id="todo-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/> <!-- Emerald 500 -->
+      <stop offset="100%" stop-color="#d1fae5"/> <!-- Emerald 100 -->
     </linearGradient>
 
-    <!-- Beautiful deep shadows for the floating/layered paper aesthetic -->
-    <filter id="shadow-back" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="-4" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.08"/>
+    <!-- Drop Shadow for the main floating pill/card -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.12"/>
     </filter>
-    
-    <filter id="shadow-front" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="-8" dy="24" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.15"/>
-    </filter>
-
-    <clipPath id="cal-clip">
-      <rect x="-120" y="-140" width="240" height="280" rx="20"/>
-    </clipPath>
-    
-    <clipPath id="todo-clip">
-      <rect x="-110" y="-160" width="220" height="320" rx="20"/>
-    </clipPath>
   </defs>
 
   <!-- iOS Base Rect -->
   <rect width="512" height="512" rx="114" fill="url(#bg)"/>
 
-  <!-- BACK LAYER: The Calendar (representing time & dates) -->
-  <g transform="translate(190, 220) rotate(-8)" filter="url(#shadow-back)">
-    
-    <!-- Base Paper -->
-    <rect x="-120" y="-140" width="240" height="280" rx="20" fill="#ffffff"/>
-    
-    <!-- Red Header Strip -->
-    <rect x="-120" y="-140" width="240" height="60" fill="url(#cal-red)" clip-path="url(#cal-clip)"/>
-    
-    <!-- Ring Holes -->
-    <circle cx="-60" cy="-110" r="8" fill="#1e293b" opacity="0.3"/>
-    <circle cx="60" cy="-110" r="8" fill="#1e293b" opacity="0.3"/>
-    
-    <!-- Spiral Rings -->
-    <rect x="-68" y="-145" width="16" height="30" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-    <rect x="52" y="-145" width="16" height="30" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- COMBINED CONCEPT: The unified Productivity Card
+       Left side is the Calendar (Blue, structured grid).
+       Right side overlapping/merging is the To-Do list (Emerald, checkmarks).
+       It forms a beautifully integrated single object. -->
 
-    <!-- The Calendar Grid -->
-    <g stroke="#cbd5e1" stroke-width="3" stroke-linecap="round">
-      <!-- Horizontal lines -->
-      <line x1="-80" y1="-30" x2="80" y2="-30"/>
-      <line x1="-80" y1="20" x2="80" y2="20"/>
-      <line x1="-80" y1="70" x2="80" y2="70"/>
+  <g transform="translate(106, 126)" filter="url(#shadow)">
+    
+    <!-- THE BASE CARD (The Calendar Foundation) -->
+    <rect x="0" y="0" width="300" height="260" rx="32" fill="url(#cal-gradient)"/>
+    
+    <!-- Calendar Header Accent (Top 60px) -->
+    <path d="M 0 32 C 0 14.3 14.3 0 32 0 L 300 0 L 300 60 L 0 60 Z" fill="#2563eb" opacity="0.6"/>
+    
+    <!-- Binder Rings Top -->
+    <circle cx="60" cy="30" r="8" fill="#1e1b4b" opacity="0.5"/>
+    <circle cx="150" cy="30" r="8" fill="#1e1b4b" opacity="0.5"/>
+    <circle cx="240" cy="30" r="8" fill="#1e1b4b" opacity="0.5"/>
+
+    <!-- Left Side: Calendar Grid Details (Subtle white lines) -->
+    <g stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.3">
+      <line x1="40" y1="100" x2="140" y2="100"/>
+      <line x1="40" y1="140" x2="140" y2="140"/>
+      <line x1="40" y1="180" x2="140" y2="180"/>
+      <line x1="40" y1="220" x2="140" y2="220"/>
       
-      <!-- Vertical lines -->
-      <line x1="-26" y1="-50" x2="-26" y2="90"/>
-      <line x1="26" y1="-50" x2="26" y2="90"/>
+      <line x1="73" y1="100" x2="73" y2="220"/>
+      <line x1="106" y1="100" x2="106" y2="220"/>
+    </g>
+    <!-- Highlighted Calendar Day (Current Focus) -->
+    <rect x="44" y="104" width="25" height="32" rx="4" fill="#60a5fa" opacity="0.8"/>
+
+
+    <!-- THE OVERLAP CARD (The To-Do List) 
+         Slicing in diagonally or layered beautifully on the right side -->
+    <path d="M 120 60 L 300 60 L 300 260 C 300 277.7 285.7 292 268 292 L 140 292 
+             C 120 292 100 270 120 220 Z" 
+          fill="#ffffff"/>
+          
+    <path d="M 120 60 L 300 60 L 300 260 C 300 277.7 285.7 292 268 292 L 140 292 
+             C 120 292 100 270 120 220 Z" 
+          fill="url(#todo-gradient)" opacity="0.1"/>
+
+    <!-- Right Side: To-Do List Details -->
+    <g transform="translate(180, 110)">
+      
+      <!-- To-Do Item 1 (Done) -->
+      <rect x="0" y="0" width="24" height="24" rx="6" fill="#10b981"/>
+      <!-- Small Checkmark inside square -->
+      <path d="M 6 12 L 10 16 L 18 8" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="36" y1="12" x2="100" y2="12" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
+
+      <!-- To-Do Item 2 (Done) -->
+      <g transform="translate(0, 44)">
+        <rect x="0" y="0" width="24" height="24" rx="6" fill="#10b981"/>
+        <path d="M 6 12 L 10 16 L 18 8" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="36" y1="12" x2="80" y2="12" stroke="#cbd5e1" stroke-width="6" stroke-linecap="round"/>
+      </g>
+
+      <!-- To-Do Item 3 (Pending) -->
+      <g transform="translate(0, 88)">
+        <rect x="0" y="0" width="24" height="24" rx="6" fill="none" stroke="#94a3b8" stroke-width="3"/>
+        <line x1="36" y1="12" x2="90" y2="12" stroke="#64748b" stroke-width="6" stroke-linecap="round"/>
+      </g>
+      
+      <!-- To-Do Item 4 (Pending) -->
+      <g transform="translate(0, 132)">
+        <rect x="0" y="0" width="24" height="24" rx="6" fill="none" stroke="#94a3b8" stroke-width="3"/>
+        <line x1="36" y1="12" x2="60" y2="12" stroke="#64748b" stroke-width="6" stroke-linecap="round"/>
+      </g>
     </g>
 
-    <!-- Specific day highlighted (Current day / Important target) -->
-    <rect x="34" y="-20" width="38" height="30" rx="6" fill="#bfdbfe" opacity="0.8"/>
-    <!-- Completed/Past days (Light gray fills) -->
-    <rect x="-72" y="-20" width="38" height="30" rx="6" fill="#f1f5f9"/>
-    <rect x="-18" y="-20" width="38" height="30" rx="6" fill="#f1f5f9"/>
-    <rect x="-72" y="-70" width="38" height="30" rx="6" fill="#f1f5f9"/>
-  </g>
+    <!-- A highly polished dynamic Checkmark breaking all bounds to tie it all together -->
+    <!-- From the Calendar grid swooping into the To-Do side -->
+    <path d="M 80 160 L 140 220 L 260 80" fill="none" stroke="#0ea5e9" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Outer bright stroke core -->
+    <path d="M 80 160 L 140 220 L 260 80" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- FRONT LAYER: The To-Do / Task List (representing productivity) -->
-  <g transform="translate(320, 290) rotate(5)" filter="url(#shadow-front)">
-    
-    <!-- Base Clipboard Paper -->
-    <rect x="-110" y="-160" width="220" height="320" rx="20" fill="#ffffff"/>
-    
-    <!-- Clipboard Header / Strip -->
-    <rect x="-110" y="-160" width="220" height="30" fill="#f8fafc" clip-path="url(#todo-clip)"/>
-    <line x1="-110" y1="-130" x2="110" y2="-130" stroke="#e2e8f0" stroke-width="2"/>
-
-    <!-- Clipboard Metal Clip -->
-    <rect x="-40" y="-170" width="80" height="30" rx="8" fill="url(#metal)"/>
-    <circle cx="0" cy="-155" r="5" fill="#334155"/>
-
-    <!-- The Tasks -->
-    <g transform="translate(0, -80)">
-      
-      <!-- Task 1: COMPLETED -->
-      <rect x="-70" y="0" width="30" height="30" rx="8" fill="url(#todo-blue)"/>
-      <path d="M -62 14 L -56 20 L -45 6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Text Line (Faded out because done) -->
-      <line x1="-20" y1="15" x2="70" y2="15" stroke="#cbd5e1" stroke-width="8" stroke-linecap="round"/>
-      
-      <!-- Task 2: COMPLETED -->
-      <g transform="translate(0, 50)">
-        <rect x="-70" y="0" width="30" height="30" rx="8" fill="url(#todo-blue)"/>
-        <path d="M -62 14 L -56 20 L -45 6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Text Line -->
-        <line x1="-20" y1="15" x2="50" y2="15" stroke="#cbd5e1" stroke-width="8" stroke-linecap="round"/>
-      </g>
-
-      <!-- Task 3: PENDING (Focus) -->
-      <g transform="translate(0, 100)">
-        <rect x="-70" y="0" width="30" height="30" rx="8" fill="none" stroke="#94a3b8" stroke-width="3"/>
-        <!-- Darker Text Line to show it needs attention -->
-        <line x1="-20" y1="15" x2="80" y2="15" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
-      </g>
-
-      <!-- Task 4: PENDING -->
-      <g transform="translate(0, 150)">
-        <rect x="-70" y="0" width="30" height="30" rx="8" fill="none" stroke="#94a3b8" stroke-width="3"/>
-        <!-- Darker Text Line -->
-        <line x1="-20" y1="15" x2="60" y2="15" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
-      </g>
-
-    </g>
   </g>
 
 </svg>
