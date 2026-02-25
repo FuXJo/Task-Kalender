@@ -1,71 +1,133 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- Soft, warm, beautiful background (Ivory/Cream) -->
+    <!-- Background Gradient: Clean, soft, inviting Sky Blue tint -->
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fdfbfb"/>
-      <stop offset="100%" stop-color="#f5f5f5"/>
+      <stop offset="0%" stop-color="#f0f9ff"/> <!-- Sky 50 -->
+      <stop offset="100%" stop-color="#e0f2fe"/> <!-- Sky 100 -->
     </linearGradient>
 
-    <!-- The Planner Leather Cover (Soft, muted Teal/Sage Green) -->
-    <linearGradient id="cover" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f766e"/> <!-- Teal 700 -->
-      <stop offset="100%" stop-color="#115e59"/> <!-- Teal 800 -->
+    <!-- Calendar Header Gradient (Classic vibrant Red) -->
+    <linearGradient id="cal-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/> <!-- Red 500 -->
+      <stop offset="100%" stop-color="#b91c1c"/> <!-- Red 700 -->
     </linearGradient>
 
-    <!-- Warm Gold for the Bookmark and details -->
-    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fbbf24"/>
-      <stop offset="100%" stop-color="#d97706"/>
+    <!-- Task List Accent Gradient (Primary Blue) -->
+    <linearGradient id="todo-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/> <!-- Blue 500 -->
+      <stop offset="100%" stop-color="#1d4ed8"/> <!-- Blue 700 -->
     </linearGradient>
 
-    <filter id="soft-shadow" x="-5%" y="-5%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.15"/>
+    <!-- Clip metal gradient -->
+    <linearGradient id="metal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+
+    <!-- Beautiful deep shadows for the floating/layered paper aesthetic -->
+    <filter id="shadow-back" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="-4" dy="12" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.08"/>
     </filter>
     
-    <filter id="inner-shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feComposite in="SourceAlpha" in2="blur" operator="out" result="shadow"/>
-      <feFlood flood-color="#000000" flood-opacity="0.2" result="color"/>
-      <feComposite in="color" in2="shadow" operator="in" result="inner"/>
-      <feMerge>
-        <feMergeNode in="SourceGraphic"/>
-        <feMergeNode in="inner"/>
-      </feMerge>
+    <filter id="shadow-front" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="-8" dy="24" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.15"/>
     </filter>
+
+    <clipPath id="cal-clip">
+      <rect x="-120" y="-140" width="240" height="280" rx="20"/>
+    </clipPath>
+    
+    <clipPath id="todo-clip">
+      <rect x="-110" y="-160" width="220" height="320" rx="20"/>
+    </clipPath>
   </defs>
 
-  <!-- Base -->
+  <!-- iOS Base Rect -->
   <rect width="512" height="512" rx="114" fill="url(#bg)"/>
 
-  <!-- ELEGANT & ERDIG (Elegant & Grounded)
-       A beautiful, tactile representation of a closed premium planner / moleskine notebook.
-       No neon, no sci-fi. Just pure, beautiful modern stationery aesthetics. -->
-
-  <g transform="translate(146, 106)" filter="url(#soft-shadow)">
+  <!-- BACK LAYER: The Calendar (representing time & dates) -->
+  <g transform="translate(190, 220) rotate(-8)" filter="url(#shadow-back)">
     
-    <!-- The Leather Cover -->
-    <rect x="0" y="0" width="220" height="300" rx="16" fill="url(#cover)"/>
+    <!-- Base Paper -->
+    <rect x="-120" y="-140" width="240" height="280" rx="20" fill="#ffffff"/>
     
-    <!-- The Spine indented detail -->
-    <rect x="20" y="0" width="16" height="300" fill="#042f2e" opacity="0.3"/>
+    <!-- Red Header Strip -->
+    <rect x="-120" y="-140" width="240" height="60" fill="url(#cal-red)" clip-path="url(#cal-clip)"/>
     
-    <!-- White Paper Pages peeking out on the right edge -->
-    <path d="M 216 12 L 226 12 C 228 12, 230 14, 230 16 L 230 284 C 230 286, 228 288, 226 288 L 216 288 Z" fill="#ffffff" filter="url(#inner-shadow)"/>
-    <line x1="220" y1="12" x2="220" y2="288" stroke="#e2e8f0" stroke-width="1"/>
-    <line x1="224" y1="12" x2="224" y2="288" stroke="#e2e8f0" stroke-width="1"/>
+    <!-- Ring Holes -->
+    <circle cx="-60" cy="-110" r="8" fill="#1e293b" opacity="0.3"/>
+    <circle cx="60" cy="-110" r="8" fill="#1e293b" opacity="0.3"/>
+    
+    <!-- Spiral Rings -->
+    <rect x="-68" y="-145" width="16" height="30" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="52" y="-145" width="16" height="30" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
 
-    <!-- The Elastic Band holding the notebook closed (Very iconic for planners) -->
-    <rect x="180" y="0" width="12" height="300" fill="#0f766e" filter="url(#inner-shadow)"/>
-    <rect x="180" y="0" width="12" height="300" fill="#000000" opacity="0.1"/>
+    <!-- The Calendar Grid -->
+    <g stroke="#cbd5e1" stroke-width="3" stroke-linecap="round">
+      <!-- Horizontal lines -->
+      <line x1="-80" y1="-30" x2="80" y2="-30"/>
+      <line x1="-80" y1="20" x2="80" y2="20"/>
+      <line x1="-80" y1="70" x2="80" y2="70"/>
+      
+      <!-- Vertical lines -->
+      <line x1="-26" y1="-50" x2="-26" y2="90"/>
+      <line x1="26" y1="-50" x2="26" y2="90"/>
+    </g>
 
-    <!-- A beautiful golden Bookmark Ribbon hanging from the bottom -->
-    <path d="M 120 300 L 120 340 L 110 330 L 100 340 L 100 300 Z" fill="url(#gold)"/>
+    <!-- Specific day highlighted (Current day / Important target) -->
+    <rect x="34" y="-20" width="38" height="30" rx="6" fill="#bfdbfe" opacity="0.8"/>
+    <!-- Completed/Past days (Light gray fills) -->
+    <rect x="-72" y="-20" width="38" height="30" rx="6" fill="#f1f5f9"/>
+    <rect x="-18" y="-20" width="38" height="30" rx="6" fill="#f1f5f9"/>
+    <rect x="-72" y="-70" width="38" height="30" rx="6" fill="#f1f5f9"/>
+  </g>
 
-    <!-- A subtle, elegant minimalist "Checkmark" embossed on the cover in gold. 
-         This combines the "study" (notebook) and "calendar/tasks" (checkmark) 
-         naturally without looking like a sci-fi UI. -->
-    <path d="M 100 140 L 130 170 L 190 90" fill="none" stroke="url(#gold)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- FRONT LAYER: The To-Do / Task List (representing productivity) -->
+  <g transform="translate(320, 290) rotate(5)" filter="url(#shadow-front)">
+    
+    <!-- Base Clipboard Paper -->
+    <rect x="-110" y="-160" width="220" height="320" rx="20" fill="#ffffff"/>
+    
+    <!-- Clipboard Header / Strip -->
+    <rect x="-110" y="-160" width="220" height="30" fill="#f8fafc" clip-path="url(#todo-clip)"/>
+    <line x1="-110" y1="-130" x2="110" y2="-130" stroke="#e2e8f0" stroke-width="2"/>
 
+    <!-- Clipboard Metal Clip -->
+    <rect x="-40" y="-170" width="80" height="30" rx="8" fill="url(#metal)"/>
+    <circle cx="0" cy="-155" r="5" fill="#334155"/>
+
+    <!-- The Tasks -->
+    <g transform="translate(0, -80)">
+      
+      <!-- Task 1: COMPLETED -->
+      <rect x="-70" y="0" width="30" height="30" rx="8" fill="url(#todo-blue)"/>
+      <path d="M -62 14 L -56 20 L -45 6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Text Line (Faded out because done) -->
+      <line x1="-20" y1="15" x2="70" y2="15" stroke="#cbd5e1" stroke-width="8" stroke-linecap="round"/>
+      
+      <!-- Task 2: COMPLETED -->
+      <g transform="translate(0, 50)">
+        <rect x="-70" y="0" width="30" height="30" rx="8" fill="url(#todo-blue)"/>
+        <path d="M -62 14 L -56 20 L -45 6" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Text Line -->
+        <line x1="-20" y1="15" x2="50" y2="15" stroke="#cbd5e1" stroke-width="8" stroke-linecap="round"/>
+      </g>
+
+      <!-- Task 3: PENDING (Focus) -->
+      <g transform="translate(0, 100)">
+        <rect x="-70" y="0" width="30" height="30" rx="8" fill="none" stroke="#94a3b8" stroke-width="3"/>
+        <!-- Darker Text Line to show it needs attention -->
+        <line x1="-20" y1="15" x2="80" y2="15" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+      </g>
+
+      <!-- Task 4: PENDING -->
+      <g transform="translate(0, 150)">
+        <rect x="-70" y="0" width="30" height="30" rx="8" fill="none" stroke="#94a3b8" stroke-width="3"/>
+        <!-- Darker Text Line -->
+        <line x1="-20" y1="15" x2="60" y2="15" stroke="#64748b" stroke-width="8" stroke-linecap="round"/>
+      </g>
+
+    </g>
   </g>
 
 </svg>
