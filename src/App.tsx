@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft, Heart } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft, Heart, Gamepad2, Timer, Play, Square, Coffee, Zap, Trophy, Lock, Unlock, TreePine } from "lucide-react"
+import { useGamification, ACHIEVEMENTS, EXCHANGE_RATES, PLANT_STAGES, type UnlockedAchievement } from "./useGamification"
 
 import { supabase } from "@/lib/supabase"
 
@@ -867,9 +868,12 @@ export default function App() {
         konfettiTriggeredRef.current = selectedISO
         setTimeout(triggerKonfetti, 200)
       }
+      // Gamification: Award XP
+      gamification.onTaskDone({ allDayDone: allDone, priority: cur.priority })
     } else {
       // Reset konfetti flag if unchecking
       if (konfettiTriggeredRef.current === selectedISO) konfettiTriggeredRef.current = ""
+      gamification.onTaskUndone()
     }
 
     const { error } = await supabase.from("tasks").update({ done: nextDone }).eq("id", taskId).eq("user_id", userId)
@@ -1576,6 +1580,21 @@ export default function App() {
     return count
   }, [tasksByDate, todayISO])
 
+  // ── Gamification ──────────────────────────────────────────────────────────
+  const gamification = useGamification(userId, streak)
+
+  // Show notifications (level-up / achievement) via konfetti + toast
+  useEffect(() => {
+    if (gamification.notifications.length === 0) return
+    const note = gamification.notifications[0]
+    if (note.type === "level_up" || note.type === "achievement") {
+      triggerKonfetti()
+    }
+    const t = setTimeout(() => gamification.consumeNotification(), 3000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gamification.notifications])
+
   // ── Wochenansicht ──────────────────────────────────────────────────────────
   // #8: Persist calView in localStorage
   const [calView, setCalView] = useState<"month" | "week" | "year">(() => {
@@ -1838,6 +1857,13 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Level Badge */}
+                {gamification.loaded && (
+                  <div className="hidden sm:flex items-center gap-1.5 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-1.5">
+                    <Zap className="h-4 w-4 text-violet-500" />
+                    <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">Lv.{gamification.level}</span>
+                  </div>
+                )}
                 {/* Streak Badge */}
                 {streak > 0 && (
                   <div className="hidden sm:flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl px-3 py-1.5">
@@ -1916,6 +1942,10 @@ export default function App() {
               <TabsTrigger value="fortschritt" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Fortschritt
+              </TabsTrigger>
+              <TabsTrigger value="gamification" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
+                <Gamepad2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Gamification
               </TabsTrigger>
               <TabsTrigger value="support" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -3389,6 +3419,301 @@ export default function App() {
               </div>
             </TabsContent>
 
+            {/* 🎮 Gamification */}
+            <TabsContent value="gamification" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
+              <div className="grid gap-4 lg:grid-cols-2 max-w-5xl mx-auto">
+
+                {/* XP & Level Card */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-violet-500/10 to-indigo-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-violet-500" /> XP & Level
+                    </h2>
+                  </div>
+                  <CardContent className="pt-5 pb-5 px-5 space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                        {gamification.level}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-lg font-semibold">{gamification.levelTitle}</div>
+                        <div className="text-sm text-muted-foreground">{gamification.xp} XP gesamt</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Nächstes Level</div>
+                        <div className="text-sm font-medium tabular-nums">{gamification.xpForNext} XP</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                        <span>Fortschritt</span>
+                        <span>{Math.round(gamification.xpProgress * 100)}%</span>
+                      </div>
+                      <div className="h-3 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-700"
+                          style={{ width: `${Math.max(2, gamification.xpProgress * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 pt-1">
+                      <div className="text-center p-2 rounded-xl bg-muted/30">
+                        <div className="text-lg font-bold tabular-nums">{gamification.totalTasksDone}</div>
+                        <div className="text-[10px] text-muted-foreground">Tasks erledigt</div>
+                      </div>
+                      <div className="text-center p-2 rounded-xl bg-muted/30">
+                        <div className="text-lg font-bold tabular-nums">{gamification.bestStreak}</div>
+                        <div className="text-[10px] text-muted-foreground">Bester Streak</div>
+                      </div>
+                      <div className="text-center p-2 rounded-xl bg-muted/30">
+                        <div className="text-lg font-bold tabular-nums">{Math.round(gamification.totalStudyMinutes)}</div>
+                        <div className="text-[10px] text-muted-foreground">Lernminuten</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Coins & Timer Card */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-amber-500" /> Lern-Timer & Coins
+                    </h2>
+                  </div>
+                  <CardContent className="pt-5 pb-5 px-5 space-y-4">
+                    {/* Coin Balance */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg shadow">🪙</div>
+                        <div>
+                          <div className="text-sm font-medium">Pausenguthaben</div>
+                          <div className="text-xs text-muted-foreground">
+                            Rate: 1 Lernmin = {gamification.exchangeRate} Pausenmin
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-2xl font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                        {gamification.coins.toFixed(1)} <span className="text-sm font-normal">min</span>
+                      </div>
+                    </div>
+
+                    {/* Exchange Rate Selector */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {EXCHANGE_RATES.map((r) => (
+                        <button
+                          key={r.value}
+                          onClick={() => gamification.setExchangeRate(r.value)}
+                          className={[
+                            "px-2.5 py-1 rounded-lg text-xs font-medium transition-all border",
+                            gamification.exchangeRate === r.value
+                              ? "bg-amber-500 text-white border-amber-500 shadow-sm"
+                              : "bg-muted/30 hover:bg-muted/50 border-transparent",
+                          ].join(" ")}
+                        >
+                          {r.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Timer Display */}
+                    <div className="flex flex-col items-center gap-3">
+                      {gamification.timerState ? (
+                        <>
+                          <div className={[
+                            "relative h-32 w-32 rounded-full flex items-center justify-center border-4 transition-colors",
+                            gamification.timerState.type === "study"
+                              ? "border-emerald-500 bg-emerald-500/5"
+                              : "border-sky-500 bg-sky-500/5",
+                          ].join(" ")}>
+                            <div className="text-center">
+                              <div className="text-3xl font-mono font-bold tabular-nums">
+                                {gamification.timerDisplay}
+                              </div>
+                              <div className={[
+                                "text-xs font-medium",
+                                gamification.timerState.type === "study" ? "text-emerald-600" : "text-sky-600",
+                              ].join(" ")}>
+                                {gamification.timerState.type === "study" ? "Lernzeit" : "Pause"}
+                              </div>
+                            </div>
+                            {/* Pulsing ring animation */}
+                            <div className={[
+                              "absolute inset-0 rounded-full animate-ping opacity-20",
+                              gamification.timerState.type === "study" ? "bg-emerald-500" : "bg-sky-500",
+                            ].join(" ")} style={{ animationDuration: "2s" }} />
+                          </div>
+                          <div className="flex gap-2">
+                            {gamification.timerState.type === "study" ? (
+                              <Button size="sm" variant="outline" onClick={() => gamification.stopStudyTimer()} className="gap-1.5">
+                                <Square className="h-3.5 w-3.5" /> Stopp & Coins kassieren
+                              </Button>
+                            ) : null}
+                            <Button size="sm" variant="ghost" onClick={() => gamification.cancelTimer()} className="gap-1.5 text-muted-foreground">
+                              <X className="h-3.5 w-3.5" /> Abbrechen
+                            </Button>
+                          </div>
+                          {gamification.timerState.type === "study" && (
+                            <div className="text-xs text-emerald-600 dark:text-emerald-400 tabular-nums">
+                              +{(gamification.timerState.elapsed / 60 * gamification.exchangeRate).toFixed(1)} Coins bisher
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex gap-3">
+                          <Button onClick={() => gamification.startStudyTimer()} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                            <Play className="h-4 w-4" /> Lern-Timer starten
+                          </Button>
+                          {gamification.coins >= 1 && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                onClick={() => gamification.startBreakTimer(Math.min(gamification.coins, 5))}
+                                className="gap-2 border-sky-300 text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950"
+                              >
+                                <Coffee className="h-4 w-4" /> Pause ({Math.min(gamification.coins, 5).toFixed(0)} min)
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Weekly Challenge */}
+                {gamification.weeklyChallengeTarget && (
+                  <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-5 py-3 border-b">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                        <Trophy className="h-4 w-4 text-emerald-500" /> Wochen-Challenge
+                      </h2>
+                    </div>
+                    <CardContent className="pt-4 pb-4 px-5">
+                      {(() => {
+                        // Count tasks done this week
+                        const now = new Date()
+                        const dayOfWeek = (now.getDay() + 6) % 7 // Monday = 0
+                        const weekStart = new Date(now)
+                        weekStart.setDate(weekStart.getDate() - dayOfWeek)
+                        let weekDone = 0
+                        for (let d = 0; d <= dayOfWeek; d++) {
+                          const cursor = new Date(weekStart)
+                          cursor.setDate(cursor.getDate() + d)
+                          const iso = toISODate(cursor) as ISODate
+                          const tasks = tasksByDate[iso]
+                          if (tasks) weekDone += tasks.filter((t) => t.done).length
+                        }
+                        const target = gamification.weeklyChallengeTarget!
+                        const progress = Math.min(1, weekDone / target)
+                        const completed = weekDone >= target
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">
+                                {completed ? "🎉 Challenge geschafft!" : `${weekDone} / ${target} Tasks diese Woche`}
+                              </span>
+                              <span className={["text-xs font-semibold px-2 py-0.5 rounded-full text-white", completed ? "bg-emerald-500" : "bg-muted-foreground"].join(" ")}>
+                                {Math.round(progress * 100)}%
+                              </span>
+                            </div>
+                            <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={["h-full rounded-full transition-all duration-500", completed ? "bg-emerald-500" : "bg-teal-500"].join(" ")}
+                                style={{ width: `${Math.max(2, progress * 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Achievements Grid */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-rose-500/10 to-pink-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-rose-500" /> Achievements
+                      <span className="ml-auto text-xs bg-background border rounded-full px-2 py-0.5">
+                        {gamification.achievements.length}/{ACHIEVEMENTS.length}
+                      </span>
+                    </h2>
+                  </div>
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {ACHIEVEMENTS.map((ach) => {
+                        const unlocked = gamification.achievements.find((a) => a.id === ach.id)
+                        return (
+                          <div
+                            key={ach.id}
+                            className={[
+                              "relative flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-center",
+                              unlocked
+                                ? "bg-gradient-to-b from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800 shadow-sm"
+                                : "bg-muted/20 border-transparent opacity-50",
+                            ].join(" ")}
+                            title={`${ach.name}: ${ach.description}${unlocked ? ` (${new Date(unlocked.unlockedAt).toLocaleDateString("de-CH")})` : ""}`}
+                          >
+                            <div className="text-2xl">{unlocked ? ach.icon : "🔒"}</div>
+                            <div className="text-[10px] font-medium leading-tight">{ach.name}</div>
+                            {unlocked && (
+                              <div className="text-[9px] text-amber-600 dark:text-amber-400 font-medium">+{ach.xpReward} XP</div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Plant Growth */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-green-500/10 to-lime-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <TreePine className="h-4 w-4 text-green-500" /> Deine Pflanze
+                    </h2>
+                  </div>
+                  <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center gap-4">
+                    {/* Plant visualization */}
+                    <div className="relative">
+                      <div className="text-7xl transition-all duration-1000" style={{ filter: `hue-rotate(${gamification.level * 10}deg)` }}>
+                        {gamification.plantStage.emoji}
+                      </div>
+                      {gamification.level >= 3 && (
+                        <div className="absolute -top-1 -right-1 text-lg animate-bounce">✨</div>
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">{gamification.plantStage.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {gamification.level < 10
+                          ? `Nächste Stufe bei Level ${PLANT_STAGES.find((s) => s.minLevel > gamification.level)?.minLevel ?? "?"}`
+                          : "Maximale Grösse erreicht! 🌳"}
+                      </div>
+                    </div>
+                    {/* Plant growth stages */}
+                    <div className="flex items-center gap-1 w-full max-w-xs mx-auto">
+                      {PLANT_STAGES.map((stage, i) => (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div className={[
+                            "text-base transition-all",
+                            gamification.level >= stage.minLevel ? "opacity-100 scale-110" : "opacity-30 grayscale",
+                          ].join(" ")}>
+                            {stage.emoji}
+                          </div>
+                          <div className={[
+                            "h-1.5 w-full rounded-full",
+                            gamification.level >= stage.minLevel ? "bg-green-500" : "bg-muted",
+                          ].join(" ")} />
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+              </div>
+            </TabsContent>
+
             {/* Unterstützen */}
             <TabsContent value="support" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
               <div className="max-w-md mx-auto w-full">
@@ -3474,6 +3799,17 @@ export default function App() {
               </div>
             )
           }
+          {/* Gamification Notification Toast */}
+          {gamification.notifications.length > 0 && (
+            <div className="fixed top-20 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-500">
+              <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/50 dark:to-indigo-950/50 border-violet-200 dark:border-violet-800">
+                <span className="text-card-foreground font-medium">{gamification.notifications[0].message}</span>
+                <button onClick={() => gamification.consumeNotification()} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
           {/* #1: Undo Toast */}
           {
             undoToast && (
