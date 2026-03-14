@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft, Heart, Gamepad2, Timer, Play, Square, Coffee, Zap, Trophy, Lock, Unlock, TreePine } from "lucide-react"
-import { useGamification, ACHIEVEMENTS, EXCHANGE_RATES, PLANT_STAGES, type UnlockedAchievement } from "./useGamification"
+import { useGamification, ACHIEVEMENTS, EXCHANGE_RATES, PLANT_SPECIES, RARITY_BG, RARITY_LABELS, RARITY_COLORS, getDailyChallenges, getWeeklyChallenges, type PlantSpecies } from "./useGamification"
 
 import { supabase } from "@/lib/supabase"
 
@@ -3430,12 +3430,12 @@ export default function App() {
                       <Zap className="h-4 w-4 text-violet-500" /> XP & Level
                     </h2>
                   </div>
-                  <CardContent className="pt-5 pb-5 px-5 space-y-4">
+                  <CardContent className="pt-4 pb-4 px-5 space-y-4">
                     <div className="flex items-center gap-4">
-                      <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                      <div className="h-14 w-14 rounded-2xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-2xl font-bold text-violet-600 dark:text-violet-400">
                         {gamification.level}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1">
                         <div className="text-lg font-semibold">{gamification.levelTitle}</div>
                         <div className="text-sm text-muted-foreground">{gamification.xp} XP gesamt</div>
                       </div>
@@ -3456,16 +3456,16 @@ export default function App() {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 pt-1">
-                      <div className="text-center p-2 rounded-xl bg-muted/30">
+                    <div className="grid grid-cols-3 gap-3 text-center pt-1">
+                      <div className="bg-muted/50 rounded-xl p-2">
                         <div className="text-lg font-bold tabular-nums">{gamification.totalTasksDone}</div>
                         <div className="text-[10px] text-muted-foreground">Tasks erledigt</div>
                       </div>
-                      <div className="text-center p-2 rounded-xl bg-muted/30">
+                      <div className="bg-muted/50 rounded-xl p-2">
                         <div className="text-lg font-bold tabular-nums">{gamification.bestStreak}</div>
                         <div className="text-[10px] text-muted-foreground">Bester Streak</div>
                       </div>
-                      <div className="text-center p-2 rounded-xl bg-muted/30">
+                      <div className="bg-muted/50 rounded-xl p-2">
                         <div className="text-lg font-bold tabular-nums">{Math.round(gamification.totalStudyMinutes)}</div>
                         <div className="text-[10px] text-muted-foreground">Lernminuten</div>
                       </div>
@@ -3480,37 +3480,38 @@ export default function App() {
                       <Timer className="h-4 w-4 text-amber-500" /> Lern-Timer & Coins
                     </h2>
                   </div>
-                  <CardContent className="pt-5 pb-5 px-5 space-y-4">
+                  <CardContent className="pt-4 pb-4 px-5 space-y-4">
                     {/* Coin Balance */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg shadow">🪙</div>
-                        <div>
-                          <div className="text-sm font-medium">Pausenguthaben</div>
-                          <div className="text-xs text-muted-foreground">
-                            Rate: 1 Lernmin = {gamification.exchangeRate} Pausenmin
-                          </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">🪙</div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">Pausenguthaben</div>
+                        <div className="text-xs text-muted-foreground">
+                          Rate: {EXCHANGE_RATES.find((r) => r.value === gamification.exchangeRate)?.emoji ?? "⚖️"}{" "}
+                          1 Lernmin = {gamification.exchangeRate} Pausenmin
                         </div>
                       </div>
-                      <div className="text-2xl font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                      <div className="text-xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
                         {gamification.coins.toFixed(1)} <span className="text-sm font-normal">min</span>
                       </div>
                     </div>
 
                     {/* Exchange Rate Selector */}
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex gap-1.5 flex-wrap">
                       {EXCHANGE_RATES.map((r) => (
                         <button
-                          key={r.value}
+                          key={r.label}
                           onClick={() => gamification.setExchangeRate(r.value)}
+                          title={r.description}
                           className={[
-                            "px-2.5 py-1 rounded-lg text-xs font-medium transition-all border",
+                            "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1",
                             gamification.exchangeRate === r.value
-                              ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                              : "bg-muted/30 hover:bg-muted/50 border-transparent",
+                              ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-600"
+                              : "bg-muted/50 text-muted-foreground hover:bg-muted",
                           ].join(" ")}
                         >
-                          {r.label}
+                          <span>{r.emoji}</span>
+                          <span>{r.description}</span>
                         </button>
                       ))}
                     </div>
@@ -3549,7 +3550,8 @@ export default function App() {
                             <div className="flex flex-col items-center gap-2">
                               {gamification.timerState.type === "study" && gamification.timerState.targetSeconds && (
                                 <div className="text-xs text-muted-foreground tabular-nums">
-                                  🪙 {(gamification.timerState.targetSeconds / 60 * gamification.exchangeRate).toFixed(1)} Coins bei Abschluss
+                                  🪙 {(gamification.timerState.targetSeconds / 60 * gamification.exchangeRate).toFixed(1)} Coins
+                                  {" + "}⚡ {Math.round(gamification.timerState.targetSeconds / 60)} XP bei Abschluss
                                 </div>
                               )}
                               <Button size="sm" variant="ghost" onClick={() => gamification.cancelTimer()} className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
@@ -3562,7 +3564,7 @@ export default function App() {
                         <div className="flex flex-col items-center gap-3 w-full">
                           <div className="text-xs text-muted-foreground font-medium">Lerndauer wählen:</div>
                           <div className="flex flex-wrap gap-2 justify-center">
-                            {[15, 25, 45, 60, 90].map((mins) => (
+                            {[15, 25, 45, 60, 90, 120].map((mins) => (
                               <Button
                                 key={mins}
                                 onClick={() => gamification.startStudyTimer(mins)}
@@ -3574,7 +3576,7 @@ export default function App() {
                             ))}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
-                            Coins gibt es nur bei vollem Durchhalten!
+                            Coins + 1 XP/Min nur bei vollem Durchhalten!
                           </div>
                           {gamification.coins >= 1 && (
                             <div className="flex items-center gap-2 pt-1 border-t w-full justify-center">
@@ -3593,85 +3595,38 @@ export default function App() {
                   </CardContent>
                 </Card>
 
-                {/* Weekly Challenge */}
-                {gamification.weeklyChallengeTarget && (
-                  <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
-                    <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-5 py-3 border-b">
-                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-emerald-500" /> Wochen-Challenge
-                      </h2>
-                    </div>
-                    <CardContent className="pt-4 pb-4 px-5">
-                      {(() => {
-                        // Count tasks done this week
-                        const now = new Date()
-                        const dayOfWeek = (now.getDay() + 6) % 7 // Monday = 0
-                        const weekStart = new Date(now)
-                        weekStart.setDate(weekStart.getDate() - dayOfWeek)
-                        let weekDone = 0
-                        for (let d = 0; d <= dayOfWeek; d++) {
-                          const cursor = new Date(weekStart)
-                          cursor.setDate(cursor.getDate() + d)
-                          const iso = toISODate(cursor) as ISODate
-                          const tasks = tasksByDate[iso]
-                          if (tasks) weekDone += tasks.filter((t) => t.done).length
-                        }
-                        const target = gamification.weeklyChallengeTarget!
-                        const progress = Math.min(1, weekDone / target)
-                        const completed = weekDone >= target
-                        return (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">
-                                {completed ? "🎉 Challenge geschafft!" : `${weekDone} / ${target} Tasks diese Woche`}
-                              </span>
-                              <span className={["text-xs font-semibold px-2 py-0.5 rounded-full text-white", completed ? "bg-emerald-500" : "bg-muted-foreground"].join(" ")}>
-                                {Math.round(progress * 100)}%
-                              </span>
-                            </div>
-                            <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className={["h-full rounded-full transition-all duration-500", completed ? "bg-emerald-500" : "bg-teal-500"].join(" ")}
-                                style={{ width: `${Math.max(2, progress * 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        )
-                      })()}
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Achievements Grid */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-gradient-to-r from-rose-500/10 to-pink-500/10 px-5 py-3 border-b">
+                {/* Daily Challenges */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
+                  <div className="bg-gradient-to-r from-orange-500/10 to-rose-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
-                      <Trophy className="h-4 w-4 text-rose-500" /> Achievements
-                      <span className="ml-auto text-xs bg-background border rounded-full px-2 py-0.5">
-                        {gamification.achievements.length}/{ACHIEVEMENTS.length}
+                      <Flame className="h-4 w-4 text-orange-500" /> Tages-Challenges
+                      <span className="ml-auto text-xs font-normal opacity-60">
+                        {gamification.dailyChallenges.filter((d: { completed: boolean; dateKey: string }) => d.completed && d.dateKey === new Date().toISOString().slice(0, 10)).length}/{gamification.currentDailyChallenges.length}
                       </span>
                     </h2>
                   </div>
-                  <CardContent className="pt-4 pb-4 px-4">
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                      {ACHIEVEMENTS.map((ach) => {
-                        const unlocked = gamification.achievements.find((a) => a.id === ach.id)
+                  <CardContent className="pt-3 pb-3 px-5">
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {gamification.currentDailyChallenges.map((ch: { id: string; name: string; description: string; icon: string; xpReward: number }) => {
+                        const today = new Date().toISOString().slice(0, 10)
+                        const done = gamification.dailyChallenges.some((d: { id: string; dateKey: string; completed: boolean }) => d.id === ch.id && d.dateKey === today && d.completed)
                         return (
                           <div
-                            key={ach.id}
+                            key={ch.id}
                             className={[
-                              "relative flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-center",
-                              unlocked
-                                ? "bg-gradient-to-b from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800 shadow-sm"
-                                : "bg-muted/20 border-transparent opacity-50",
+                              "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                              done
+                                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                : "bg-muted/30 border-transparent",
                             ].join(" ")}
-                            title={`${ach.name}: ${ach.description}${unlocked ? ` (${new Date(unlocked.unlockedAt).toLocaleDateString("de-CH")})` : ""}`}
                           >
-                            <div className="text-2xl">{unlocked ? ach.icon : "🔒"}</div>
-                            <div className="text-[10px] font-medium leading-tight">{ach.name}</div>
-                            {unlocked && (
-                              <div className="text-[9px] text-amber-600 dark:text-amber-400 font-medium">+{ach.xpReward} XP</div>
-                            )}
+                            <div className={["text-xl", done ? "" : "grayscale opacity-60"].join(" ")}>{ch.icon}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className={["text-sm font-medium", done ? "line-through text-muted-foreground" : ""].join(" ")}>{ch.name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{ch.description}</div>
+                            </div>
+                            <div className="text-xs font-medium text-violet-600 dark:text-violet-400">+{ch.xpReward} XP</div>
+                            {done && <div className="text-green-500">✓</div>}
                           </div>
                         )
                       })}
@@ -3679,47 +3634,165 @@ export default function App() {
                   </CardContent>
                 </Card>
 
-                {/* Plant Growth */}
+                {/* Weekly Challenges */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
+                  <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-blue-500" /> Wochen-Challenges
+                      <span className="ml-auto text-xs font-normal opacity-60">
+                        {gamification.weeklyChallenges.filter((w: { completed: boolean; weekKey: string }) => w.completed && w.weekKey === gamification.currentWeekKey).length}/{gamification.currentWeeklyChallenges.length}
+                      </span>
+                    </h2>
+                  </div>
+                  <CardContent className="pt-3 pb-3 px-5">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {gamification.currentWeeklyChallenges.map((ch: { id: string; name: string; description: string; icon: string; xpReward: number }) => {
+                        const done = gamification.weeklyChallenges.some((w: { id: string; weekKey: string; completed: boolean }) => w.id === ch.id && w.weekKey === gamification.currentWeekKey && w.completed)
+                        return (
+                          <div
+                            key={ch.id}
+                            className={[
+                              "flex items-center gap-3 p-3 rounded-xl border transition-all",
+                              done
+                                ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                                : "bg-muted/30 border-transparent",
+                            ].join(" ")}
+                          >
+                            <div className={["text-xl", done ? "" : "grayscale opacity-60"].join(" ")}>{ch.icon}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className={["text-sm font-medium", done ? "line-through text-muted-foreground" : ""].join(" ")}>{ch.name}</div>
+                              <div className="text-[10px] text-muted-foreground truncate">{ch.description}</div>
+                            </div>
+                            <div className="text-xs font-medium text-violet-600 dark:text-violet-400">+{ch.xpReward} XP</div>
+                            {done && <div className="text-blue-500">✓</div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Permanent Achievements */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-emerald-500" /> Achievements
+                      <span className="ml-auto bg-muted px-2 py-0.5 rounded-full text-xs tabular-nums">
+                        {gamification.achievements.length}/{ACHIEVEMENTS.length}
+                      </span>
+                    </h2>
+                  </div>
+                  <CardContent className="pt-4 pb-4 px-5">
+                    <div className="grid grid-cols-5 gap-3">
+                      {ACHIEVEMENTS.map((ach) => {
+                        const unlocked = gamification.achievements.find((a: { id: string }) => a.id === ach.id)
+                        return (
+                          <div key={ach.id} className="flex flex-col items-center gap-1 text-center" title={`${ach.name}: ${ach.description}${unlocked ? ` (${new Date(unlocked.unlockedAt).toLocaleDateString("de-CH")})` : ""}`}>
+                            <div className={[
+                              "text-2xl transition-all p-1.5",
+                              unlocked ? "drop-shadow-md" : "grayscale opacity-40",
+                            ].join(" ")}>
+                              {unlocked ? ach.icon : <Lock className="h-5 w-5" />}
+                            </div>
+                            <div className={[
+                              "text-[9px] leading-tight",
+                              unlocked ? "font-medium" : "text-muted-foreground",
+                            ].join(" ")}>
+                              {ach.name}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Forest / Wald */}
                 <Card className="rounded-2xl shadow-sm overflow-hidden">
                   <div className="bg-gradient-to-r from-green-500/10 to-lime-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
-                      <TreePine className="h-4 w-4 text-green-500" /> Deine Pflanze
+                      <TreePine className="h-4 w-4 text-green-500" /> Dein Wald
+                      <span className="ml-auto text-xs font-normal opacity-60">
+                        {gamification.forest.length} Pflanzen
+                      </span>
                     </h2>
                   </div>
-                  <CardContent className="pt-6 pb-6 px-5 flex flex-col items-center gap-4">
-                    {/* Plant visualization */}
-                    <div className="relative">
-                      <div className="text-7xl transition-all duration-1000" style={{ filter: `hue-rotate(${gamification.level * 10}deg)` }}>
-                        {gamification.plantStage.emoji}
+                  <CardContent className="pt-4 pb-4 px-5 space-y-4">
+                    {/* Forest visualization */}
+                    {gamification.forest.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 p-3 bg-gradient-to-b from-sky-50 to-green-50 dark:from-sky-950/30 dark:to-green-950/30 rounded-xl border min-h-[60px]">
+                        {gamification.forest.map((plant: { speciesId: string; growthProgress: number; fullyGrown: boolean }, i: number) => {
+                          const species = PLANT_SPECIES.find((s) => s.id === plant.speciesId)
+                          return (
+                            <div
+                              key={i}
+                              title={`${species?.name ?? "?"} – ${Math.round(plant.growthProgress)}% gewachsen`}
+                              className={[
+                                "text-2xl transition-all",
+                                plant.fullyGrown ? "drop-shadow-md" : "opacity-60",
+                              ].join(" ")}
+                              style={{
+                                filter: plant.fullyGrown ? "none" : `grayscale(${Math.round(100 - plant.growthProgress)}%)`,
+                                transform: `scale(${0.6 + plant.growthProgress * 0.004})`,
+                              }}
+                            >
+                              {species?.emoji ?? "🌱"}
+                            </div>
+                          )
+                        })}
                       </div>
-                      {gamification.level >= 3 && (
-                        <div className="absolute -top-1 -right-1 text-lg animate-bounce">✨</div>
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">{gamification.plantStage.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {gamification.level < 10
-                          ? `Nächste Stufe bei Level ${PLANT_STAGES.find((s) => s.minLevel > gamification.level)?.minLevel ?? "?"}`
-                          : "Maximale Grösse erreicht! 🌳"}
+                    ) : (
+                      <div className="text-center text-sm text-muted-foreground py-3">
+                        Pflanze dein erstes Grün und baue deinen Wald auf! 🌱
+                      </div>
+                    )}
+
+                    {/* Plant species */}
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-muted-foreground">Pflanzen ({gamification.unlockedPlants.length}/{PLANT_SPECIES.length} freigeschaltet)</div>
+                      <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto custom-scrollbar pr-1">
+                        {PLANT_SPECIES.map((species) => {
+                          const unlocked = gamification.unlockedPlants.includes(species.id)
+                          return (
+                            <div
+                              key={species.id}
+                              className={[
+                                "flex items-center gap-2 p-2 rounded-xl border bg-gradient-to-r text-xs transition-all",
+                                unlocked
+                                  ? RARITY_BG[species.rarity]
+                                  : "from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border-gray-200 dark:border-gray-700 opacity-50",
+                              ].join(" ")}
+                            >
+                              <div className="text-xl">{unlocked ? species.emoji : "🔒"}</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium truncate">{species.name}</div>
+                                <div className={["text-[9px] truncate", unlocked ? RARITY_COLORS[species.rarity] : "text-muted-foreground"].join(" ")}>
+                                  {unlocked ? RARITY_LABELS[species.rarity] : `${species.requiredStudyMinutes} min zum Freischalten`}
+                                </div>
+                                {unlocked && (
+                                  <div className="text-[9px] text-muted-foreground">{species.growthMinutes} min/Tag zum Wachsen</div>
+                                )}
+                              </div>
+                              {unlocked && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => gamification.plantTree(species.id)}
+                                  className="h-6 px-2 text-[10px] text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
+                                >
+                                  🌱
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
-                    {/* Plant growth stages */}
-                    <div className="flex items-center gap-1 w-full max-w-xs mx-auto">
-                      {PLANT_STAGES.map((stage, i) => (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <div className={[
-                            "text-base transition-all",
-                            gamification.level >= stage.minLevel ? "opacity-100 scale-110" : "opacity-30 grayscale",
-                          ].join(" ")}>
-                            {stage.emoji}
-                          </div>
-                          <div className={[
-                            "h-1.5 w-full rounded-full",
-                            gamification.level >= stage.minLevel ? "bg-green-500" : "bg-muted",
-                          ].join(" ")} />
-                        </div>
-                      ))}
+
+                    {/* Today's study progress */}
+                    <div className="text-center text-xs text-muted-foreground pt-1 border-t">
+                      Heute gelernt: <span className="font-medium text-foreground">{Math.round(gamification.todayStudyMinutes)} min</span>
+                      <span className="text-[10px] block">Pflanzen wachsen durch tägliche Lernzeit</span>
                     </div>
                   </CardContent>
                 </Card>

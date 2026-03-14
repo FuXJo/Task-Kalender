@@ -12,6 +12,24 @@ export interface Achievement {
     check: (ctx: AchievementContext) => boolean
 }
 
+export interface DailyChallenge {
+    id: string
+    name: string
+    description: string
+    icon: string
+    xpReward: number
+    check: (ctx: DailyChallengeContext) => boolean
+}
+
+export interface WeeklyChallenge {
+    id: string
+    name: string
+    description: string
+    icon: string
+    xpReward: number
+    check: (ctx: WeeklyChallengeContext) => boolean
+}
+
 export interface UnlockedAchievement {
     id: string
     unlockedAt: string
@@ -26,13 +44,56 @@ export interface AchievementContext {
     allCatsAt100: boolean
 }
 
+export interface DailyChallengeContext {
+    tasksToday: number
+    studyMinutesToday: number
+    allDayDone: boolean
+}
+
+export interface WeeklyChallengeContext {
+    tasksThisWeek: number
+    studyMinutesThisWeek: number
+    daysStudiedThisWeek: number
+    streak: number
+}
+
 export interface TimerState {
     running: boolean
     type: "study" | "break"
     startedAt: number // epoch ms
-    /** Target for breaks (seconds), null for open-ended study timer */
     targetSeconds: number | null
     elapsed: number
+}
+
+// ── Forest Types ──────────────────────────────────────────────────────────────
+
+export interface PlantSpecies {
+    id: string
+    name: string
+    emoji: string
+    requiredStudyMinutes: number // Total study minutes to unlock
+    growthMinutes: number // Minutes of study in a day to fully grow
+    description: string
+    rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
+}
+
+export interface ForestPlant {
+    speciesId: string
+    plantedAt: string // ISO date
+    growthProgress: number // 0-100%
+    fullyGrown: boolean
+}
+
+export interface DailyChallengeState {
+    id: string
+    completed: boolean
+    dateKey: string
+}
+
+export interface WeeklyChallengeState {
+    id: string
+    completed: boolean
+    weekKey: string
 }
 
 export interface GamificationState {
@@ -48,6 +109,12 @@ export interface GamificationState {
     weeklyChallengeWeek: string
     totalStudyMinutes: number
     totalTasksDone: number
+    todayStudyMinutes: number
+    todayStudyDate: string
+    forest: ForestPlant[]
+    unlockedPlants: string[] // species IDs
+    dailyChallenges: DailyChallengeState[]
+    weeklyChallenges: WeeklyChallengeState[]
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -57,39 +124,61 @@ export const LEVEL_TITLES: Record<number, string> = {
     2: "Student",
     3: "Fleissiger Student",
     4: "Tutor",
-    5: "Stipendiat",
-    6: "Wissenschaftler",
-    7: "Dozent",
-    8: "Forscher",
-    9: "Dekan",
-    10: "Professor",
-    11: "Rektor",
-    12: "Nobelpreisträger",
+    5: "Bibliotheks-Stammgast",
+    6: "Stipendiat",
+    7: "Wissenschaftler",
+    8: "Laborleiter",
+    9: "Dozent",
+    10: "Forscher",
+    11: "Assistenzprofessor",
+    12: "Dekan",
+    13: "Professor",
+    14: "Fachbereichsleiter",
+    15: "Institutsleiter",
+    16: "Prorektor",
+    17: "Rektor",
+    18: "Emeritus",
+    19: "Gastprofessor (Harvard)",
+    20: "Fellow der Royal Society",
+    21: "Akademie-Mitglied",
+    22: "Forschungspionier",
+    23: "Visionär",
+    24: "Wissenschaftslegende",
+    25: "Nobelpreiskandidat",
+    26: "Nobelpreisträger",
+    27: "Doppel-Nobelpreisträger",
+    28: "Universalgenie",
+    29: "Zeitloser Gelehrter",
+    30: "Erleuchteter Meister",
 }
 
 export function getLevelTitle(level: number): string {
-    if (level >= 12) return LEVEL_TITLES[12]
+    if (level >= 30) return LEVEL_TITLES[30]
     return LEVEL_TITLES[level] ?? LEVEL_TITLES[1]
 }
 
+/** Progressive XP curve: grows faster at higher levels */
 export function xpForLevel(level: number): number {
     if (level <= 1) return 0
-    return level * level * 50
+    // Smooth progressive curve: 100, 250, 500, 800, 1200, 1700, ...
+    return Math.round(50 * level * level + 50 * level - 100)
 }
 
 export function levelFromXP(xp: number): number {
-    return Math.max(1, Math.floor(Math.sqrt(xp / 50)))
+    let lvl = 1
+    while (lvl < 30 && xp >= xpForLevel(lvl + 1)) lvl++
+    return lvl
 }
 
 export const EXCHANGE_RATES = [
-    { label: "1:0.5", value: 0.5, description: "Grosszügig" },
-    { label: "1:0.33", value: 0.333, description: "Entspannt" },
-    { label: "1:0.25", value: 0.25, description: "Ausgewogen" },
-    { label: "1:0.2", value: 0.2, description: "Diszipliniert" },
-    { label: "1:0.1", value: 0.1, description: "Hardcore" },
+    { label: "1:0.5", value: 0.5, emoji: "😌", description: "Chill-Modus" },
+    { label: "1:0.33", value: 0.333, emoji: "☕", description: "Kaffeepause" },
+    { label: "1:0.25", value: 0.25, emoji: "⚖️", description: "Ausgewogen" },
+    { label: "1:0.2", value: 0.2, emoji: "💪", description: "Diszipliniert" },
+    { label: "1:0.1", value: 0.1, emoji: "🔥", description: "Hardcore" },
 ]
 
-// ── Achievements ──────────────────────────────────────────────────────────────
+// ── Achievements (permanent, one-time) ────────────────────────────────────────
 
 export const ACHIEVEMENTS: Achievement[] = [
     {
@@ -117,16 +206,22 @@ export const ACHIEVEMENTS: Achievement[] = [
         check: (ctx) => ctx.totalTasksDone >= 100,
     },
     {
+        id: "five_hundred_tasks", name: "Unaufhaltbar", icon: "🚀",
+        description: "Erledige 500 Tasks",
+        xpReward: 250,
+        check: (ctx) => ctx.totalTasksDone >= 500,
+    },
+    {
+        id: "thousand_tasks", name: "Tausendster", icon: "🏛️",
+        description: "Erledige 1000 Tasks",
+        xpReward: 500,
+        check: (ctx) => ctx.totalTasksDone >= 1000,
+    },
+    {
         id: "perfect_day", name: "Perfekter Tag", icon: "🌟",
         description: "Erledige alle Tasks eines Tages",
         xpReward: 30,
-        check: () => false, // Checked manually via context flag
-    },
-    {
-        id: "perfect_week", name: "Perfekte Woche", icon: "🏆",
-        description: "7 Tage hintereinander 100%",
-        xpReward: 75,
-        check: (ctx) => ctx.streak >= 7,
+        check: () => false, // Checked manually
     },
     {
         id: "streak_7", name: "Woche am Stück", icon: "🔥",
@@ -154,7 +249,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
     {
         id: "study_1h", name: "Fokussiert", icon: "🧠",
-        description: "1 Stunde am Stück gelernt",
+        description: "1 Stunde Gesamtstudienzeit",
         xpReward: 30,
         check: (ctx) => ctx.totalStudyMinutes >= 60,
     },
@@ -163,6 +258,18 @@ export const ACHIEVEMENTS: Achievement[] = [
         description: "10 Stunden Gesamtstudienzeit",
         xpReward: 75,
         check: (ctx) => ctx.totalStudyMinutes >= 600,
+    },
+    {
+        id: "study_50h", name: "Wissensdurst", icon: "🏺",
+        description: "50 Stunden Gesamtstudienzeit",
+        xpReward: 200,
+        check: (ctx) => ctx.totalStudyMinutes >= 3000,
+    },
+    {
+        id: "study_100h", name: "Zeitinvestor", icon: "⏳",
+        description: "100 Stunden Gesamtstudienzeit",
+        xpReward: 400,
+        check: (ctx) => ctx.totalStudyMinutes >= 6000,
     },
     {
         id: "level_5", name: "Aufsteiger", icon: "⬆️",
@@ -177,30 +284,186 @@ export const ACHIEVEMENTS: Achievement[] = [
         check: (ctx) => ctx.level >= 10,
     },
     {
-        id: "five_hundred_tasks", name: "Unaufhaltbar", icon: "🚀",
-        description: "Erledige 500 Tasks",
-        xpReward: 250,
-        check: (ctx) => ctx.totalTasksDone >= 500,
+        id: "level_20", name: "Grossmeister", icon: "🏆",
+        description: "Level 20 erreichen",
+        xpReward: 300,
+        check: (ctx) => ctx.level >= 20,
+    },
+    {
+        id: "level_30", name: "Erleuchtung", icon: "✨",
+        description: "Level 30 erreichen",
+        xpReward: 1000,
+        check: (ctx) => ctx.level >= 30,
     },
 ]
 
-// ── Plant stages ──────────────────────────────────────────────────────────────
+// ── Daily Challenges (rotate daily) ──────────────────────────────────────────
 
-export const PLANT_STAGES = [
-    { minLevel: 1, name: "Samen", emoji: "🌰" },
-    { minLevel: 2, name: "Keimling", emoji: "🌱" },
-    { minLevel: 4, name: "Sprössling", emoji: "🌿" },
-    { minLevel: 6, name: "Pflanze", emoji: "🪴" },
-    { minLevel: 8, name: "Blume", emoji: "🌸" },
-    { minLevel: 10, name: "Baum", emoji: "🌳" },
+export const DAILY_CHALLENGE_POOL: DailyChallenge[] = [
+    {
+        id: "daily_1_task", name: "Tagesstart", icon: "☀️",
+        description: "Erledige mindestens 1 Task",
+        xpReward: 5,
+        check: (ctx) => ctx.tasksToday >= 1,
+    },
+    {
+        id: "daily_3_tasks", name: "Drei auf einen Streich", icon: "🎯",
+        description: "Erledige 3 Tasks heute",
+        xpReward: 10,
+        check: (ctx) => ctx.tasksToday >= 3,
+    },
+    {
+        id: "daily_5_tasks", name: "Fleissig heute", icon: "📋",
+        description: "Erledige 5 Tasks heute",
+        xpReward: 15,
+        check: (ctx) => ctx.tasksToday >= 5,
+    },
+    {
+        id: "daily_all_done", name: "Alles erledigt", icon: "✅",
+        description: "Schliesse alle heutigen Tasks ab",
+        xpReward: 20,
+        check: (ctx) => ctx.allDayDone && ctx.tasksToday > 0,
+    },
+    {
+        id: "daily_study_15", name: "Kurze Lernrunde", icon: "📖",
+        description: "Lerne mindestens 15 Minuten",
+        xpReward: 10,
+        check: (ctx) => ctx.studyMinutesToday >= 15,
+    },
+    {
+        id: "daily_study_30", name: "Halbe Stunde", icon: "⏰",
+        description: "Lerne mindestens 30 Minuten",
+        xpReward: 15,
+        check: (ctx) => ctx.studyMinutesToday >= 30,
+    },
+    {
+        id: "daily_study_60", name: "Power-Stunde", icon: "💪",
+        description: "Lerne mindestens 60 Minuten heute",
+        xpReward: 25,
+        check: (ctx) => ctx.studyMinutesToday >= 60,
+    },
+    {
+        id: "daily_study_120", name: "Lernmarathon", icon: "🏃",
+        description: "Lerne mindestens 2 Stunden heute",
+        xpReward: 40,
+        check: (ctx) => ctx.studyMinutesToday >= 120,
+    },
 ]
 
-export function getPlantStage(level: number) {
-    let stage = PLANT_STAGES[0]
-    for (const s of PLANT_STAGES) {
-        if (level >= s.minLevel) stage = s
-    }
-    return stage
+/** Select 3 daily challenges based on the date (deterministic) */
+export function getDailyChallenges(dateKey: string): DailyChallenge[] {
+    // Use a simple hash of the date string to shuffle consistently
+    let hash = 0
+    for (let i = 0; i < dateKey.length; i++) hash = ((hash << 5) - hash + dateKey.charCodeAt(i)) | 0
+
+    // Always include "daily_1_task" as the baseline
+    const baseline = DAILY_CHALLENGE_POOL[0]
+    const rest = DAILY_CHALLENGE_POOL.slice(1)
+
+    // Pick 2 more from the rest, offset by hash
+    const absHash = Math.abs(hash)
+    const pick1 = rest[absHash % rest.length]
+    const pick2 = rest[(absHash + 3) % rest.length]
+
+    // Avoid duplicates
+    const selected = [baseline, pick1]
+    if (pick2.id !== pick1.id) selected.push(pick2)
+    else selected.push(rest[(absHash + 5) % rest.length])
+
+    return selected
+}
+
+// ── Weekly Challenges (rotate weekly) ────────────────────────────────────────
+
+export const WEEKLY_CHALLENGE_POOL: WeeklyChallenge[] = [
+    {
+        id: "weekly_10_tasks", name: "Wochen-Warm-up", icon: "🎯",
+        description: "Erledige 10 Tasks diese Woche",
+        xpReward: 25,
+        check: (ctx) => ctx.tasksThisWeek >= 10,
+    },
+    {
+        id: "weekly_25_tasks", name: "Produktive Woche", icon: "📊",
+        description: "Erledige 25 Tasks diese Woche",
+        xpReward: 50,
+        check: (ctx) => ctx.tasksThisWeek >= 25,
+    },
+    {
+        id: "weekly_study_2h", name: "Lernwoche", icon: "📚",
+        description: "Lerne 2 Stunden diese Woche",
+        xpReward: 30,
+        check: (ctx) => ctx.studyMinutesThisWeek >= 120,
+    },
+    {
+        id: "weekly_study_5h", name: "Intensivwoche", icon: "🔥",
+        description: "Lerne 5 Stunden diese Woche",
+        xpReward: 60,
+        check: (ctx) => ctx.studyMinutesThisWeek >= 300,
+    },
+    {
+        id: "weekly_5_days", name: "Konsistent", icon: "📅",
+        description: "Lerne an 5 verschiedenen Tagen",
+        xpReward: 40,
+        check: (ctx) => ctx.daysStudiedThisWeek >= 5,
+    },
+    {
+        id: "weekly_streak_keep", name: "Streak halten", icon: "🔗",
+        description: "Halte deinen Streak die ganze Woche",
+        xpReward: 35,
+        check: (ctx) => ctx.streak >= 7,
+    },
+]
+
+/** Select 2 weekly challenges based on the week key (deterministic) */
+export function getWeeklyChallenges(weekKey: string): WeeklyChallenge[] {
+    let hash = 0
+    for (let i = 0; i < weekKey.length; i++) hash = ((hash << 5) - hash + weekKey.charCodeAt(i)) | 0
+    const absHash = Math.abs(hash)
+    const pick1 = WEEKLY_CHALLENGE_POOL[absHash % WEEKLY_CHALLENGE_POOL.length]
+    let pick2 = WEEKLY_CHALLENGE_POOL[(absHash + 2) % WEEKLY_CHALLENGE_POOL.length]
+    if (pick2.id === pick1.id) pick2 = WEEKLY_CHALLENGE_POOL[(absHash + 4) % WEEKLY_CHALLENGE_POOL.length]
+    return [pick1, pick2]
+}
+
+// ── Plant Species (forest system) ─────────────────────────────────────────────
+
+export const PLANT_SPECIES: PlantSpecies[] = [
+    { id: "sprout", name: "Gras", emoji: "🌱", requiredStudyMinutes: 0, growthMinutes: 15, description: "Wächst überall", rarity: "common" },
+    { id: "herb", name: "Kräuter", emoji: "🌿", requiredStudyMinutes: 30, growthMinutes: 20, description: "Aromatisch & nützlich", rarity: "common" },
+    { id: "tulip", name: "Tulpe", emoji: "🌷", requiredStudyMinutes: 60, growthMinutes: 25, description: "Frühlingsbote", rarity: "common" },
+    { id: "sunflower", name: "Sonnenblume", emoji: "🌻", requiredStudyMinutes: 120, growthMinutes: 30, description: "Folgt dem Licht", rarity: "uncommon" },
+    { id: "rose", name: "Rose", emoji: "🌹", requiredStudyMinutes: 240, growthMinutes: 40, description: "Klassische Schönheit", rarity: "uncommon" },
+    { id: "cactus", name: "Kaktus", emoji: "🌵", requiredStudyMinutes: 400, growthMinutes: 45, description: "Überlebenskünstler", rarity: "uncommon" },
+    { id: "bonsai", name: "Bonsai", emoji: "🪴", requiredStudyMinutes: 600, growthMinutes: 60, description: "Kunst der Geduld", rarity: "rare" },
+    { id: "cherry", name: "Kirschblüte", emoji: "🌸", requiredStudyMinutes: 900, growthMinutes: 75, description: "Vergängliche Pracht", rarity: "rare" },
+    { id: "palm", name: "Palme", emoji: "🌴", requiredStudyMinutes: 1500, growthMinutes: 90, description: "Tropisches Paradies", rarity: "epic" },
+    { id: "oak", name: "Eiche", emoji: "🌳", requiredStudyMinutes: 2500, growthMinutes: 120, description: "Jahrhunderte alt", rarity: "epic" },
+    { id: "sakura", name: "Sakura-Baum", emoji: "🎄", requiredStudyMinutes: 4000, growthMinutes: 150, description: "Heiliger Garten", rarity: "legendary" },
+    { id: "worldtree", name: "Weltenbaum", emoji: "🏔️", requiredStudyMinutes: 6000, growthMinutes: 180, description: "Mythisch & erhaben", rarity: "legendary" },
+]
+
+export const RARITY_COLORS: Record<string, string> = {
+    common: "text-gray-500",
+    uncommon: "text-green-500",
+    rare: "text-blue-500",
+    epic: "text-purple-500",
+    legendary: "text-amber-500",
+}
+
+export const RARITY_BG: Record<string, string> = {
+    common: "from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/30 border-gray-200 dark:border-gray-700",
+    uncommon: "from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-200 dark:border-green-700",
+    rare: "from-blue-50 to-sky-50 dark:from-blue-900/30 dark:to-sky-900/30 border-blue-200 dark:border-blue-700",
+    epic: "from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 border-purple-200 dark:border-purple-700",
+    legendary: "from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-amber-200 dark:border-amber-700",
+}
+
+export const RARITY_LABELS: Record<string, string> = {
+    common: "Gewöhnlich",
+    uncommon: "Ungewöhnlich",
+    rare: "Selten",
+    epic: "Episch",
+    legendary: "Legendär",
 }
 
 // ── Default state ─────────────────────────────────────────────────────────────
@@ -218,6 +481,26 @@ const DEFAULT_STATE: GamificationState = {
     weeklyChallengeWeek: "",
     totalStudyMinutes: 0,
     totalTasksDone: 0,
+    todayStudyMinutes: 0,
+    todayStudyDate: "",
+    forest: [],
+    unlockedPlants: ["sprout"], // Start with grass
+    dailyChallenges: [],
+    weeklyChallenges: [],
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function todayKey(): string {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+function weekKey(): string {
+    const now = new Date()
+    const jan1 = new Date(now.getFullYear(), 0, 1)
+    const weekNum = Math.ceil(((now.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+    return `${now.getFullYear()}-W${String(weekNum).padStart(2, "0")}`
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -229,7 +512,6 @@ export function useGamification(userId: string | null, streak: number) {
     const timerIntervalRef = useRef<number>(0)
     const saveTimerRef = useRef<number>(0)
 
-    // Notifications for parent (level-up, achievement unlocked)
     const [notifications, setNotifications] = useState<Array<{ type: "level_up" | "achievement"; message: string; id: string }>>([])
 
     const consumeNotification = useCallback(() => {
@@ -264,6 +546,12 @@ export function useGamification(userId: string | null, streak: number) {
                     weeklyChallengeWeek: data.weekly_challenge_week ?? "",
                     totalStudyMinutes: data.total_study_minutes ?? 0,
                     totalTasksDone: data.total_tasks_done ?? 0,
+                    todayStudyMinutes: data.today_study_minutes ?? 0,
+                    todayStudyDate: data.today_study_date ?? "",
+                    forest: (data.forest as ForestPlant[]) ?? [],
+                    unlockedPlants: (data.unlocked_plants as string[]) ?? ["sprout"],
+                    dailyChallenges: (data.daily_challenges as DailyChallengeState[]) ?? [],
+                    weeklyChallenges: (data.weekly_challenges as WeeklyChallengeState[]) ?? [],
                 })
             }
             setLoaded(true)
@@ -294,6 +582,12 @@ export function useGamification(userId: string | null, streak: number) {
                             weekly_challenge_week: newState.weeklyChallengeWeek,
                             total_study_minutes: newState.totalStudyMinutes,
                             total_tasks_done: newState.totalTasksDone,
+                            today_study_minutes: newState.todayStudyMinutes,
+                            today_study_date: newState.todayStudyDate,
+                            forest: newState.forest,
+                            unlocked_plants: newState.unlockedPlants,
+                            daily_challenges: newState.dailyChallenges,
+                            weekly_challenges: newState.weeklyChallenges,
                             updated_at: new Date().toISOString(),
                         },
                         { onConflict: "user_id" }
@@ -323,6 +617,36 @@ export function useGamification(userId: string | null, streak: number) {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [streak, loaded])
+
+    // ── Reset daily study if new day ────────────────────────────────────────────
+    useEffect(() => {
+        if (!loaded) return
+        const today = todayKey()
+        if (state.todayStudyDate !== today) {
+            update((s) => ({ ...s, todayStudyMinutes: 0, todayStudyDate: today }))
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loaded])
+
+    // ── Check & unlock new plant species ────────────────────────────────────────
+    useEffect(() => {
+        if (!loaded) return
+        const newUnlocks: string[] = []
+        for (const species of PLANT_SPECIES) {
+            if (state.unlockedPlants.includes(species.id)) continue
+            if (state.totalStudyMinutes >= species.requiredStudyMinutes) {
+                newUnlocks.push(species.id)
+                setNotifications((n) => [
+                    ...n,
+                    { type: "achievement", message: `${species.emoji} Neue Pflanze: ${species.name}!`, id: `plant_${species.id}` },
+                ])
+            }
+        }
+        if (newUnlocks.length > 0) {
+            update((s) => ({ ...s, unlockedPlants: [...s.unlockedPlants, ...newUnlocks] }))
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.totalStudyMinutes, loaded])
 
     // ── Check achievements ──────────────────────────────────────────────────────
     const checkAchievements = useCallback(
@@ -380,14 +704,100 @@ export function useGamification(userId: string | null, streak: number) {
         [streak, saveToDb]
     )
 
+    // ── Check daily challenges ──────────────────────────────────────────────────
+    const checkDailyChallenges = useCallback(
+        (ctx: DailyChallengeContext) => {
+            const today = todayKey()
+            const todayChallenges = getDailyChallenges(today)
+
+            setState((prev) => {
+                let bonusXP = 0
+                const updatedDailies = todayChallenges.map((ch) => {
+                    const existing = prev.dailyChallenges.find((d) => d.id === ch.id && d.dateKey === today)
+                    if (existing?.completed) return existing
+                    if (ch.check(ctx)) {
+                        bonusXP += ch.xpReward
+                        setNotifications((n) => [
+                            ...n,
+                            { type: "achievement", message: `${ch.icon} Tages-Challenge: ${ch.name}!`, id: `daily_${ch.id}_${today}` },
+                        ])
+                        return { id: ch.id, completed: true, dateKey: today }
+                    }
+                    return { id: ch.id, completed: false, dateKey: today }
+                })
+
+                if (bonusXP === 0) {
+                    return { ...prev, dailyChallenges: updatedDailies }
+                }
+
+                const newXP = prev.xp + bonusXP
+                const newLevel = levelFromXP(newXP)
+                if (newLevel > prev.level) {
+                    setNotifications((n) => [
+                        ...n,
+                        { type: "level_up", message: `⬆️ Level ${newLevel}: ${getLevelTitle(newLevel)}!`, id: `level_${newLevel}` },
+                    ])
+                }
+
+                const next = { ...prev, xp: newXP, level: newLevel, dailyChallenges: updatedDailies }
+                saveToDb(next)
+                return next
+            })
+        },
+        [saveToDb]
+    )
+
+    // ── Check weekly challenges ─────────────────────────────────────────────────
+    const checkWeeklyChallenges = useCallback(
+        (ctx: WeeklyChallengeContext) => {
+            const wk = weekKey()
+            const wkChallenges = getWeeklyChallenges(wk)
+
+            setState((prev) => {
+                let bonusXP = 0
+                const updatedWeeklies = wkChallenges.map((ch) => {
+                    const existing = prev.weeklyChallenges.find((w) => w.id === ch.id && w.weekKey === wk)
+                    if (existing?.completed) return existing
+                    if (ch.check(ctx)) {
+                        bonusXP += ch.xpReward
+                        setNotifications((n) => [
+                            ...n,
+                            { type: "achievement", message: `${ch.icon} Wochen-Challenge: ${ch.name}!`, id: `weekly_${ch.id}_${wk}` },
+                        ])
+                        return { id: ch.id, completed: true, weekKey: wk }
+                    }
+                    return { id: ch.id, completed: false, weekKey: wk }
+                })
+
+                if (bonusXP === 0) {
+                    return { ...prev, weeklyChallenges: updatedWeeklies }
+                }
+
+                const newXP = prev.xp + bonusXP
+                const newLevel = levelFromXP(newXP)
+                if (newLevel > prev.level) {
+                    setNotifications((n) => [
+                        ...n,
+                        { type: "level_up", message: `⬆️ Level ${newLevel}: ${getLevelTitle(newLevel)}!`, id: `level_${newLevel}` },
+                    ])
+                }
+
+                const next = { ...prev, xp: newXP, level: newLevel, weeklyChallenges: updatedWeeklies }
+                saveToDb(next)
+                return next
+            })
+        },
+        [saveToDb]
+    )
+
     // ── Award XP on task completion ─────────────────────────────────────────────
     const onTaskDone = useCallback(
-        (opts?: { allDayDone?: boolean; priority?: number }) => {
+        (opts?: { allDayDone?: boolean; priority?: number; tasksToday?: number }) => {
             update((prev) => {
                 let xpGain = 10
-                if (opts?.priority === 3) xpGain += 5 // High priority bonus
-                if (streak > 0) xpGain += Math.min(streak * 2, 20) // Streak multiplier, capped at 20
-                if (opts?.allDayDone) xpGain += 25 // All-day bonus
+                if (opts?.priority === 3) xpGain += 5
+                if (streak > 0) xpGain += Math.min(streak * 2, 20)
+                if (opts?.allDayDone) xpGain += 25
 
                 const newXP = prev.xp + xpGain
                 const newLevel = levelFromXP(newXP)
@@ -409,13 +819,22 @@ export function useGamification(userId: string | null, streak: number) {
                 }
             })
 
-            // Check achievements after state update
+            // Check permanent achievements
             setTimeout(() => checkAchievements(), 100)
+
+            // Check daily challenges
+            setTimeout(() => {
+                checkDailyChallenges({
+                    tasksToday: opts?.tasksToday ?? 1,
+                    studyMinutesToday: state.todayStudyMinutes,
+                    allDayDone: opts?.allDayDone ?? false,
+                })
+            }, 200)
         },
-        [update, streak, checkAchievements]
+        [update, streak, checkAchievements, checkDailyChallenges, state.todayStudyMinutes]
     )
 
-    // ── Undo task done (XP correction) ─────────────────────────────────────────
+    // ── Undo task done ──────────────────────────────────────────────────────────
     const onTaskUndone = useCallback(() => {
         update((prev) => ({
             ...prev,
@@ -423,9 +842,23 @@ export function useGamification(userId: string | null, streak: number) {
         }))
     }, [update])
 
+    // ── Plant a tree in the forest ──────────────────────────────────────────────
+    const plantTree = useCallback(
+        (speciesId: string) => {
+            if (!state.unlockedPlants.includes(speciesId)) return
+            update((prev) => ({
+                ...prev,
+                forest: [
+                    ...prev.forest,
+                    { speciesId, plantedAt: todayKey(), growthProgress: 0, fullyGrown: false },
+                ],
+            }))
+        },
+        [state.unlockedPlants, update]
+    )
+
     // ── Timer ───────────────────────────────────────────────────────────────────
     useEffect(() => {
-        // Cleanup interval on unmount
         return () => {
             if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
         }
@@ -448,9 +881,9 @@ export function useGamification(userId: string | null, streak: number) {
                 const elapsed = Math.floor((Date.now() - prev.startedAt) / 1000)
                 if (prev.targetSeconds && elapsed >= prev.targetSeconds) {
                     clearInterval(timerIntervalRef.current)
-                    // Study session completed! Award coins
                     const studyMinutes = prev.targetSeconds / 60
                     const coinsEarned = studyMinutes * state.exchangeRate
+                    const timerXP = Math.round(studyMinutes) // 1 XP per minute
                     if (userId) {
                         supabase.from("timer_sessions").insert({
                             user_id: userId,
@@ -461,32 +894,60 @@ export function useGamification(userId: string | null, streak: number) {
                             completed: true,
                         })
                     }
-                    update((s) => ({
-                        ...s,
-                        coins: s.coins + coinsEarned,
-                        totalStudyMinutes: s.totalStudyMinutes + studyMinutes,
-                    }))
+                    update((s) => {
+                        const newXP = s.xp + timerXP
+                        const newLevel = levelFromXP(newXP)
+                        const newTodayMins = s.todayStudyMinutes + studyMinutes
+                        if (newLevel > s.level) {
+                            setNotifications((n) => [
+                                ...n,
+                                { type: "level_up", message: `⬆️ Level ${newLevel}: ${getLevelTitle(newLevel)}!`, id: `level_${newLevel}` },
+                            ])
+                        }
+                        // Grow forest plants based on today's study
+                        const updatedForest = s.forest.map((p) => {
+                            if (p.fullyGrown) return p
+                            const species = PLANT_SPECIES.find((sp) => sp.id === p.speciesId)
+                            if (!species) return p
+                            const newProgress = Math.min(100, (newTodayMins / species.growthMinutes) * 100)
+                            return { ...p, growthProgress: newProgress, fullyGrown: newProgress >= 100 }
+                        })
+                        return {
+                            ...s,
+                            xp: newXP,
+                            level: newLevel,
+                            coins: s.coins + coinsEarned,
+                            totalStudyMinutes: s.totalStudyMinutes + studyMinutes,
+                            todayStudyMinutes: newTodayMins,
+                            todayStudyDate: todayKey(),
+                            forest: updatedForest,
+                        }
+                    })
                     setTimeout(() => checkAchievements(), 100)
                     setNotifications((n) => [
                         ...n,
-                        { type: "achievement", message: `🪙 +${coinsEarned.toFixed(1)} Pausenminuten verdient!`, id: `coins_${Date.now()}` },
+                        { type: "achievement", message: `🪙 +${coinsEarned.toFixed(1)} Pausenmin & +${timerXP} XP verdient!`, id: `coins_${Date.now()}` },
                     ])
+                    // Check daily challenges after study
+                    setTimeout(() => {
+                        checkDailyChallenges({
+                            tasksToday: 0,
+                            studyMinutesToday: state.todayStudyMinutes + studyMinutes,
+                            allDayDone: false,
+                        })
+                    }, 300)
                     return { ...prev, elapsed, running: false }
                 }
                 return { ...prev, elapsed }
             })
         }, 1000)
-    }, [timerState, state.exchangeRate, userId, update, checkAchievements])
-
-    // stopStudyTimer removed – study timer auto-completes or is cancelled (no coins)
+    }, [timerState, state.exchangeRate, state.todayStudyMinutes, userId, update, checkAchievements, checkDailyChallenges])
 
     const startBreakTimer = useCallback(
         (breakMinutes: number) => {
             if (timerState?.running) return
             if (state.coins < breakMinutes) return
-
             update((prev) => ({ ...prev, coins: prev.coins - breakMinutes }))
-
             setTimerState({
                 running: true,
                 type: "break",
@@ -494,7 +955,6 @@ export function useGamification(userId: string | null, streak: number) {
                 targetSeconds: breakMinutes * 60,
                 elapsed: 0,
             })
-
             if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
             timerIntervalRef.current = window.setInterval(() => {
                 setTimerState((prev) => {
@@ -502,7 +962,6 @@ export function useGamification(userId: string | null, streak: number) {
                     const elapsed = Math.floor((Date.now() - prev.startedAt) / 1000)
                     if (prev.targetSeconds && elapsed >= prev.targetSeconds) {
                         clearInterval(timerIntervalRef.current)
-                        // Break done
                         if (userId) {
                             supabase.from("timer_sessions").insert({
                                 user_id: userId,
@@ -524,7 +983,6 @@ export function useGamification(userId: string | null, streak: number) {
 
     const cancelTimer = useCallback(() => {
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
-        // Cancelling study or break = no reward, no refund
         if (timerState?.type === "study" && timerState.running && userId) {
             supabase.from("timer_sessions").insert({
                 user_id: userId,
@@ -546,20 +1004,14 @@ export function useGamification(userId: string | null, streak: number) {
         [update]
     )
 
-    // ── Weekly Challenge ────────────────────────────────────────────────────────
-    const currentWeekKey = useMemo(() => {
-        const now = new Date()
-        const jan1 = new Date(now.getFullYear(), 0, 1)
-        const weekNum = Math.ceil(((now.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
-        return `${now.getFullYear()}-W${String(weekNum).padStart(2, "0")}`
-    }, [])
+    // ── Weekly Challenge (legacy target) ────────────────────────────────────────
+    const currentWeekKey = useMemo(() => weekKey(), [])
 
     useEffect(() => {
         if (!loaded) return
         if (state.weeklyChallengeWeek === currentWeekKey) return
-        // Generate new weekly challenge based on average
         const avgPerWeek = state.totalTasksDone > 0 ? Math.max(5, Math.round(state.totalTasksDone / 4)) : 10
-        const target = Math.min(avgPerWeek + 3, avgPerWeek * 1.2) // Slightly above average
+        const target = Math.min(avgPerWeek + 3, avgPerWeek * 1.2)
         update((prev) => ({
             ...prev,
             weeklyChallengeTarget: Math.round(target),
@@ -575,10 +1027,13 @@ export function useGamification(userId: string | null, streak: number) {
         () => (xpForNext - xpForCurrent > 0 ? (state.xp - xpForCurrent) / (xpForNext - xpForCurrent) : 0),
         [state.xp, xpForCurrent, xpForNext]
     )
-    const plantStage = useMemo(() => getPlantStage(state.level), [state.level])
     const levelTitle = useMemo(() => getLevelTitle(state.level), [state.level])
 
-    // Format timer display – always countdown (remaining time)
+    // Daily/Weekly challenge instances for current day/week
+    const currentDailyChallenges = useMemo(() => getDailyChallenges(todayKey()), [])
+    const currentWeeklyChallenges = useMemo(() => getWeeklyChallenges(currentWeekKey), [currentWeekKey])
+
+    // Timer display – always countdown
     const timerDisplay = useMemo(() => {
         if (!timerState) return ""
         if (timerState.targetSeconds) {
@@ -601,9 +1056,10 @@ export function useGamification(userId: string | null, streak: number) {
         // Computed
         xpForNext,
         xpProgress,
-        plantStage,
         levelTitle,
         currentWeekKey,
+        currentDailyChallenges,
+        currentWeeklyChallenges,
 
         // Actions
         onTaskDone,
@@ -613,6 +1069,9 @@ export function useGamification(userId: string | null, streak: number) {
         cancelTimer,
         setExchangeRate,
         checkAchievements,
+        checkDailyChallenges,
+        checkWeeklyChallenges,
         consumeNotification,
+        plantTree,
     }
 }
