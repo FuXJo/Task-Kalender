@@ -73,6 +73,7 @@ export interface PlantSpecies {
     emoji: string
     requiredStudyMinutes: number // Total study minutes to unlock
     growthMinutes: number // Minutes of study in a day to fully grow
+    plantCost: number // Coins needed to plant
     description: string
     rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
 }
@@ -428,18 +429,18 @@ export function getWeeklyChallenges(weekKey: string): WeeklyChallenge[] {
 // ── Plant Species (forest system) ─────────────────────────────────────────────
 
 export const PLANT_SPECIES: PlantSpecies[] = [
-    { id: "sprout", name: "Gras", emoji: "🌱", requiredStudyMinutes: 0, growthMinutes: 15, description: "Wächst überall", rarity: "common" },
-    { id: "herb", name: "Kräuter", emoji: "🌿", requiredStudyMinutes: 30, growthMinutes: 20, description: "Aromatisch & nützlich", rarity: "common" },
-    { id: "tulip", name: "Tulpe", emoji: "🌷", requiredStudyMinutes: 60, growthMinutes: 25, description: "Frühlingsbote", rarity: "common" },
-    { id: "sunflower", name: "Sonnenblume", emoji: "🌻", requiredStudyMinutes: 120, growthMinutes: 30, description: "Folgt dem Licht", rarity: "uncommon" },
-    { id: "rose", name: "Rose", emoji: "🌹", requiredStudyMinutes: 240, growthMinutes: 40, description: "Klassische Schönheit", rarity: "uncommon" },
-    { id: "cactus", name: "Kaktus", emoji: "🌵", requiredStudyMinutes: 400, growthMinutes: 45, description: "Überlebenskünstler", rarity: "uncommon" },
-    { id: "bonsai", name: "Bonsai", emoji: "🪴", requiredStudyMinutes: 600, growthMinutes: 60, description: "Kunst der Geduld", rarity: "rare" },
-    { id: "cherry", name: "Kirschblüte", emoji: "🌸", requiredStudyMinutes: 900, growthMinutes: 75, description: "Vergängliche Pracht", rarity: "rare" },
-    { id: "palm", name: "Palme", emoji: "🌴", requiredStudyMinutes: 1500, growthMinutes: 90, description: "Tropisches Paradies", rarity: "epic" },
-    { id: "oak", name: "Eiche", emoji: "🌳", requiredStudyMinutes: 2500, growthMinutes: 120, description: "Jahrhunderte alt", rarity: "epic" },
-    { id: "sakura", name: "Sakura-Baum", emoji: "🎄", requiredStudyMinutes: 4000, growthMinutes: 150, description: "Heiliger Garten", rarity: "legendary" },
-    { id: "worldtree", name: "Weltenbaum", emoji: "🏔️", requiredStudyMinutes: 6000, growthMinutes: 180, description: "Mythisch & erhaben", rarity: "legendary" },
+    { id: "sprout", name: "Gras", emoji: "🌱", requiredStudyMinutes: 0, growthMinutes: 15, plantCost: 2, description: "Wächst überall", rarity: "common" },
+    { id: "herb", name: "Kräuter", emoji: "🌿", requiredStudyMinutes: 30, growthMinutes: 20, plantCost: 4, description: "Aromatisch & nützlich", rarity: "common" },
+    { id: "tulip", name: "Tulpe", emoji: "🌷", requiredStudyMinutes: 60, growthMinutes: 25, plantCost: 6, description: "Frühlingsbote", rarity: "common" },
+    { id: "sunflower", name: "Sonnenblume", emoji: "🌻", requiredStudyMinutes: 120, growthMinutes: 30, plantCost: 10, description: "Folgt dem Licht", rarity: "uncommon" },
+    { id: "rose", name: "Rose", emoji: "🌹", requiredStudyMinutes: 240, growthMinutes: 40, plantCost: 15, description: "Klassische Schönheit", rarity: "uncommon" },
+    { id: "cactus", name: "Kaktus", emoji: "🌵", requiredStudyMinutes: 400, growthMinutes: 45, plantCost: 20, description: "Überlebenskünstler", rarity: "uncommon" },
+    { id: "bonsai", name: "Bonsai", emoji: "🪴", requiredStudyMinutes: 600, growthMinutes: 60, plantCost: 30, description: "Kunst der Geduld", rarity: "rare" },
+    { id: "cherry", name: "Kirschblüte", emoji: "🌸", requiredStudyMinutes: 900, growthMinutes: 75, plantCost: 40, description: "Vergängliche Pracht", rarity: "rare" },
+    { id: "palm", name: "Palme", emoji: "🌴", requiredStudyMinutes: 1500, growthMinutes: 90, plantCost: 55, description: "Tropisches Paradies", rarity: "epic" },
+    { id: "oak", name: "Eiche", emoji: "🌳", requiredStudyMinutes: 2500, growthMinutes: 120, plantCost: 70, description: "Jahrhunderte alt", rarity: "epic" },
+    { id: "sakura", name: "Sakura-Baum", emoji: "🎄", requiredStudyMinutes: 4000, growthMinutes: 150, plantCost: 80, description: "Heiliger Garten", rarity: "legendary" },
+    { id: "worldtree", name: "Weltenbaum", emoji: "🏔️", requiredStudyMinutes: 6000, growthMinutes: 180, plantCost: 90, description: "Mythisch & erhaben", rarity: "legendary" },
 ]
 
 export const RARITY_COLORS: Record<string, string> = {
@@ -846,15 +847,19 @@ export function useGamification(userId: string | null, streak: number) {
     const plantTree = useCallback(
         (speciesId: string) => {
             if (!state.unlockedPlants.includes(speciesId)) return
+            const species = PLANT_SPECIES.find((s) => s.id === speciesId)
+            if (!species) return
+            if (state.coins < species.plantCost) return // Not enough coins
             update((prev) => ({
                 ...prev,
+                coins: prev.coins - species.plantCost,
                 forest: [
                     ...prev.forest,
                     { speciesId, plantedAt: todayKey(), growthProgress: 0, fullyGrown: false },
                 ],
             }))
         },
-        [state.unlockedPlants, update]
+        [state.unlockedPlants, state.coins, update]
     )
 
     // ── Timer ───────────────────────────────────────────────────────────────────

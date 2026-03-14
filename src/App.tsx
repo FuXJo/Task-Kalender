@@ -3770,7 +3770,7 @@ export default function App() {
                                   {unlocked ? RARITY_LABELS[species.rarity] : `${species.requiredStudyMinutes} min zum Freischalten`}
                                 </div>
                                 {unlocked && (
-                                  <div className="text-[9px] text-muted-foreground">{species.growthMinutes} min/Tag zum Wachsen</div>
+                                  <div className="text-[9px] text-muted-foreground">{species.growthMinutes} min/Tag · 🪙 {species.plantCost}</div>
                                 )}
                               </div>
                               {unlocked && (
@@ -3778,9 +3778,16 @@ export default function App() {
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => gamification.plantTree(species.id)}
-                                  className="h-6 px-2 text-[10px] text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
+                                  disabled={gamification.coins < species.plantCost}
+                                  className={[
+                                    "h-6 px-2 text-[10px]",
+                                    gamification.coins >= species.plantCost
+                                      ? "text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
+                                      : "text-muted-foreground opacity-50",
+                                  ].join(" ")}
+                                  title={gamification.coins < species.plantCost ? `Benötigt ${species.plantCost} Coins` : `Pflanzen (${species.plantCost} Coins)`}
                                 >
-                                  🌱
+                                  🌱 {species.plantCost}
                                 </Button>
                               )}
                             </div>
