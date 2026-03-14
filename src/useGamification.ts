@@ -431,54 +431,54 @@ export function useGamification(userId: string | null, streak: number) {
         }
     }, [])
 
-    const startStudyTimer = useCallback(() => {
+    const startStudyTimer = useCallback((durationMinutes: number) => {
         if (timerState?.running) return
+        if (durationMinutes <= 0) return
         setTimerState({
             running: true,
             type: "study",
             startedAt: Date.now(),
-            targetSeconds: null,
+            targetSeconds: durationMinutes * 60,
             elapsed: 0,
         })
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
         timerIntervalRef.current = window.setInterval(() => {
             setTimerState((prev) => {
                 if (!prev || !prev.running) return prev
-                return { ...prev, elapsed: Math.floor((Date.now() - prev.startedAt) / 1000) }
+                const elapsed = Math.floor((Date.now() - prev.startedAt) / 1000)
+                if (prev.targetSeconds && elapsed >= prev.targetSeconds) {
+                    clearInterval(timerIntervalRef.current)
+                    // Study session completed! Award coins
+                    const studyMinutes = prev.targetSeconds / 60
+                    const coinsEarned = studyMinutes * state.exchangeRate
+                    if (userId) {
+                        supabase.from("timer_sessions").insert({
+                            user_id: userId,
+                            type: "study",
+                            started_at: new Date(prev.startedAt).toISOString(),
+                            duration_minutes: studyMinutes,
+                            coins_earned: coinsEarned,
+                            completed: true,
+                        })
+                    }
+                    update((s) => ({
+                        ...s,
+                        coins: s.coins + coinsEarned,
+                        totalStudyMinutes: s.totalStudyMinutes + studyMinutes,
+                    }))
+                    setTimeout(() => checkAchievements(), 100)
+                    setNotifications((n) => [
+                        ...n,
+                        { type: "achievement", message: `🪙 +${coinsEarned.toFixed(1)} Pausenminuten verdient!`, id: `coins_${Date.now()}` },
+                    ])
+                    return { ...prev, elapsed, running: false }
+                }
+                return { ...prev, elapsed }
             })
         }, 1000)
-    }, [timerState])
-
-    const stopStudyTimer = useCallback(() => {
-        if (!timerState || timerState.type !== "study" || !timerState.running) return
-        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
-
-        const studyMinutes = timerState.elapsed / 60
-        const coinsEarned = studyMinutes * state.exchangeRate
-
-        // Save session
-        if (userId && studyMinutes >= 0.1) {
-            supabase.from("timer_sessions").insert({
-                user_id: userId,
-                type: "study",
-                started_at: new Date(timerState.startedAt).toISOString(),
-                duration_minutes: studyMinutes,
-                coins_earned: coinsEarned,
-                completed: true,
-            })
-        }
-
-        update((prev) => ({
-            ...prev,
-            coins: prev.coins + coinsEarned,
-            totalStudyMinutes: prev.totalStudyMinutes + studyMinutes,
-        }))
-
-        setTimerState(null)
-
-        // Check study-related achievements
-        setTimeout(() => checkAchievements(), 100)
     }, [timerState, state.exchangeRate, userId, update, checkAchievements])
+
+    // stopStudyTimer removed – study timer auto-completes or is cancelled (no coins)
 
     const startBreakTimer = useCallback(
         (breakMinutes: number) => {
@@ -524,31 +524,19 @@ export function useGamification(userId: string | null, streak: number) {
 
     const cancelTimer = useCallback(() => {
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
-        // If they cancel a study session early, they still get some coins (proportional)
-        if (timerState?.type === "study" && timerState.running) {
-            const studyMinutes = timerState.elapsed / 60
-            const coinsEarned = studyMinutes * state.exchangeRate
-            if (studyMinutes >= 0.1) {
-                update((prev) => ({
-                    ...prev,
-                    coins: prev.coins + coinsEarned,
-                    totalStudyMinutes: prev.totalStudyMinutes + studyMinutes,
-                }))
-                if (userId) {
-                    supabase.from("timer_sessions").insert({
-                        user_id: userId,
-                        type: "study",
-                        started_at: new Date(timerState.startedAt).toISOString(),
-                        duration_minutes: studyMinutes,
-                        coins_earned: coinsEarned,
-                        completed: false,
-                    })
-                }
-            }
+        // Cancelling study or break = no reward, no refund
+        if (timerState?.type === "study" && timerState.running && userId) {
+            supabase.from("timer_sessions").insert({
+                user_id: userId,
+                type: "study",
+                started_at: new Date(timerState.startedAt).toISOString(),
+                duration_minutes: timerState.elapsed / 60,
+                coins_earned: 0,
+                completed: false,
+            })
         }
-        // If break is cancelled, coins aren't refunded
         setTimerState(null)
-    }, [timerState, state.exchangeRate, userId, update])
+    }, [timerState, userId])
 
     // ── Exchange rate ───────────────────────────────────────────────────────────
     const setExchangeRate = useCallback(
@@ -590,18 +578,16 @@ export function useGamification(userId: string | null, streak: number) {
     const plantStage = useMemo(() => getPlantStage(state.level), [state.level])
     const levelTitle = useMemo(() => getLevelTitle(state.level), [state.level])
 
-    // Format timer display
+    // Format timer display – always countdown (remaining time)
     const timerDisplay = useMemo(() => {
         if (!timerState) return ""
-        if (timerState.type === "break" && timerState.targetSeconds) {
+        if (timerState.targetSeconds) {
             const remaining = Math.max(0, timerState.targetSeconds - timerState.elapsed)
             const m = Math.floor(remaining / 60)
             const s = remaining % 60
             return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
         }
-        const m = Math.floor(timerState.elapsed / 60)
-        const s = timerState.elapsed % 60
-        return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+        return "00:00"
     }, [timerState])
 
     return {
@@ -623,7 +609,6 @@ export function useGamification(userId: string | null, streak: number) {
         onTaskDone,
         onTaskUndone,
         startStudyTimer,
-        stopStudyTimer,
         startBreakTimer,
         cancelTimer,
         setExchangeRate,

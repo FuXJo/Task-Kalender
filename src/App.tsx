@@ -3536,35 +3536,48 @@ export default function App() {
                                 {gamification.timerState.type === "study" ? "Lernzeit" : "Pause"}
                               </div>
                             </div>
-                            {/* Pulsing ring animation */}
-                            <div className={[
-                              "absolute inset-0 rounded-full animate-ping opacity-20",
-                              gamification.timerState.type === "study" ? "bg-emerald-500" : "bg-sky-500",
-                            ].join(" ")} style={{ animationDuration: "2s" }} />
+                            {gamification.timerState.running && (
+                              <div className={[
+                                "absolute inset-0 rounded-full animate-ping opacity-20",
+                                gamification.timerState.type === "study" ? "bg-emerald-500" : "bg-sky-500",
+                              ].join(" ")} style={{ animationDuration: "2s" }} />
+                            )}
                           </div>
-                          <div className="flex gap-2">
-                            {gamification.timerState.type === "study" ? (
-                              <Button size="sm" variant="outline" onClick={() => gamification.stopStudyTimer()} className="gap-1.5">
-                                <Square className="h-3.5 w-3.5" /> Stopp & Coins kassieren
+                          {!gamification.timerState.running ? (
+                            <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">✅ Geschafft!</div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2">
+                              {gamification.timerState.type === "study" && gamification.timerState.targetSeconds && (
+                                <div className="text-xs text-muted-foreground tabular-nums">
+                                  🪙 {(gamification.timerState.targetSeconds / 60 * gamification.exchangeRate).toFixed(1)} Coins bei Abschluss
+                                </div>
+                              )}
+                              <Button size="sm" variant="ghost" onClick={() => gamification.cancelTimer()} className="gap-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950">
+                                <X className="h-3.5 w-3.5" /> Abbrechen (keine Coins)
                               </Button>
-                            ) : null}
-                            <Button size="sm" variant="ghost" onClick={() => gamification.cancelTimer()} className="gap-1.5 text-muted-foreground">
-                              <X className="h-3.5 w-3.5" /> Abbrechen
-                            </Button>
-                          </div>
-                          {gamification.timerState.type === "study" && (
-                            <div className="text-xs text-emerald-600 dark:text-emerald-400 tabular-nums">
-                              +{(gamification.timerState.elapsed / 60 * gamification.exchangeRate).toFixed(1)} Coins bisher
                             </div>
                           )}
                         </>
                       ) : (
-                        <div className="flex gap-3">
-                          <Button onClick={() => gamification.startStudyTimer()} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-                            <Play className="h-4 w-4" /> Lern-Timer starten
-                          </Button>
+                        <div className="flex flex-col items-center gap-3 w-full">
+                          <div className="text-xs text-muted-foreground font-medium">Lerndauer wählen:</div>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            {[15, 25, 45, 60, 90].map((mins) => (
+                              <Button
+                                key={mins}
+                                onClick={() => gamification.startStudyTimer(mins)}
+                                variant="outline"
+                                className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-950"
+                              >
+                                <Play className="h-3.5 w-3.5" /> {mins} min
+                              </Button>
+                            ))}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            Coins gibt es nur bei vollem Durchhalten!
+                          </div>
                           {gamification.coins >= 1 && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 pt-1 border-t w-full justify-center">
                               <Button
                                 variant="outline"
                                 onClick={() => gamification.startBreakTimer(Math.min(gamification.coins, 5))}
