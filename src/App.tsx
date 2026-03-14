@@ -628,7 +628,7 @@ export default function App() {
     const rows = (data ?? []) as DbTask[]
     const mapped = mapTasksByDate(rows)
     setTasksByDate(mapped)
-    setCategories(uniqueCategoriesFromTasks(mapped))
+    // Categories are loaded separately (all-time) — see loadAllCategories effect
   }
 
   // Keep a ref to the latest loadVisibleTasks so undo closures always call the current version
@@ -645,6 +645,27 @@ export default function App() {
     loadVisibleTasks()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, visibleRange.from, visibleRange.to, recoveryMode])
+
+  // Load ALL categories from all tasks (not month-scoped)
+  useEffect(() => {
+    if (!userId) return
+    const loadAllCategories = async () => {
+      const { data } = await supabase
+        .from("tasks")
+        .select("category")
+        .eq("user_id", userId)
+      const cats = new Set<string>()
+      for (const row of data ?? []) {
+        const c = normalizeCategory((row as any).category ?? "")
+        if (c) cats.add(c)
+      }
+      setCategories((prev) => {
+        const merged = new Set([...prev, ...cats])
+        return Array.from(merged).sort((a, b) => a.localeCompare(b))
+      })
+    }
+    loadAllCategories()
+  }, [userId])
 
   // Auth actions
   const signIn = async () => {
@@ -1358,7 +1379,7 @@ export default function App() {
         done: v.done,
         ratio: v.total === 0 ? 0 : v.done / v.total,
       }))
-      .filter((r) => r.total > 0 && r.category !== "")
+      .filter((r) => r.category !== "")
       .sort((a, b) => a.label.localeCompare(b.label))
 
     return { rows }
