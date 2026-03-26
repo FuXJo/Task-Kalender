@@ -3593,7 +3593,7 @@ export default function App() {
                             <div className="flex flex-col items-center gap-2 pt-1 border-t w-full">
                               <div className="text-xs text-muted-foreground font-medium">☕ Pause nehmen:</div>
                               <div className="flex flex-wrap gap-2 justify-center">
-                                {[1, 2, 5, 10].filter(m => gamification.coins >= m).map((mins) => (
+                                {[5, 10, 15, 20, 30, 45, 60].filter(m => gamification.coins >= m).map((mins) => (
                                   <Button
                                     key={mins}
                                     variant="outline"
