@@ -20,6 +20,7 @@ type ISODate = string
 
 type Subtask = { title: string; done: boolean }
 type CategoryNote = { id: string; title: string; content: string; created_at: string }
+type CategoryFlashcard = { id: string; question: string; answer: string; created_at: string }
 
 type DbTask = {
   id: string
@@ -420,17 +421,30 @@ export default function App() {
   })
   const [notesDialogCategory, setNotesDialogCategory] = useState<string>("")
   const [editingNoteId, setEditingNoteId] = useState<string>("")
+  const [fachPanelTab, setFachPanelTab] = useState<"notes" | "flashcards">("notes")
+  const [flippedCard, setFlippedCard] = useState<string>("")
+
+  // Category flashcards
+  const [categoryFlashcardsMap, setCategoryFlashcardsMap] = useState<Record<string, CategoryFlashcard[]>>(() => {
+    try {
+      const saved = localStorage.getItem("categoryFlashcards")
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })
 
   useEffect(() => {
     if (!userId) return
     const loadNotes = async () => {
       const { data } = await supabase
         .from("user_settings")
-        .select("category_notes")
+        .select("category_notes, category_flashcards")
         .eq("user_id", userId)
         .single()
       if (data?.category_notes && typeof data.category_notes === "object") {
         setCategoryNotesMap(data.category_notes as Record<string, CategoryNote[]>)
+      }
+      if (data?.category_flashcards && typeof data.category_flashcards === "object") {
+        setCategoryFlashcardsMap(data.category_flashcards as Record<string, CategoryFlashcard[]>)
       }
     }
     loadNotes()
@@ -447,6 +461,18 @@ export default function App() {
         .upsert({ user_id: userId, category_notes: categoryNotesMap }, { onConflict: "user_id" })
     }, 500)
   }, [categoryNotesMap, userId])
+
+  const flashcardsSaveTimerRef = useRef<number>(0)
+  useEffect(() => {
+    localStorage.setItem("categoryFlashcards", JSON.stringify(categoryFlashcardsMap))
+    if (!userId) return
+    clearTimeout(flashcardsSaveTimerRef.current)
+    flashcardsSaveTimerRef.current = window.setTimeout(async () => {
+      await supabase
+        .from("user_settings")
+        .upsert({ user_id: userId, category_flashcards: categoryFlashcardsMap }, { onConflict: "user_id" })
+    }, 500)
+  }, [categoryFlashcardsMap, userId])
 
   // Category management UI
   const [newCategoryName, setNewCategoryName] = useState("")
@@ -1865,17 +1891,16 @@ export default function App() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* Level Badge */}
                 {gamification.loaded && (
-                  <div className="hidden sm:flex items-center gap-1.5 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-1.5">
-                    <Zap className="h-4 w-4 text-violet-500" />
-                    <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">Lv.{gamification.level}</span>
+                  <div className="flex items-center gap-1.5 bg-violet-50 dark:bg-violet-950 border border-violet-200 dark:border-violet-800 rounded-xl px-2.5 py-1">
+                    <Zap className="h-3.5 w-3.5 text-violet-500" />
+                    <span className="text-xs font-semibold text-violet-600 dark:text-violet-400">Lv.{gamification.level}</span>
                   </div>
                 )}
                 {/* Streak Badge */}
                 {streak > 0 && (
-                  <div className="hidden sm:flex items-center gap-1.5 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl px-3 py-1.5">
-                    <Flame className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">{streak}</span>
-                    <span className="text-xs text-orange-500/70 hidden md:inline">Tage</span>
+                  <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl px-2.5 py-1">
+                    <Flame className="h-3.5 w-3.5 text-orange-500" />
+                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">{streak}</span>
                   </div>
                 )}
 
@@ -1943,11 +1968,11 @@ export default function App() {
               </TabsTrigger>
               <TabsTrigger value="kategorien" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <Tag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Kategorien
+                Fächer
               </TabsTrigger>
               <TabsTrigger value="fortschritt" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Fortschritt
+                Statistik
               </TabsTrigger>
               <TabsTrigger value="gamification" className="gap-1.5 sm:gap-2 text-xs sm:text-sm whitespace-nowrap">
                 <Gamepad2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -2784,17 +2809,17 @@ export default function App() {
               </div>
             </TabsContent>
 
-            {/* Kategorien – neu gestaltet */}
+            {/* Fächer – neu gestaltet */}
             <TabsContent value="kategorien" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
               <div className="w-full h-full grid lg:grid-cols-[0.618fr_1fr] gap-4 sm:gap-6 items-start">
 
-                {/* LINKE SPALTE: Kategorien verwalten */}
+                {/* LINKE SPALTE: Fächer verwalten */}
                 <div className="grid gap-4">
 
-                  {/* Neue Kategorie */}
+                  {/* Neues Fach */}
                   <Card className="rounded-2xl shadow-sm overflow-hidden">
                     <div className="bg-muted/40 px-5 py-3 border-b">
-                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Neue Kategorie</h2>
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Neues Fach</h2>
                     </div>
                     <CardContent className="pt-4 pb-5 px-5">
                       <div className="flex gap-2">
@@ -2816,7 +2841,7 @@ export default function App() {
                   {/* Bestehende Kategorien */}
                   <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "60vh" }}>
                     <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between flex-shrink-0">
-                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Kategorien</h2>
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Fächer</h2>
                       <span className="text-xs text-muted-foreground bg-background border rounded-full px-2 py-0.5">
                         {categories.length} {categories.length === 1 ? "Eintrag" : "Einträge"}
                       </span>
@@ -2825,7 +2850,7 @@ export default function App() {
                       {categories.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
                           <Tag className="h-8 w-8 opacity-30" />
-                          <p className="text-sm">Noch keine Kategorien vorhanden.</p>
+                          <p className="text-sm">Noch keine Fächer vorhanden.</p>
                         </div>
                       ) : (
                         <ul className="divide-y">
@@ -3010,10 +3035,11 @@ export default function App() {
 
                 </div>
 
-                {/* RECHTE SPALTE: Notizen Editor */}
+                {/* RECHTE SPALTE: Notizen & Karteikarten */}
                 <div className="h-full min-h-[400px]">
                   {notesDialogCategory ? (
                     <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col h-full" style={{ minHeight: "60vh" }}>
+                      {/* Header with tabs */}
                       <div className="bg-muted/40 px-5 py-3 border-b flex items-center justify-between flex-shrink-0">
                         <div className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
                           {editingNoteId ? (
@@ -3026,7 +3052,7 @@ export default function App() {
                           ) : (
                             <>
                               <FolderOpen className="h-4 w-4" />
-                              Notizen – <span className="text-foreground">{notesDialogCategory}</span>
+                              <span className="text-foreground">{notesDialogCategory}</span>
                             </>
                           )}
                         </div>
@@ -3035,106 +3061,236 @@ export default function App() {
                         </Button>
                       </div>
 
+                      {/* Sub-tabs: Notizen | Karteikarten */}
+                      {!editingNoteId && (
+                        <div className="flex border-b">
+                          <button
+                            onClick={() => setFachPanelTab("notes")}
+                            className={["flex-1 px-4 py-2.5 text-xs font-medium transition-colors border-b-2", fachPanelTab === "notes" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"].join(" ")}
+                          >
+                            📝 Notizen ({(categoryNotesMap[notesDialogCategory] ?? []).length})
+                          </button>
+                          <button
+                            onClick={() => setFachPanelTab("flashcards")}
+                            className={["flex-1 px-4 py-2.5 text-xs font-medium transition-colors border-b-2", fachPanelTab === "flashcards" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"].join(" ")}
+                          >
+                            🃏 Karteikarten ({(categoryFlashcardsMap[notesDialogCategory] ?? []).length})
+                          </button>
+                        </div>
+                      )}
+
                       <CardContent className="p-4 sm:p-5 flex-1 flex flex-col min-h-0 overflow-hidden">
-                        {editingNoteId ? (
-                          /* Note editor view */
-                          <textarea
-                            value={(categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId)?.content ?? ""}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              setCategoryNotesMap(prev => ({
-                                ...prev,
-                                [notesDialogCategory]: (prev[notesDialogCategory] ?? []).map(n =>
-                                  n.id === editingNoteId ? { ...n, content: val } : n
-                                )
-                              }))
-                            }}
-                            placeholder="Notiz schreiben…"
-                            className="flex-1 w-full p-3 rounded-xl border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                            autoFocus
-                          />
+                        {/* ===== NOTES TAB ===== */}
+                        {(fachPanelTab === "notes" || editingNoteId) ? (
+                          editingNoteId ? (
+                            <textarea
+                              value={(categoryNotesMap[notesDialogCategory] ?? []).find(n => n.id === editingNoteId)?.content ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setCategoryNotesMap(prev => ({
+                                  ...prev,
+                                  [notesDialogCategory]: (prev[notesDialogCategory] ?? []).map(n =>
+                                    n.id === editingNoteId ? { ...n, content: val } : n
+                                  )
+                                }))
+                              }}
+                              placeholder="Notiz schreiben…"
+                              className="flex-1 w-full p-3 rounded-xl border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="flex flex-col h-full min-h-0">
+                              <div className="flex gap-2 mb-4 flex-shrink-0">
+                                <input
+                                  id="new-note-input"
+                                  type="text"
+                                  placeholder="Neue Notiz (z.B. Vorlesung 1)…"
+                                  className="flex-1 h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                                      const title = (e.target as HTMLInputElement).value.trim()
+                                      const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
+                                      setCategoryNotesMap(prev => ({
+                                        ...prev,
+                                        [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
+                                      }))
+                                        ; (e.target as HTMLInputElement).value = ""
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  className="h-10 px-4 gap-2 flex-shrink-0 rounded-xl"
+                                  onClick={() => {
+                                    const input = document.getElementById("new-note-input") as HTMLInputElement
+                                    if (input && input.value.trim()) {
+                                      const title = input.value.trim()
+                                      const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
+                                      setCategoryNotesMap(prev => ({
+                                        ...prev,
+                                        [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
+                                      }))
+                                      input.value = ""
+                                    }
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                  Hinzufügen
+                                </Button>
+                              </div>
+                              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                {(categoryNotesMap[notesDialogCategory] ?? []).length === 0 ? (
+                                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3 h-full">
+                                    <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
+                                      <FileText className="h-6 w-6 opacity-40" />
+                                    </div>
+                                    <p className="text-sm">Noch keine Notizen in diesem Fach.</p>
+                                  </div>
+                                ) : (
+                                  (categoryNotesMap[notesDialogCategory] ?? []).map(note => (
+                                    <div
+                                      key={note.id}
+                                      className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-card hover:bg-muted/40 transition-colors shadow-sm cursor-pointer group"
+                                      onClick={() => setEditingNoteId(note.id)}
+                                    >
+                                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-semibold text-foreground truncate">{note.title}</div>
+                                        <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                                          {note.content ? note.content : "Leere Notiz"}
+                                        </div>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0 rounded-lg"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setCategoryNotesMap(prev => ({
+                                            ...prev,
+                                            [notesDialogCategory]: (prev[notesDialogCategory] ?? []).filter(n => n.id !== note.id)
+                                          }))
+                                        }}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          )
                         ) : (
-                          /* Note list view */
+                          /* ===== FLASHCARDS TAB ===== */
                           <div className="flex flex-col h-full min-h-0">
-                            {/* Add note input */}
-                            <div className="flex gap-2 mb-4 flex-shrink-0">
+                            {/* Add flashcard form */}
+                            <div className="flex flex-col gap-2 mb-4 flex-shrink-0">
                               <input
-                                id="new-note-input"
+                                id="new-fc-question"
                                 type="text"
-                                placeholder="Neue Notiz (z.B. Vorlesung 1)…"
-                                className="flex-1 h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                                    const title = (e.target as HTMLInputElement).value.trim()
-                                    const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
-                                    setCategoryNotesMap(prev => ({
-                                      ...prev,
-                                      [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
-                                    }))
-                                      ; (e.target as HTMLInputElement).value = ""
-                                  }
-                                }}
+                                placeholder="Frage…"
+                                className="h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                               />
-                              <Button
-                                className="h-10 px-4 gap-2 flex-shrink-0 rounded-xl"
-                                onClick={() => {
-                                  const input = document.getElementById("new-note-input") as HTMLInputElement
-                                  if (input && input.value.trim()) {
-                                    const title = input.value.trim()
-                                    const newNote: CategoryNote = { id: crypto.randomUUID(), title, content: "", created_at: new Date().toISOString() }
-                                    setCategoryNotesMap(prev => ({
-                                      ...prev,
-                                      [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), newNote]
-                                    }))
-                                    input.value = ""
-                                  }
-                                }}
-                              >
-                                <Plus className="h-4 w-4" />
-                                Hinzufügen
-                              </Button>
+                              <div className="flex gap-2">
+                                <input
+                                  id="new-fc-answer"
+                                  type="text"
+                                  placeholder="Antwort…"
+                                  className="flex-1 h-10 px-3 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      const q = (document.getElementById("new-fc-question") as HTMLInputElement)?.value.trim()
+                                      const a = (e.target as HTMLInputElement).value.trim()
+                                      if (q && a) {
+                                        const card: CategoryFlashcard = { id: crypto.randomUUID(), question: q, answer: a, created_at: new Date().toISOString() }
+                                        setCategoryFlashcardsMap(prev => ({
+                                          ...prev,
+                                          [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), card]
+                                        }))
+                                          ; (document.getElementById("new-fc-question") as HTMLInputElement).value = ""
+                                          ; (e.target as HTMLInputElement).value = ""
+                                          ; (document.getElementById("new-fc-question") as HTMLInputElement).focus()
+                                      }
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  className="h-10 px-4 gap-2 flex-shrink-0 rounded-xl"
+                                  onClick={() => {
+                                    const qInput = document.getElementById("new-fc-question") as HTMLInputElement
+                                    const aInput = document.getElementById("new-fc-answer") as HTMLInputElement
+                                    const q = qInput?.value.trim()
+                                    const a = aInput?.value.trim()
+                                    if (q && a) {
+                                      const card: CategoryFlashcard = { id: crypto.randomUUID(), question: q, answer: a, created_at: new Date().toISOString() }
+                                      setCategoryFlashcardsMap(prev => ({
+                                        ...prev,
+                                        [notesDialogCategory]: [...(prev[notesDialogCategory] ?? []), card]
+                                      }))
+                                      qInput.value = ""
+                                      aInput.value = ""
+                                      qInput.focus()
+                                    }
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
 
-                            {/* Note list */}
+                            {/* Flashcard list */}
                             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                              {(categoryNotesMap[notesDialogCategory] ?? []).length === 0 ? (
+                              {(categoryFlashcardsMap[notesDialogCategory] ?? []).length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3 h-full">
                                   <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
                                     <FileText className="h-6 w-6 opacity-40" />
                                   </div>
-                                  <p className="text-sm">Noch keine Notizen in dieser Kategorie.</p>
+                                  <p className="text-sm">Noch keine Karteikarten in diesem Fach.</p>
+                                  <p className="text-xs text-muted-foreground/70">Frage + Antwort eingeben und Enter drücken</p>
                                 </div>
                               ) : (
-                                (categoryNotesMap[notesDialogCategory] ?? []).map(note => (
+                                (categoryFlashcardsMap[notesDialogCategory] ?? []).map(card => (
                                   <div
-                                    key={note.id}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-card hover:bg-muted/40 transition-colors shadow-sm cursor-pointer group"
-                                    onClick={() => setEditingNoteId(note.id)}
+                                    key={card.id}
+                                    className={[
+                                      "relative px-4 py-3 rounded-xl border bg-card hover:shadow-md transition-all cursor-pointer group",
+                                      flippedCard === card.id ? "ring-2 ring-primary/30" : "",
+                                    ].join(" ")}
+                                    onClick={() => setFlippedCard(flippedCard === card.id ? "" : card.id)}
                                   >
-                                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                      <FileText className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-semibold text-foreground truncate">{note.title}</div>
-                                      <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                                        {note.content ? note.content : "Leere Notiz"}
+                                    <div className="flex items-start gap-3">
+                                      <div className={[
+                                        "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold transition-colors",
+                                        flippedCard === card.id ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+                                      ].join(" ")}>
+                                        {flippedCard === card.id ? "A" : "F"}
                                       </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-foreground">
+                                          {flippedCard === card.id ? card.answer : card.question}
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground mt-1">
+                                          {flippedCard === card.id ? "Klicken zum Verbergen" : "Klicken für Antwort"}
+                                        </div>
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0 rounded-lg"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setCategoryFlashcardsMap(prev => ({
+                                            ...prev,
+                                            [notesDialogCategory]: (prev[notesDialogCategory] ?? []).filter(c => c.id !== card.id)
+                                          }))
+                                        }}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
                                     </div>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:text-rose-600 hover:bg-rose-50 flex-shrink-0 rounded-lg"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setCategoryNotesMap(prev => ({
-                                          ...prev,
-                                          [notesDialogCategory]: (prev[notesDialogCategory] ?? []).filter(n => n.id !== note.id)
-                                        }))
-                                      }}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
                                   </div>
                                 ))
                               )}
@@ -3143,7 +3299,7 @@ export default function App() {
                         )}
                       </CardContent>
 
-                      {/* Footer for auto-save hint */}
+                      {/* Footer */}
                       <div className="bg-muted/20 px-5 py-2.5 border-t text-[10px] text-muted-foreground flex items-center justify-between">
                         <span>Wird automatisch gespeichert</span>
                         {editingNoteId && (
@@ -3157,8 +3313,8 @@ export default function App() {
                         <FolderOpen className="h-8 w-8 opacity-40 text-primary" />
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-base font-semibold text-foreground/70">Keine Kategorie ausgewählt</h3>
-                        <p className="text-sm max-w-[250px] mx-auto">Klicke auf das Ordner-Symbol neben einer Kategorie, um deren Notizen anzuzeigen und zu bearbeiten.</p>
+                        <h3 className="text-base font-semibold text-foreground/70">Kein Fach ausgewählt</h3>
+                        <p className="text-sm max-w-[250px] mx-auto">Klicke auf das Ordner-Symbol neben einem Fach, um Notizen und Karteikarten anzuzeigen.</p>
                       </div>
                     </div>
                   )}
@@ -3167,53 +3323,11 @@ export default function App() {
               </div>
             </TabsContent>
 
-            {/* Fortschritt – neu gestaltet */}
+            {/* Statistik – neu gestaltet */}
             <TabsContent value="fortschritt" className="mt-3 sm:mt-4 min-h-0 overflow-y-auto custom-scrollbar pb-4">
-              <div className="w-full h-full grid lg:grid-cols-[1fr_0.618fr] gap-4 sm:gap-6 items-start">
+              <div className="max-w-3xl mx-auto space-y-4">
 
-                {/* LINKE SPALTE: Individueller Fortschritt nach Kategorie */}
-                <div className="space-y-4">
-                  <Card className="rounded-2xl shadow-sm overflow-hidden flex flex-col h-full">
-                    <div className="bg-muted/40 px-5 py-3 border-b flex-shrink-0">
-                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Nach Kategorie</h2>
-                    </div>
-                    <CardContent className="p-0 flex-1 overflow-y-auto custom-scrollbar">
-                      {categoryStats.rows.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                          <List className="h-8 w-8 opacity-30" />
-                          <p className="text-sm">Noch keine Tasks für Statistik.</p>
-                        </div>
-                      ) : (
-                        <ul className="divide-y">
-                          {categoryStats.rows.map((r) => {
-                            const tone =
-                              r.ratio >= 1 ? "bg-emerald-500" :
-                                r.ratio >= 0.5 ? "bg-amber-400" :
-                                  r.total === 0 ? "bg-muted" : "bg-rose-400"
-                            return (
-                              <li key={r.label} className="px-5 py-4 hover:bg-muted/20 transition-colors">
-                                <div className="flex items-center justify-between gap-3 mb-2">
-                                  <span className="text-sm font-medium truncate">{r.label}</span>
-                                  <div className="flex items-center gap-3 flex-shrink-0">
-                                    <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
-                                    <span className={["text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full text-white min-w-[3rem] text-center", tone].join(" ")}>
-                                      {percent(r.ratio)}%
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
-                                  <div className={["h-full rounded-full transition-all duration-500", tone].join(" ")} style={{ width: `${percent(r.ratio)}%` }} />
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* RECHTE SPALTE: Statistiken & Top Features */}
+                {/* Statistiken & Top Features */}
                 <div className="space-y-4">
                   {/* Period Filter & Export */}
                   <div className="flex items-center gap-2 flex-wrap bg-card rounded-2xl p-2 shadow-sm border border-border/50">
@@ -3422,6 +3536,38 @@ export default function App() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Fortschritt nach Fach */}
+                {categoryStats.rows.length > 0 && (
+                  <Card className="rounded-2xl shadow-sm overflow-hidden">
+                    <div className="bg-muted/40 px-5 py-3 border-b">
+                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Fortschritt nach Fach</h2>
+                    </div>
+                    <CardContent className="p-0">
+                      <ul className="divide-y">
+                        {categoryStats.rows.map((r) => {
+                          const tone = r.ratio >= 1 ? "bg-emerald-500" : r.ratio >= 0.5 ? "bg-amber-400" : r.total === 0 ? "bg-muted" : "bg-rose-400"
+                          return (
+                            <li key={r.label} className="px-5 py-3 hover:bg-muted/20 transition-colors">
+                              <div className="flex items-center justify-between gap-3 mb-1">
+                                <span className="text-sm font-medium truncate">{r.label}</span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
+                                  <span className={["text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full text-white", tone].join(" ")}>
+                                    {percent(r.ratio)}%
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                <div className={["h-full rounded-full transition-all duration-500", tone].join(" ")} style={{ width: `${percent(r.ratio)}%` }} />
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
