@@ -439,14 +439,12 @@ export const SLOT_SYMBOLS = [
 export const SLOT_BETS = [1, 2, 5, 10]
 
 export const WHEEL_SEGMENTS = [
-    { label: "1 🪙", coins: 1, xp: 0, color: "#6b7280" },
-    { label: "5 XP", coins: 0, xp: 5, color: "#3b82f6" },
-    { label: "3 🪙", coins: 3, xp: 0, color: "#22c55e" },
-    { label: "10 XP", coins: 0, xp: 10, color: "#8b5cf6" },
-    { label: "5 🪙", coins: 5, xp: 0, color: "#f59e0b" },
-    { label: "25 XP", coins: 0, xp: 25, color: "#ec4899" },
-    { label: "10 🪙", coins: 10, xp: 0, color: "#ef4444" },
-    { label: "Niete", coins: 0, xp: 0, color: "#374151" },
+    { label: "Niete", coins: 0, xp: 0, color: "#374151", weight: 25 },
+    { label: "1 🪙", coins: 1, xp: 0, color: "#6b7280", weight: 30 },
+    { label: "2 🪙", coins: 2, xp: 0, color: "#3b82f6", weight: 20 },
+    { label: "3 🪙", coins: 3, xp: 0, color: "#22c55e", weight: 12 },
+    { label: "5 🪙", coins: 5, xp: 0, color: "#f59e0b", weight: 8 },
+    { label: "10 🪙", coins: 10, xp: 0, color: "#ef4444", weight: 5 },
 ]
 
 export const CARD_SUITS = ["♠️", "♥️", "♣️", "♦️"]
@@ -819,7 +817,13 @@ export function useGamification(userId: string | null, streak: number) {
 
     const spinWheel = useCallback(() => {
         if (state.lastWheelSpin === todayKey()) return null
-        const idx = Math.floor(Math.random() * WHEEL_SEGMENTS.length)
+        const totalWeight = WHEEL_SEGMENTS.reduce((sum, s) => sum + s.weight, 0)
+        let r = Math.random() * totalWeight
+        let idx = 0
+        for (let i = 0; i < WHEEL_SEGMENTS.length; i++) {
+            r -= WHEEL_SEGMENTS[i].weight
+            if (r <= 0) { idx = i; break }
+        }
         const segment = WHEEL_SEGMENTS[idx]
         update((s) => {
             const newXP = s.xp + segment.xp
