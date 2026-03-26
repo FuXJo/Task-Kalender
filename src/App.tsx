@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft, Heart, Gamepad2, Timer, Play, Square, Coffee, Zap, Trophy, Lock, Unlock, TreePine } from "lucide-react"
-import { useGamification, ACHIEVEMENTS, EXCHANGE_RATES, PLANT_SPECIES, RARITY_BG, RARITY_LABELS, RARITY_COLORS, getDailyChallenges, getWeeklyChallenges, type PlantSpecies } from "./useGamification"
+import { ChevronLeft, ChevronRight, Plus, Trash2, Tag, CalendarDays, List, Pencil, GripVertical, Sun, Moon, Flame, BarChart2, Undo2, X, Search, Download, Repeat, FileText, CheckSquare, Palette, Copy, HelpCircle, Filter, FolderOpen, ArrowLeft, Heart, Gamepad2, Timer, Play, Square, Coffee, Zap, Trophy, Lock, Unlock, Dices } from "lucide-react"
+import { useGamification, ACHIEVEMENTS, EXCHANGE_RATES, SLOT_SYMBOLS, SLOT_BETS, WHEEL_SEGMENTS, CARD_VALUES, HL_BETS, getDailyChallenges, getWeeklyChallenges } from "./useGamification"
 
 import { supabase } from "@/lib/supabase"
 
@@ -1582,6 +1582,12 @@ export default function App() {
 
   // ── Gamification ──────────────────────────────────────────────────────────
   const gamification = useGamification(userId, streak)
+
+  // ── Casino UI State ─────────────────────────────────────────────────────────
+  const [slotResult, setSlotResult] = useState<{ reels: string[]; winAmount: number; xpWon: number } | null>(null)
+  const [slotBet, setSlotBet] = useState(1)
+  const [slotSpinning, setSlotSpinning] = useState(false)
+  const [hlBet, setHlBet] = useState(1)
 
   // Show notifications (level-up / achievement) via konfetti + toast
   useEffect(() => {
@@ -3707,100 +3713,233 @@ export default function App() {
                   </CardContent>
                 </Card>
 
-                {/* Forest / Wald */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
-                  <div className="bg-gradient-to-r from-green-500/10 to-lime-500/10 px-5 py-3 border-b">
+                {/* 🎡 Tägliches Glücksrad */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
+                  <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
-                      <TreePine className="h-4 w-4 text-green-500" /> Dein Wald
+                      🎡 Tägliches Glücksrad
                       <span className="ml-auto text-xs font-normal opacity-60">
-                        {gamification.forest.length} Pflanzen
+                        {gamification.wheelAvailable ? "Bereit!" : "Morgen wieder"}
                       </span>
                     </h2>
                   </div>
-                  <CardContent className="pt-4 pb-4 px-5 space-y-4">
-                    {/* Forest visualization */}
-                    {gamification.forest.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 p-3 bg-gradient-to-b from-sky-50 to-green-50 dark:from-sky-950/30 dark:to-green-950/30 rounded-xl border min-h-[60px]">
-                        {gamification.forest.map((plant: { speciesId: string; growthProgress: number; fullyGrown: boolean }, i: number) => {
-                          const species = PLANT_SPECIES.find((s) => s.id === plant.speciesId)
-                          return (
-                            <div
-                              key={i}
-                              title={`${species?.name ?? "?"} – ${Math.round(plant.growthProgress)}% gewachsen`}
-                              className={[
-                                "text-2xl transition-all",
-                                plant.fullyGrown ? "drop-shadow-md" : "opacity-60",
-                              ].join(" ")}
-                              style={{
-                                filter: plant.fullyGrown ? "none" : `grayscale(${Math.round(100 - plant.growthProgress)}%)`,
-                                transform: `scale(${0.6 + plant.growthProgress * 0.004})`,
-                              }}
-                            >
-                              {species?.emoji ?? "🌱"}
-                            </div>
-                          )
-                        })}
+                  <CardContent className="pt-4 pb-4 px-5">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap gap-1.5 flex-1">
+                        {WHEEL_SEGMENTS.map((seg, i) => (
+                          <div key={i} className="text-[10px] px-2 py-1 rounded-full font-medium" style={{ backgroundColor: seg.color + "22", color: seg.color, border: `1px solid ${seg.color}44` }}>
+                            {seg.label}
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="text-center text-sm text-muted-foreground py-3">
-                        Pflanze dein erstes Grün und baue deinen Wald auf! 🌱
+                      <Button
+                        size="sm"
+                        disabled={!gamification.wheelAvailable}
+                        onClick={() => {
+                          const result = gamification.spinWheel()
+                          if (result) {
+                            const msg = result.segment.coins > 0
+                              ? `🎡 +${result.segment.coins} Coins!`
+                              : result.segment.xp > 0
+                                ? `🎡 +${result.segment.xp} XP!`
+                                : "🎡 Leider nichts..."
+                            alert(msg)
+                          }
+                        }}
+                        className={[
+                          "h-10 px-6 font-bold text-sm rounded-xl transition-all",
+                          gamification.wheelAvailable
+                            ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-lg shadow-amber-200 dark:shadow-amber-900/30"
+                            : "opacity-50",
+                        ].join(" ")}
+                      >
+                        {gamification.wheelAvailable ? "🎡 Drehen!" : "⏰ Morgen"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 🎰 Slot Machine */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      <Dices className="h-4 w-4 text-purple-500" /> Slot Machine
+                      <span className="ml-auto text-xs font-normal opacity-60">
+                        🪙 {Math.round(gamification.coins * 10) / 10}
+                      </span>
+                    </h2>
+                  </div>
+                  <CardContent className="pt-4 pb-4 px-5 space-y-3">
+                    {/* Reels */}
+                    <div className="flex justify-center gap-3">
+                      {(slotResult?.reels ?? ["❓", "❓", "❓"]).map((sym, i) => (
+                        <div key={i} className={[
+                          "w-16 h-16 flex items-center justify-center text-3xl rounded-xl border-2 bg-gradient-to-b from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-inner transition-all",
+                          slotSpinning ? "animate-pulse" : "",
+                          slotResult && slotResult.winAmount > 0 ? "border-yellow-400 shadow-yellow-200/50" : "border-gray-200 dark:border-gray-700",
+                        ].join(" ")}>
+                          {sym}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Result */}
+                    {slotResult && !slotSpinning && (
+                      <div className={["text-center text-sm font-bold", slotResult.winAmount > 0 ? "text-green-500" : "text-red-400"].join(" ")}>
+                        {slotResult.winAmount > 0 ? `🎉 +${slotResult.winAmount} Coins & +${slotResult.xpWon} XP!` : "💨 Leider nichts..."}
                       </div>
                     )}
+                    {/* Bet selection + Spin */}
+                    <div className="flex items-center gap-2 justify-center">
+                      {SLOT_BETS.map((b) => (
+                        <button
+                          key={b}
+                          onClick={() => setSlotBet(b)}
+                          disabled={gamification.coins < b}
+                          className={[
+                            "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                            slotBet === b
+                              ? "bg-purple-500 text-white border-purple-600 shadow"
+                              : gamification.coins >= b
+                                ? "bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700"
+                                : "opacity-30 border-gray-200 dark:border-gray-700",
+                          ].join(" ")}
+                        >
+                          {b} 🪙
+                        </button>
+                      ))}
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={gamification.coins < slotBet || slotSpinning}
+                      onClick={() => {
+                        setSlotSpinning(true)
+                        setSlotResult(null)
+                        setTimeout(() => {
+                          const result = gamification.spinSlots(slotBet)
+                          setSlotResult(result)
+                          setSlotSpinning(false)
+                        }, 800)
+                      }}
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 rounded-xl font-bold shadow-lg"
+                    >
+                      {slotSpinning ? "🎰 ..." : `🎰 Drehen (${slotBet} Coins)`}
+                    </Button>
+                    {/* Paytable */}
+                    <div className="text-[9px] text-muted-foreground text-center space-y-0.5">
+                      <div>3 gleiche: ×3-50 | 2 gleiche: ×2</div>
+                      <div>{SLOT_SYMBOLS.map(s => s.symbol).join(" ")}</div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                    {/* Plant species */}
-                    <div className="space-y-2">
-                      <div className="text-xs font-medium text-muted-foreground">Pflanzen ({gamification.unlockedPlants.length}/{PLANT_SPECIES.length} freigeschaltet)</div>
-                      <div className="grid grid-cols-2 gap-2 max-h-[240px] overflow-y-auto custom-scrollbar pr-1">
-                        {PLANT_SPECIES.map((species) => {
-                          const unlocked = gamification.unlockedPlants.includes(species.id)
-                          return (
-                            <div
-                              key={species.id}
+                {/* 🃏 Higher / Lower */}
+                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                  <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 px-5 py-3 border-b">
+                    <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
+                      🃏 Higher / Lower
+                      <span className="ml-auto text-xs font-normal opacity-60">
+                        Max 5 Runden
+                      </span>
+                    </h2>
+                  </div>
+                  <CardContent className="pt-4 pb-4 px-5 space-y-3">
+                    {gamification.hlState.active ? (
+                      <>
+                        {/* Current card */}
+                        <div className="flex justify-center">
+                          <div className="w-20 h-28 flex flex-col items-center justify-center rounded-xl border-2 border-red-300 dark:border-red-700 bg-gradient-to-b from-white to-red-50 dark:from-gray-800 dark:to-red-950/30 shadow-lg text-center">
+                            <div className="text-2xl font-black">{CARD_VALUES[gamification.hlState.currentCard]}</div>
+                            <div className="text-lg">{gamification.hlState.currentSuit}</div>
+                          </div>
+                        </div>
+                        {/* Info */}
+                        <div className="text-center text-xs space-y-1">
+                          <div className="font-bold text-foreground">Runde {gamification.hlState.round}/5 · ×{gamification.hlState.multiplier.toFixed(2)}</div>
+                          <div className="text-muted-foreground">Einsatz: {gamification.hlState.bet} 🪙 → Gewinn: {Math.round(gamification.hlState.bet * gamification.hlState.multiplier)} 🪙</div>
+                        </div>
+                        {/* History */}
+                        {gamification.hlState.history.length > 1 && (
+                          <div className="flex justify-center gap-1">
+                            {gamification.hlState.history.slice(0, -1).map((h: { card: number; suit: string }, i: number) => (
+                              <div key={i} className="text-[10px] px-1.5 py-0.5 border rounded bg-gray-50 dark:bg-gray-800 font-mono">
+                                {CARD_VALUES[h.card]}{h.suit}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => gamification.guessHigherLower("higher")}
+                            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 rounded-xl font-bold"
+                          >
+                            ⬆️ Höher
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => gamification.guessHigherLower("lower")}
+                            className="flex-1 bg-gradient-to-r from-red-500 to-rose-500 text-white hover:from-red-600 hover:to-rose-600 rounded-xl font-bold"
+                          >
+                            ⬇️ Tiefer
+                          </Button>
+                        </div>
+                        {gamification.hlState.round > 1 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => gamification.cashOutHigherLower()}
+                            className="w-full rounded-xl font-bold text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                          >
+                            💰 Auscashen ({Math.round(gamification.hlState.bet * gamification.hlState.multiplier)} Coins)
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* Start new game */}
+                        <div className="text-center text-sm text-muted-foreground py-2">
+                          Ist die nächste Karte höher oder tiefer? Rate richtig und dein Einsatz wird multipliziert!
+                        </div>
+                        {/* Last result */}
+                        {gamification.hlState.history.length > 0 && (
+                          <div className="flex justify-center gap-1 pb-1">
+                            {gamification.hlState.history.map((h: { card: number; suit: string }, i: number) => (
+                              <div key={i} className="text-[10px] px-1.5 py-0.5 border rounded bg-gray-50 dark:bg-gray-800 font-mono">
+                                {CARD_VALUES[h.card]}{h.suit}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 justify-center">
+                          {HL_BETS.map((b) => (
+                            <button
+                              key={b}
+                              onClick={() => setHlBet(b)}
+                              disabled={gamification.coins < b}
                               className={[
-                                "flex items-center gap-2 p-2 rounded-xl border bg-gradient-to-r text-xs transition-all",
-                                unlocked
-                                  ? RARITY_BG[species.rarity]
-                                  : "from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border-gray-200 dark:border-gray-700 opacity-50",
+                                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                                hlBet === b
+                                  ? "bg-red-500 text-white border-red-600 shadow"
+                                  : gamification.coins >= b
+                                    ? "bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 border-gray-200 dark:border-gray-700"
+                                    : "opacity-30 border-gray-200 dark:border-gray-700",
                               ].join(" ")}
                             >
-                              <div className="text-xl">{unlocked ? species.emoji : "🔒"}</div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium truncate">{species.name}</div>
-                                <div className={["text-[9px] truncate", unlocked ? RARITY_COLORS[species.rarity] : "text-muted-foreground"].join(" ")}>
-                                  {unlocked ? RARITY_LABELS[species.rarity] : `${species.requiredStudyMinutes} min zum Freischalten`}
-                                </div>
-                                {unlocked && (
-                                  <div className="text-[9px] text-muted-foreground">{species.growthMinutes} min/Tag · 🪙 {species.plantCost}</div>
-                                )}
-                              </div>
-                              {unlocked && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => gamification.plantTree(species.id)}
-                                  disabled={gamification.coins < species.plantCost}
-                                  className={[
-                                    "h-6 px-2 text-[10px]",
-                                    gamification.coins >= species.plantCost
-                                      ? "text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
-                                      : "text-muted-foreground opacity-50",
-                                  ].join(" ")}
-                                  title={gamification.coins < species.plantCost ? `Benötigt ${species.plantCost} Coins` : `Pflanzen (${species.plantCost} Coins)`}
-                                >
-                                  🌱 {species.plantCost}
-                                </Button>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Today's study progress */}
-                    <div className="text-center text-xs text-muted-foreground pt-1 border-t">
-                      Heute gelernt: <span className="font-medium text-foreground">{Math.round(gamification.todayStudyMinutes)} min</span>
-                      <span className="text-[10px] block">Pflanzen wachsen durch tägliche Lernzeit</span>
-                    </div>
+                              {b} 🪙
+                            </button>
+                          ))}
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={gamification.coins < hlBet}
+                          onClick={() => gamification.startHigherLower(hlBet)}
+                          className="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600 rounded-xl font-bold shadow-lg"
+                        >
+                          🃏 Spiel starten ({hlBet} Coins)
+                        </Button>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -3893,16 +4032,18 @@ export default function App() {
             )
           }
           {/* Gamification Notification Toast */}
-          {gamification.notifications.length > 0 && (
-            <div className="fixed top-20 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/50 dark:to-indigo-950/50 border-violet-200 dark:border-violet-800">
-                <span className="text-card-foreground font-medium">{gamification.notifications[0].message}</span>
-                <button onClick={() => gamification.consumeNotification()} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <X className="h-3.5 w-3.5" />
-                </button>
+          {
+            gamification.notifications.length > 0 && (
+              <div className="fixed top-20 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="flex items-center gap-3 rounded-xl border bg-card shadow-lg px-4 py-3 text-sm bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/50 dark:to-indigo-950/50 border-violet-200 dark:border-violet-800">
+                  <span className="text-card-foreground font-medium">{gamification.notifications[0].message}</span>
+                  <button onClick={() => gamification.consumeNotification()} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          }
           {/* #1: Undo Toast */}
           {
             undoToast && (

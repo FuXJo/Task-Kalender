@@ -65,24 +65,23 @@ export interface TimerState {
     elapsed: number
 }
 
-// ── Forest Types ──────────────────────────────────────────────────────────────
+// ── Casino Types ──────────────────────────────────────────────────────────────
 
-export interface PlantSpecies {
-    id: string
-    name: string
-    emoji: string
-    requiredStudyMinutes: number // Total study minutes to unlock
-    growthMinutes: number // Minutes of study in a day to fully grow
-    plantCost: number // Coins needed to plant
-    description: string
-    rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
+export interface SlotResult {
+    reels: string[] // 3 symbols
+    bet: number
+    winAmount: number
+    xpWon: number
 }
 
-export interface ForestPlant {
-    speciesId: string
-    plantedAt: string // ISO date
-    growthProgress: number // 0-100%
-    fullyGrown: boolean
+export interface HigherLowerState {
+    active: boolean
+    currentCard: number // 2-14
+    currentSuit: string
+    bet: number
+    multiplier: number
+    round: number // 1-5
+    history: { card: number; suit: string }[]
 }
 
 export interface DailyChallengeState {
@@ -112,8 +111,8 @@ export interface GamificationState {
     totalTasksDone: number
     todayStudyMinutes: number
     todayStudyDate: string
-    forest: ForestPlant[]
-    unlockedPlants: string[] // species IDs
+    lastWheelSpin: string // ISO date of last free spin
+    casinoStats: { totalWon: number; totalLost: number; biggestWin: number }
     dailyChallenges: DailyChallengeState[]
     weeklyChallenges: WeeklyChallengeState[]
 }
@@ -426,43 +425,36 @@ export function getWeeklyChallenges(weekKey: string): WeeklyChallenge[] {
     return [pick1, pick2]
 }
 
-// ── Plant Species (forest system) ─────────────────────────────────────────────
+// ── Casino Constants ──────────────────────────────────────────────────────────
 
-export const PLANT_SPECIES: PlantSpecies[] = [
-    { id: "sprout", name: "Setzling", emoji: "🌱", requiredStudyMinutes: 0, growthMinutes: 15, plantCost: 2, description: "Jeder Wald beginnt hier", rarity: "common" },
-    { id: "fern", name: "Farn", emoji: "🌿", requiredStudyMinutes: 20, growthMinutes: 18, plantCost: 3, description: "Unterholz des Waldes", rarity: "common" },
-    { id: "clover", name: "Klee", emoji: "☘️", requiredStudyMinutes: 50, growthMinutes: 22, plantCost: 5, description: "Bringt Glück", rarity: "common" },
-    { id: "tulip", name: "Tulpe", emoji: "🌷", requiredStudyMinutes: 100, growthMinutes: 28, plantCost: 8, description: "Frühlingsbote", rarity: "uncommon" },
-    { id: "sunflower", name: "Sonnenblume", emoji: "🌻", requiredStudyMinutes: 200, growthMinutes: 35, plantCost: 12, description: "Folgt dem Licht", rarity: "uncommon" },
-    { id: "rose", name: "Rose", emoji: "🌹", requiredStudyMinutes: 400, growthMinutes: 45, plantCost: 20, description: "Klassische Schönheit", rarity: "uncommon" },
-    { id: "lavender", name: "Lavendel", emoji: "🪻", requiredStudyMinutes: 800, growthMinutes: 60, plantCost: 35, description: "Duftender Gartentraum", rarity: "rare" },
-    { id: "pine", name: "Tanne", emoji: "🌲", requiredStudyMinutes: 1500, growthMinutes: 90, plantCost: 55, description: "Immergrüner Riese", rarity: "epic" },
-    { id: "oak", name: "Eiche", emoji: "🌳", requiredStudyMinutes: 3000, growthMinutes: 120, plantCost: 90, description: "Jahrhunderte alt", rarity: "legendary" },
+export const SLOT_SYMBOLS = [
+    { symbol: "🍒", weight: 30 },
+    { symbol: "🍋", weight: 25 },
+    { symbol: "🔔", weight: 20 },
+    { symbol: "⭐", weight: 15 },
+    { symbol: "💎", weight: 8 },
+    { symbol: "🎰", weight: 2 },
 ]
 
-export const RARITY_COLORS: Record<string, string> = {
-    common: "text-gray-500",
-    uncommon: "text-green-500",
-    rare: "text-blue-500",
-    epic: "text-purple-500",
-    legendary: "text-amber-500",
-}
+export const SLOT_BETS = [1, 2, 5, 10]
 
-export const RARITY_BG: Record<string, string> = {
-    common: "from-gray-50 to-gray-100 dark:from-gray-900/30 dark:to-gray-800/30 border-gray-200 dark:border-gray-700",
-    uncommon: "from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-200 dark:border-green-700",
-    rare: "from-blue-50 to-sky-50 dark:from-blue-900/30 dark:to-sky-900/30 border-blue-200 dark:border-blue-700",
-    epic: "from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 border-purple-200 dark:border-purple-700",
-    legendary: "from-amber-50 to-yellow-50 dark:from-amber-900/30 dark:to-yellow-900/30 border-amber-200 dark:border-amber-700",
-}
+export const WHEEL_SEGMENTS = [
+    { label: "1 🪙", coins: 1, xp: 0, color: "#6b7280" },
+    { label: "5 XP", coins: 0, xp: 5, color: "#3b82f6" },
+    { label: "3 🪙", coins: 3, xp: 0, color: "#22c55e" },
+    { label: "10 XP", coins: 0, xp: 10, color: "#8b5cf6" },
+    { label: "5 🪙", coins: 5, xp: 0, color: "#f59e0b" },
+    { label: "25 XP", coins: 0, xp: 25, color: "#ec4899" },
+    { label: "10 🪙", coins: 10, xp: 0, color: "#ef4444" },
+    { label: "Niete", coins: 0, xp: 0, color: "#374151" },
+]
 
-export const RARITY_LABELS: Record<string, string> = {
-    common: "Gewöhnlich",
-    uncommon: "Ungewöhnlich",
-    rare: "Selten",
-    epic: "Episch",
-    legendary: "Legendär",
+export const CARD_SUITS = ["♠️", "♥️", "♣️", "♦️"]
+export const CARD_VALUES: Record<number, string> = {
+    2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "8", 9: "9", 10: "10",
+    11: "J", 12: "Q", 13: "K", 14: "A",
 }
+export const HL_BETS = [1, 2, 5, 10]
 
 // ── Default state ─────────────────────────────────────────────────────────────
 
@@ -481,8 +473,8 @@ const DEFAULT_STATE: GamificationState = {
     totalTasksDone: 0,
     todayStudyMinutes: 0,
     todayStudyDate: "",
-    forest: [],
-    unlockedPlants: ["sprout"], // Start with grass
+    lastWheelSpin: "",
+    casinoStats: { totalWon: 0, totalLost: 0, biggestWin: 0 },
     dailyChallenges: [],
     weeklyChallenges: [],
 }
@@ -546,8 +538,8 @@ export function useGamification(userId: string | null, streak: number) {
                     totalTasksDone: data.total_tasks_done ?? 0,
                     todayStudyMinutes: data.today_study_minutes ?? 0,
                     todayStudyDate: data.today_study_date ?? "",
-                    forest: (data.forest as ForestPlant[]) ?? [],
-                    unlockedPlants: (data.unlocked_plants as string[]) ?? ["sprout"],
+                    lastWheelSpin: data.last_wheel_spin ?? "",
+                    casinoStats: (data.casino_stats as { totalWon: number; totalLost: number; biggestWin: number }) ?? { totalWon: 0, totalLost: 0, biggestWin: 0 },
                     dailyChallenges: (data.daily_challenges as DailyChallengeState[]) ?? [],
                     weeklyChallenges: (data.weekly_challenges as WeeklyChallengeState[]) ?? [],
                 })
@@ -582,8 +574,8 @@ export function useGamification(userId: string | null, streak: number) {
                             total_tasks_done: newState.totalTasksDone,
                             today_study_minutes: newState.todayStudyMinutes,
                             today_study_date: newState.todayStudyDate,
-                            forest: newState.forest,
-                            unlocked_plants: newState.unlockedPlants,
+                            last_wheel_spin: newState.lastWheelSpin,
+                            casino_stats: newState.casinoStats,
                             daily_challenges: newState.dailyChallenges,
                             weekly_challenges: newState.weeklyChallenges,
                             updated_at: new Date().toISOString(),
@@ -626,25 +618,7 @@ export function useGamification(userId: string | null, streak: number) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loaded])
 
-    // ── Check & unlock new plant species ────────────────────────────────────────
-    useEffect(() => {
-        if (!loaded) return
-        const newUnlocks: string[] = []
-        for (const species of PLANT_SPECIES) {
-            if (state.unlockedPlants.includes(species.id)) continue
-            if (state.totalStudyMinutes >= species.requiredStudyMinutes) {
-                newUnlocks.push(species.id)
-                setNotifications((n) => [
-                    ...n,
-                    { type: "achievement", message: `${species.emoji} Neue Pflanze: ${species.name}!`, id: `plant_${species.id}` },
-                ])
-            }
-        }
-        if (newUnlocks.length > 0) {
-            update((s) => ({ ...s, unlockedPlants: [...s.unlockedPlants, ...newUnlocks] }))
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [state.totalStudyMinutes, loaded])
+    // (plant unlock effect removed – casino system replaces it)
 
     // ── Check achievements ──────────────────────────────────────────────────────
     const checkAchievements = useCallback(
@@ -840,24 +814,165 @@ export function useGamification(userId: string | null, streak: number) {
         }))
     }, [update])
 
-    // ── Plant a tree in the forest ──────────────────────────────────────────────
-    const plantTree = useCallback(
-        (speciesId: string) => {
-            if (!state.unlockedPlants.includes(speciesId)) return
-            const species = PLANT_SPECIES.find((s) => s.id === speciesId)
-            if (!species) return
-            if (state.coins < species.plantCost) return // Not enough coins
-            update((prev) => ({
-                ...prev,
-                coins: prev.coins - species.plantCost,
-                forest: [
-                    ...prev.forest,
-                    { speciesId, plantedAt: todayKey(), growthProgress: 0, fullyGrown: false },
-                ],
+    // ── Casino: Spin Wheel (daily free spin) ──────────────────────────────────
+    const wheelAvailable = state.lastWheelSpin !== todayKey()
+
+    const spinWheel = useCallback(() => {
+        if (state.lastWheelSpin === todayKey()) return null
+        const idx = Math.floor(Math.random() * WHEEL_SEGMENTS.length)
+        const segment = WHEEL_SEGMENTS[idx]
+        update((s) => {
+            const newXP = s.xp + segment.xp
+            const newLevel = levelFromXP(newXP)
+            if (newLevel > s.level) {
+                setNotifications((n) => [...n, { type: "level_up", message: `⬆️ Level ${newLevel}: ${getLevelTitle(newLevel)}!`, id: `level_${newLevel}` }])
+            }
+            return {
+                ...s,
+                coins: s.coins + segment.coins,
+                xp: newXP,
+                level: newLevel,
+                lastWheelSpin: todayKey(),
+                casinoStats: {
+                    ...s.casinoStats,
+                    totalWon: s.casinoStats.totalWon + segment.coins,
+                    biggestWin: Math.max(s.casinoStats.biggestWin, segment.coins),
+                },
+            }
+        })
+        return { segmentIndex: idx, segment }
+    }, [state.lastWheelSpin, update])
+
+    // ── Casino: Slot Machine ─────────────────────────────────────────────
+    const spinSlots = useCallback((bet: number): SlotResult | null => {
+        if (state.coins < bet) return null
+        // Weighted random pick
+        const totalWeight = SLOT_SYMBOLS.reduce((sum, s) => sum + s.weight, 0)
+        const pickSymbol = () => {
+            let r = Math.random() * totalWeight
+            for (const s of SLOT_SYMBOLS) {
+                r -= s.weight
+                if (r <= 0) return s.symbol
+            }
+            return SLOT_SYMBOLS[0].symbol
+        }
+        const reels = [pickSymbol(), pickSymbol(), pickSymbol()]
+        let winAmount = 0
+        let xpWon = 0
+        if (reels[0] === reels[1] && reels[1] === reels[2]) {
+            // Jackpot: 3 matching
+            const symbolIdx = SLOT_SYMBOLS.findIndex((s) => s.symbol === reels[0])
+            const multiplier = [3, 5, 8, 12, 20, 50][symbolIdx] ?? 5
+            winAmount = bet * multiplier
+            xpWon = bet * 5
+        } else if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
+            // Small win: 2 matching
+            winAmount = bet * 2
+            xpWon = bet
+        }
+        const result: SlotResult = { reels, bet, winAmount, xpWon }
+        update((s) => {
+            const netGain = winAmount - bet
+            const newXP = s.xp + xpWon
+            const newLevel = levelFromXP(newXP)
+            if (newLevel > s.level) {
+                setNotifications((n) => [...n, { type: "level_up", message: `⬆️ Level ${newLevel}: ${getLevelTitle(newLevel)}!`, id: `level_${newLevel}` }])
+            }
+            return {
+                ...s,
+                coins: s.coins + netGain,
+                xp: newXP,
+                level: newLevel,
+                casinoStats: {
+                    totalWon: s.casinoStats.totalWon + (netGain > 0 ? netGain : 0),
+                    totalLost: s.casinoStats.totalLost + (netGain < 0 ? Math.abs(netGain) : 0),
+                    biggestWin: Math.max(s.casinoStats.biggestWin, winAmount),
+                },
+            }
+        })
+        return result
+    }, [state.coins, update])
+
+    // ── Casino: Higher/Lower ────────────────────────────────────────────
+    const [hlState, setHlState] = useState<HigherLowerState>({
+        active: false, currentCard: 7, currentSuit: "♠️", bet: 0, multiplier: 1, round: 0, history: [],
+    })
+
+    const randomCard = () => ({ card: Math.floor(Math.random() * 13) + 2, suit: CARD_SUITS[Math.floor(Math.random() * 4)] })
+
+    const startHigherLower = useCallback((bet: number) => {
+        if (state.coins < bet || hlState.active) return
+        update((s) => ({ ...s, coins: s.coins - bet }))
+        const first = randomCard()
+        setHlState({ active: true, currentCard: first.card, currentSuit: first.suit, bet, multiplier: 1, round: 1, history: [first] })
+    }, [state.coins, hlState.active, update])
+
+    const guessHigherLower = useCallback((guess: "higher" | "lower"): { won: boolean; newCard: { card: number; suit: string } } | null => {
+        if (!hlState.active) return null
+        const next = randomCard()
+        const isHigher = next.card > hlState.currentCard
+        const isEqual = next.card === hlState.currentCard
+        const correct = isEqual || (guess === "higher" ? isHigher : !isHigher)
+        if (!correct) {
+            // Lost everything
+            update((s) => ({
+                ...s,
+                casinoStats: { ...s.casinoStats, totalLost: s.casinoStats.totalLost + hlState.bet },
             }))
-        },
-        [state.unlockedPlants, state.coins, update]
-    )
+            setHlState((s) => ({ ...s, active: false, history: [...s.history, next] }))
+            setNotifications((n) => [...n, { type: "achievement", message: `💥 Verloren! ${CARD_VALUES[next.card]}${next.suit}`, id: `hl_lose_${Date.now()}` }])
+            return { won: false, newCard: next }
+        }
+        const newMultiplier = hlState.multiplier * 1.5
+        const newRound = hlState.round + 1
+        if (newRound > 5) {
+            // Auto cashout at round 5
+            const winAmount = Math.round(hlState.bet * newMultiplier * 10) / 10
+            update((s) => {
+                const newXP = s.xp + Math.round(winAmount)
+                const newLevel = levelFromXP(newXP)
+                return {
+                    ...s,
+                    coins: s.coins + winAmount,
+                    xp: newXP,
+                    level: newLevel,
+                    casinoStats: {
+                        ...s.casinoStats,
+                        totalWon: s.casinoStats.totalWon + winAmount,
+                        biggestWin: Math.max(s.casinoStats.biggestWin, winAmount),
+                    },
+                }
+            })
+            setHlState((s) => ({ ...s, active: false, history: [...s.history, next] }))
+            setNotifications((n) => [...n, { type: "achievement", message: `🎉 Max-Gewinn! +${Math.round(hlState.bet * newMultiplier)} Coins!`, id: `hl_max_${Date.now()}` }])
+            return { won: true, newCard: next }
+        }
+        setHlState((s) => ({ ...s, currentCard: next.card, currentSuit: next.suit, multiplier: newMultiplier, round: newRound, history: [...s.history, next] }))
+        return { won: true, newCard: next }
+    }, [hlState, update])
+
+    const cashOutHigherLower = useCallback(() => {
+        if (!hlState.active || hlState.round <= 1) return
+        const winAmount = Math.round(hlState.bet * hlState.multiplier * 10) / 10
+        update((s) => {
+            const xpWon = Math.round(winAmount / 2)
+            const newXP = s.xp + xpWon
+            const newLevel = levelFromXP(newXP)
+            return {
+                ...s,
+                coins: s.coins + winAmount,
+                xp: newXP,
+                level: newLevel,
+                casinoStats: {
+                    ...s.casinoStats,
+                    totalWon: s.casinoStats.totalWon + winAmount,
+                    biggestWin: Math.max(s.casinoStats.biggestWin, winAmount),
+                },
+            }
+        })
+        setNotifications((n) => [...n, { type: "achievement", message: `💰 Ausgecasht! +${Math.round(hlState.bet * hlState.multiplier)} Coins!`, id: `hl_cash_${Date.now()}` }])
+        setHlState((s) => ({ ...s, active: false }))
+    }, [hlState, update])
 
     // ── Timer ───────────────────────────────────────────────────────────────────
     useEffect(() => {
@@ -906,14 +1021,6 @@ export function useGamification(userId: string | null, streak: number) {
                                 { type: "level_up", message: `⬆️ Level ${newLevel}: ${getLevelTitle(newLevel)}!`, id: `level_${newLevel}` },
                             ])
                         }
-                        // Grow forest plants based on today's study
-                        const updatedForest = s.forest.map((p) => {
-                            if (p.fullyGrown) return p
-                            const species = PLANT_SPECIES.find((sp) => sp.id === p.speciesId)
-                            if (!species) return p
-                            const newProgress = Math.min(100, (newTodayMins / species.growthMinutes) * 100)
-                            return { ...p, growthProgress: newProgress, fullyGrown: newProgress >= 100 }
-                        })
                         return {
                             ...s,
                             xp: newXP,
@@ -922,7 +1029,6 @@ export function useGamification(userId: string | null, streak: number) {
                             totalStudyMinutes: s.totalStudyMinutes + studyMinutes,
                             todayStudyMinutes: newTodayMins,
                             todayStudyDate: todayKey(),
-                            forest: updatedForest,
                         }
                     })
                     setTimeout(() => checkAchievements(), 100)
@@ -1074,6 +1180,13 @@ export function useGamification(userId: string | null, streak: number) {
         checkDailyChallenges,
         checkWeeklyChallenges,
         consumeNotification,
-        plantTree,
+        // Casino
+        wheelAvailable,
+        spinWheel,
+        spinSlots,
+        hlState,
+        startHigherLower,
+        guessHigherLower,
+        cashOutHigherLower,
     }
 }
