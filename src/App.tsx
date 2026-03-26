@@ -3551,7 +3551,12 @@ export default function App() {
                             )}
                           </div>
                           {!gamification.timerState.running ? (
-                            <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">✅ Geschafft!</div>
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">✅ Geschafft!</div>
+                              <Button size="sm" variant="outline" onClick={() => gamification.cancelTimer()} className="gap-1.5 text-foreground">
+                                Weiter →
+                              </Button>
+                            </div>
                           ) : (
                             <div className="flex flex-col items-center gap-2">
                               {gamification.timerState.type === "study" && gamification.timerState.targetSeconds && (
@@ -3585,14 +3590,20 @@ export default function App() {
                             Coins + 1 XP/Min nur bei vollem Durchhalten!
                           </div>
                           {gamification.coins >= 1 && (
-                            <div className="flex items-center gap-2 pt-1 border-t w-full justify-center">
-                              <Button
-                                variant="outline"
-                                onClick={() => gamification.startBreakTimer(Math.min(gamification.coins, 5))}
-                                className="gap-2 border-sky-300 text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950"
-                              >
-                                <Coffee className="h-4 w-4" /> Pause ({Math.min(gamification.coins, 5).toFixed(0)} min)
-                              </Button>
+                            <div className="flex flex-col items-center gap-2 pt-1 border-t w-full">
+                              <div className="text-xs text-muted-foreground font-medium">☕ Pause nehmen:</div>
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                {[1, 2, 5, 10].filter(m => gamification.coins >= m).map((mins) => (
+                                  <Button
+                                    key={mins}
+                                    variant="outline"
+                                    onClick={() => gamification.startBreakTimer(mins)}
+                                    className="gap-1.5 border-sky-300 text-sky-700 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950"
+                                  >
+                                    <Coffee className="h-3.5 w-3.5" /> {mins} min ({mins} 🪙)
+                                  </Button>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
