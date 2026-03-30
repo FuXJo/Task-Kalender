@@ -874,10 +874,10 @@ export function useGamification(userId: string | null, streak: number) {
         if (reels[0] === reels[1] && reels[1] === reels[2]) {
             const symbolIdx = SLOT_SYMBOLS.findIndex((s) => s.symbol === reels[0])
             const multiplier = [3, 5, 8, 12, 20, 50][symbolIdx] ?? 5
-            winAmount = Math.round(bet * multiplier * coinRate)
+            winAmount = bet * multiplier
             xpWon = bet * 5
         } else if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
-            winAmount = Math.round(bet * 2 * coinRate)
+            winAmount = bet * 2
             xpWon = bet
         }
         const result: SlotResult = { reels, bet, winAmount, xpWon }
@@ -901,7 +901,7 @@ export function useGamification(userId: string | null, streak: number) {
             }
         })
         return result
-    }, [state.coins, isOnBreak, coinRate, update])
+    }, [state.coins, isOnBreak, update])
 
     // ── Casino: Higher/Lower ────────────────────────────────────────────
     const [hlState, setHlState] = useState<HigherLowerState>({
