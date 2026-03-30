@@ -499,6 +499,12 @@ export function useGamification(userId: string | null, streak: number) {
     const [timerState, setTimerState] = useState<TimerState | null>(null)
     const timerIntervalRef = useRef<number>(0)
     const saveTimerRef = useRef<number>(0)
+    const [lastStudyDuration, setLastStudyDuration] = useState<number>(0)
+
+    // Casino is only playable during break
+    const isOnBreak = !!(timerState?.type === "break" && timerState?.running)
+    // Coin rate based on last study session duration
+    const coinRate = lastStudyDuration >= 90 ? 0.5 : lastStudyDuration >= 45 ? 0.33 : lastStudyDuration >= 15 ? 0.25 : 0
 
     const [notifications, setNotifications] = useState<Array<{ type: "level_up" | "achievement"; message: string; id: string }>>([])
 
@@ -816,6 +822,7 @@ export function useGamification(userId: string | null, streak: number) {
     const wheelAvailable = state.lastWheelSpin !== todayKey()
 
     const spinWheel = useCallback(() => {
+        if (!isOnBreak) return null
         if (state.lastWheelSpin === todayKey()) return null
         const totalWeight = WHEEL_SEGMENTS.reduce((sum, s) => sum + s.weight, 0)
         let r = Math.random() * totalWeight
@@ -825,6 +832,7 @@ export function useGamification(userId: string | null, streak: number) {
             if (r <= 0) { idx = i; break }
         }
         const segment = WHEEL_SEGMENTS[idx]
+        const adjustedCoins = Math.max(1, Math.round(segment.coins * coinRate))
         update((s) => {
             const newXP = s.xp + segment.xp
             const newLevel = levelFromXP(newXP)
@@ -833,22 +841,23 @@ export function useGamification(userId: string | null, streak: number) {
             }
             return {
                 ...s,
-                coins: s.coins + segment.coins,
+                coins: s.coins + (segment.coins === 0 ? 0 : adjustedCoins),
                 xp: newXP,
                 level: newLevel,
                 lastWheelSpin: todayKey(),
                 casinoStats: {
                     ...s.casinoStats,
-                    totalWon: s.casinoStats.totalWon + segment.coins,
-                    biggestWin: Math.max(s.casinoStats.biggestWin, segment.coins),
+                    totalWon: s.casinoStats.totalWon + (segment.coins === 0 ? 0 : adjustedCoins),
+                    biggestWin: Math.max(s.casinoStats.biggestWin, segment.coins === 0 ? 0 : adjustedCoins),
                 },
             }
         })
-        return { segmentIndex: idx, segment }
-    }, [state.lastWheelSpin, update])
+        return { segmentIndex: idx, segment: { ...segment, coins: segment.coins === 0 ? 0 : adjustedCoins } }
+    }, [state.lastWheelSpin, isOnBreak, coinRate, update])
 
     // ── Casino: Slot Machine ─────────────────────────────────────────────
     const spinSlots = useCallback((bet: number): SlotResult | null => {
+        if (!isOnBreak) return null
         if (state.coins < bet) return null
         // Weighted random pick
         const totalWeight = SLOT_SYMBOLS.reduce((sum, s) => sum + s.weight, 0)
@@ -864,14 +873,12 @@ export function useGamification(userId: string | null, streak: number) {
         let winAmount = 0
         let xpWon = 0
         if (reels[0] === reels[1] && reels[1] === reels[2]) {
-            // Jackpot: 3 matching
             const symbolIdx = SLOT_SYMBOLS.findIndex((s) => s.symbol === reels[0])
             const multiplier = [3, 5, 8, 12, 20, 50][symbolIdx] ?? 5
-            winAmount = bet * multiplier
+            winAmount = Math.round(bet * multiplier * coinRate)
             xpWon = bet * 5
         } else if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
-            // Small win: 2 matching
-            winAmount = bet * 2
+            winAmount = Math.round(bet * 2 * coinRate)
             xpWon = bet
         }
         const result: SlotResult = { reels, bet, winAmount, xpWon }
@@ -895,7 +902,7 @@ export function useGamification(userId: string | null, streak: number) {
             }
         })
         return result
-    }, [state.coins, update])
+    }, [state.coins, isOnBreak, coinRate, update])
 
     // ── Casino: Higher/Lower ────────────────────────────────────────────
     const [hlState, setHlState] = useState<HigherLowerState>({
@@ -905,11 +912,12 @@ export function useGamification(userId: string | null, streak: number) {
     const randomCard = () => ({ card: Math.floor(Math.random() * 13) + 2, suit: CARD_SUITS[Math.floor(Math.random() * 4)] })
 
     const startHigherLower = useCallback((bet: number) => {
+        if (!isOnBreak) return
         if (state.coins < bet || hlState.active) return
         update((s) => ({ ...s, coins: s.coins - bet }))
         const first = randomCard()
         setHlState({ active: true, currentCard: first.card, currentSuit: first.suit, bet, multiplier: 1, round: 1, history: [first] })
-    }, [state.coins, hlState.active, update])
+    }, [state.coins, hlState.active, isOnBreak, update])
 
     const guessHigherLower = useCallback((guess: "higher" | "lower"): { won: boolean; newCard: { card: number; suit: string } } | null => {
         if (!hlState.active) return null
@@ -1048,6 +1056,7 @@ export function useGamification(userId: string | null, streak: number) {
                             allDayDone: false,
                         })
                     }, 300)
+                    setLastStudyDuration(studyMinutes)
                     return { ...prev, elapsed, running: false }
                 }
                 return { ...prev, elapsed }
@@ -1185,6 +1194,8 @@ export function useGamification(userId: string | null, streak: number) {
         checkWeeklyChallenges,
         consumeNotification,
         // Casino
+        isOnBreak,
+        coinRate,
         wheelAvailable,
         spinWheel,
         spinSlots,

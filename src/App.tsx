@@ -1897,7 +1897,7 @@ export default function App() {
                   </div>
                 )}
                 {/* Streak Badge */}
-                {streak > 0 && (
+                {gamification.loaded && (
                   <div className="flex items-center gap-1 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl px-2.5 py-1">
                     <Flame className="h-3.5 w-3.5 text-orange-500" />
                     <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">{streak}</span>
@@ -2371,441 +2371,476 @@ export default function App() {
                   })()}
                 </div>
 
-                {/* To-dos */}
-                <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "100%" }}>
-                  <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
-                    <div>
-                      <div className="text-sm font-semibold">To-dos</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">{selectedDateLabel}</div>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {/* #8: Multi-select toggle */}
-                      <Button
-                        variant={multiSelectMode ? "default" : "ghost"}
-                        size="icon"
-                        className={multiSelectMode ? "h-8 w-8 bg-rose-500 hover:bg-rose-600 text-white" : "h-8 w-8"}
-                        title="Mehrfachauswahl"
-                        onClick={() => { setMultiSelectMode(v => !v); setSelectedTaskIds(new Set()) }}
-                      >
-                        <CheckSquare className="h-3.5 w-3.5" />
-                      </Button>
-                      {/* Category filter */}
-                      <select
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                        className="h-8 max-w-[80px] rounded-md border border-input bg-background px-1.5 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring truncate"
-                        title="Nach Kategorie filtern"
-                      >
-                        <option value="">Alle</option>
-                        {categories.map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button className="gap-1 h-8 text-xs px-2 sm:px-3 flex-shrink-0">
-                            <Plus className="h-3.5 w-3.5" />
-                            <span className="hidden sm:inline">Hinzufügen</span>
-                          </Button>
-                        </DialogTrigger>
+                {/* Right column: To-dos + Fortschritt */}
+                <div className="space-y-4 min-h-0 overflow-y-auto custom-scrollbar">
+                  {/* To-dos */}
+                  <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden flex flex-col" style={{ maxHeight: "70vh" }}>
+                    <div className="border-b bg-muted/30 px-4 sm:px-5 py-3 flex items-center justify-between gap-2 flex-shrink-0">
+                      <div>
+                        <div className="text-sm font-semibold">To-dos</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{selectedDateLabel}</div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {/* #8: Multi-select toggle */}
+                        <Button
+                          variant={multiSelectMode ? "default" : "ghost"}
+                          size="icon"
+                          className={multiSelectMode ? "h-8 w-8 bg-rose-500 hover:bg-rose-600 text-white" : "h-8 w-8"}
+                          title="Mehrfachauswahl"
+                          onClick={() => { setMultiSelectMode(v => !v); setSelectedTaskIds(new Set()) }}
+                        >
+                          <CheckSquare className="h-3.5 w-3.5" />
+                        </Button>
+                        {/* Category filter */}
+                        <select
+                          value={filterCategory}
+                          onChange={(e) => setFilterCategory(e.target.value)}
+                          className="h-8 max-w-[80px] rounded-md border border-input bg-background px-1.5 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring truncate"
+                          title="Nach Kategorie filtern"
+                        >
+                          <option value="">Alle</option>
+                          {categories.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button className="gap-1 h-8 text-xs px-2 sm:px-3 flex-shrink-0">
+                              <Plus className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Hinzufügen</span>
+                            </Button>
+                          </DialogTrigger>
 
-                        <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
-                          <DialogHeader>
-                            <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
-                          </DialogHeader>
+                          <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
+                            <DialogHeader>
+                              <DialogTitle className="text-base sm:text-lg">Task hinzufügen</DialogTitle>
+                            </DialogHeader>
 
-                          <div className="grid gap-3">
-                            <div className="grid gap-2">
-                              <Label className="text-sm">Titel</Label>
-                              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
-                            </div>
+                            <div className="grid gap-3">
+                              <div className="grid gap-2">
+                                <Label className="text-sm">Titel</Label>
+                                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="z.B. Lernen" className="h-10" autoFocus onKeyDown={(e) => { if (e.key === "Enter" && newTitle.trim()) { e.preventDefault(); addTask() } }} />
+                              </div>
 
-                            <div className="grid gap-2">
-                              <Label className="text-sm">Kategorie (optional)</Label>
-                              <Select value={newCategory} onValueChange={setNewCategory}>
-                                <SelectTrigger className="h-10">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__none__">– keine –</SelectItem>
-                                  {categories.map((c) => (
-                                    <SelectItem key={c} value={c}>
-                                      {c}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div className="grid gap-2">
+                                <Label className="text-sm">Kategorie (optional)</Label>
+                                <Select value={newCategory} onValueChange={setNewCategory}>
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">– keine –</SelectItem>
+                                    {categories.map((c) => (
+                                      <SelectItem key={c} value={c}>
+                                        {c}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
 
-                              {/* Neue Kategorie direkt im Dialog erstellen */}
-                              <div className="flex gap-2 mt-1">
-                                <Input
-                                  value={newCategoryName}
-                                  onChange={(e) => setNewCategoryName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                      e.preventDefault()
+                                {/* Neue Kategorie direkt im Dialog erstellen */}
+                                <div className="flex gap-2 mt-1">
+                                  <Input
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault()
+                                        const name = normalizeCategory(newCategoryName)
+                                        if (name) {
+                                          ensureCategory(name)
+                                          setNewCategory(name)
+                                          setNewCategoryName("")
+                                        }
+                                      }
+                                    }}
+                                    placeholder="Neue Kategorie erstellen…"
+                                    className="h-9 text-sm flex-1"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-9 px-3 text-sm flex-shrink-0"
+                                    disabled={!newCategoryName.trim()}
+                                    onClick={() => {
                                       const name = normalizeCategory(newCategoryName)
                                       if (name) {
                                         ensureCategory(name)
                                         setNewCategory(name)
                                         setNewCategoryName("")
                                       }
-                                    }
-                                  }}
-                                  placeholder="Neue Kategorie erstellen…"
-                                  className="h-9 text-sm flex-1"
+                                    }}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
+                                <span className="text-sm">Hohe Priorität</span>
+                              </div>
+
+                              {/* #5: Repeat field */}
+                              <div className="grid gap-2">
+                                <Label className="text-sm flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Wiederholen (optional)</Label>
+                                <Select value={String(newRepeatDays)} onValueChange={(v) => setNewRepeatDays(Number(v))}>
+                                  <SelectTrigger className="h-10">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="0">Kein Repeat</SelectItem>
+                                    <SelectItem value="1">Täglich</SelectItem>
+                                    <SelectItem value="2">Alle 2 Tage</SelectItem>
+                                    <SelectItem value="7">Wöchentlich</SelectItem>
+                                    <SelectItem value="14">Alle 2 Wochen</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* #10: Notes field */}
+                              <div className="grid gap-2">
+                                <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
+                                <textarea
+                                  value={newNotes}
+                                  onChange={(e) => setNewNotes(e.target.value)}
+                                  placeholder="z.B. Kapitel 3-5 lesen"
+                                  className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                                  rows={2}
                                 />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="h-9 px-3 text-sm flex-shrink-0"
-                                  disabled={!newCategoryName.trim()}
-                                  onClick={() => {
+                              </div>
+                            </div>
+
+                            <DialogFooter className="sm:justify-end">
+                              <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
+                                Speichern
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                    {/* #8: Multi-select toolbar */}
+                    {multiSelectMode && selectedTaskIds.size > 0 && (
+                      <div className="border-b px-4 py-2 flex items-center gap-2 bg-muted/30">
+                        <span className="text-xs font-medium">{selectedTaskIds.size} ausgewählt</span>
+                        <div className="flex-1" />
+                        <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={deleteSelectedTasks}>
+                          <Trash2 className="h-3 w-3 mr-1" /> Löschen
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setSelectedTaskIds(new Set()); setMultiSelectMode(false) }}>
+                          Abbrechen
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Task-Liste */}
+                    <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+                      {selectedTasks.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                          <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
+                            <CalendarDays className="h-6 w-6 opacity-30" />
+                          </div>
+                          <p className="text-sm font-medium">Keine Aufgaben für diesen Tag.</p>
+                          <p className="text-xs text-muted-foreground/60 max-w-[200px] text-center leading-relaxed">{getEmptyMessage(selectedISO)}</p>
+                          <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs" onClick={() => setAddDialogOpen(true)}>
+                            <Plus className="h-3.5 w-3.5" /> Aufgabe hinzufügen
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {getSortedDayTasks(selectedISO).map((t) => {
+                            const isOver = dragOverTaskId === t.id
+                            const indicatorClass =
+                              isOver && dragRef.current?.kind === "reorder"
+                                ? (dragPos === "above" ? "drag-indicator-above" : "drag-indicator-below")
+                                : ""
+
+                            return (
+                              <div
+                                key={t.id}
+                                data-task-id={t.id}
+                                className={[
+                                  "task-item flex items-start gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
+                                  indicatorClass,
+                                  draggingTaskId === t.id ? "task-dragging" : "",
+                                  draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
+                                  touchDragId === t.id ? "task-dragging" : "",
+                                  selectedTaskIds.has(t.id) && !draggingTaskId ? "bg-primary/5" : ""
+                                ].join(" ")}
+                                style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
+                                onDragOver={(e) => {
+                                  const p = readDragPayload(e)
+                                  if (!p || p.kind !== "reorder") return
+                                  if (p.fromISO !== selectedISO) return
+                                  if (p.taskId === t.id) return
+
+                                  e.preventDefault()
+                                  e.dataTransfer.dropEffect = "move"
+
+                                  const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
+                                  const mid = rect.top + rect.height / 2
+                                  const pos = e.clientY < mid ? "above" : "below"
+                                  setDragOverTaskId(t.id)
+                                  setDragPos(pos)
+                                }}
+                                onDragLeave={() => {
+                                  if (dragOverTaskId === t.id) setDragOverTaskId("")
+                                }}
+                                onDrop={(e) => {
+                                  const p = readDragPayload(e)
+                                  dragRef.current = null
+                                  setDragOverTaskId("")
+                                  if (!p || p.kind !== "reorder") return
+                                  if (p.fromISO !== selectedISO) return
+                                  e.preventDefault()
+                                  applyReorderWithinDay(p.taskId, t.id, dragPos)
+                                }}
+                                draggable
+                                onDragStart={(e) => {
+                                  setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })
+                                  setDraggingTaskId(t.id)
+                                }}
+                                onDragEnd={() => {
+                                  dragRef.current = null
+                                  setDragOverISO("")
+                                  setDragOverTaskId("")
+                                  setDraggingTaskId("")
+                                }}
+                              >
+                                {/* #8: Multi-select checkbox */}
+                                {multiSelectMode ? (
+                                  <Checkbox
+                                    className="h-4 w-4 flex-shrink-0 mt-0.5"
+                                    checked={selectedTaskIds.has(t.id)}
+                                    onCheckedChange={() => {
+                                      setSelectedTaskIds(prev => {
+                                        const next = new Set(prev)
+                                        if (next.has(t.id)) next.delete(t.id)
+                                        else next.add(t.id)
+                                        return next
+                                      })
+                                    }}
+                                  />
+                                ) : (
+                                  <div className={bouncingId === t.id ? "check-bounce mt-0.5" : "mt-0.5"}>
+                                    <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
+                                  </div>
+                                )}
+
+                                <div className="min-w-0 flex-1">
+                                  <div className={[
+                                    "text-sm break-words leading-snug",
+                                    t.done ? "line-through text-muted-foreground" : "font-medium"
+                                  ].join(" ")}>
+                                    {t.title}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                    {t.category && (
+                                      <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(t.category), color: getCategoryColor(t.category) }}>
+                                        {t.category}
+                                      </Badge>
+                                    )}
+                                    {(t.priority ?? 1) >= 2 && (
+                                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black leading-none text-white">!</span>
+                                    )}
+                                    {t.repeat_every_days && t.repeat_every_days > 0 && (
+                                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"><Repeat className="h-2.5 w-2.5" /> {t.repeat_every_days === 1 ? "täglich" : t.repeat_every_days === 7 ? "wöchentlich" : `alle ${t.repeat_every_days}d`}</span>
+                                    )}
+                                  </div>
+                                  {t.notes && (
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
+                                      <FileText className="h-2.5 w-2.5 inline mr-0.5" />{t.notes}
+                                    </div>
+                                  )}
+                                  {/* Subtasks */}
+                                  {((t.subtasks && t.subtasks.length > 0) || !t.done) && (
+                                    <div className="mt-1.5 space-y-0.5">
+                                      {(t.subtasks ?? []).map((sub, si) => (
+                                        <div key={si} className="flex items-center gap-1.5 group/sub">
+                                          <Checkbox
+                                            className="h-3 w-3 flex-shrink-0"
+                                            checked={sub.done}
+                                            onCheckedChange={() => toggleSubtask(t, si)}
+                                          />
+                                          <span className={["text-[11px] flex-1 leading-tight", sub.done ? "line-through text-muted-foreground/60" : "text-muted-foreground"].join(" ")}>{sub.title}</span>
+                                          <button
+                                            onClick={() => removeSubtask(t, si)}
+                                            className="opacity-0 group-hover/sub:opacity-60 hover:!opacity-100 text-muted-foreground transition-opacity"
+                                          >
+                                            <X className="h-2.5 w-2.5" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                      {!t.done && (
+                                        <SubtaskAddInput onAdd={(title) => addSubtaskToTask(t, title)} />
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity mt-0.5">
+                                  <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-7 w-7">
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => duplicateTask(t)} aria-label="Duplizieren" className="h-7 w-7" title="Duplizieren">
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                  <span
+                                    className="drag-handle inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
+                                    draggable
+                                    onDragStart={(e) => {
+                                      e.stopPropagation()
+                                      setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
+                                      setDraggingTaskId(t.id)
+                                    }}
+                                    onDragEnd={() => {
+                                      dragRef.current = null
+                                      setDragOverTaskId("")
+                                      setDraggingTaskId("")
+                                    }}
+                                    onTouchStart={(e) => handleTouchStart(t.id, e)}
+                                    onTouchMove={(e) => handleTouchMove(e)}
+                                    onTouchEnd={() => handleTouchEnd()}
+                                  >
+                                    <GripVertical className="h-3.5 w-3.5" />
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                      <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
+                        <DialogHeader>
+                          <DialogTitle className="text-base sm:text-lg">Task bearbeiten</DialogTitle>
+                        </DialogHeader>
+
+                        <div className="grid gap-3">
+                          <div className="grid gap-2">
+                            <Label className="text-sm">Titel</Label>
+                            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" className="h-10" />
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label className="text-sm">Kategorie (optional)</Label>
+                            <Select value={editCategory} onValueChange={setEditCategory}>
+                              <SelectTrigger className="h-10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">– keine –</SelectItem>
+                                {categories.map((c) => (
+                                  <SelectItem key={c} value={c}>
+                                    {c}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            {/* Neue Kategorie direkt im Edit-Dialog erstellen */}
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault()
                                     const name = normalizeCategory(newCategoryName)
                                     if (name) {
                                       ensureCategory(name)
-                                      setNewCategory(name)
+                                      setEditCategory(name)
                                       setNewCategoryName("")
                                     }
-                                  }}
-                                >
-                                  <Plus className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <Checkbox checked={newHighPriority} onCheckedChange={(v) => setNewHighPriority(Boolean(v))} className="h-4 w-4" />
-                              <span className="text-sm">Hohe Priorität</span>
-                            </div>
-
-                            {/* #5: Repeat field */}
-                            <div className="grid gap-2">
-                              <Label className="text-sm flex items-center gap-1.5"><Repeat className="h-3.5 w-3.5" /> Wiederholen (optional)</Label>
-                              <Select value={String(newRepeatDays)} onValueChange={(v) => setNewRepeatDays(Number(v))}>
-                                <SelectTrigger className="h-10">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0">Kein Repeat</SelectItem>
-                                  <SelectItem value="1">Täglich</SelectItem>
-                                  <SelectItem value="2">Alle 2 Tage</SelectItem>
-                                  <SelectItem value="7">Wöchentlich</SelectItem>
-                                  <SelectItem value="14">Alle 2 Wochen</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {/* #10: Notes field */}
-                            <div className="grid gap-2">
-                              <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
-                              <textarea
-                                value={newNotes}
-                                onChange={(e) => setNewNotes(e.target.value)}
-                                placeholder="z.B. Kapitel 3-5 lesen"
-                                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                                rows={2}
+                                  }
+                                }}
+                                placeholder="Neue Kategorie erstellen…"
+                                className="h-9 text-sm flex-1"
                               />
-                            </div>
-                          </div>
-
-                          <DialogFooter className="sm:justify-end">
-                            <Button onClick={addTask} disabled={newTitle.trim().length === 0} className="w-full sm:w-auto">
-                              Speichern
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </div>
-                  {/* #8: Multi-select toolbar */}
-                  {multiSelectMode && selectedTaskIds.size > 0 && (
-                    <div className="border-b px-4 py-2 flex items-center gap-2 bg-muted/30">
-                      <span className="text-xs font-medium">{selectedTaskIds.size} ausgewählt</span>
-                      <div className="flex-1" />
-                      <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={deleteSelectedTasks}>
-                        <Trash2 className="h-3 w-3 mr-1" /> Löschen
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => { setSelectedTaskIds(new Set()); setMultiSelectMode(false) }}>
-                        Abbrechen
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Task-Liste */}
-                  <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar">
-                    {selectedTasks.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-                        <div className="h-12 w-12 rounded-full bg-muted/60 flex items-center justify-center">
-                          <CalendarDays className="h-6 w-6 opacity-30" />
-                        </div>
-                        <p className="text-sm font-medium">Keine Aufgaben für diesen Tag.</p>
-                        <p className="text-xs text-muted-foreground/60 max-w-[200px] text-center leading-relaxed">{getEmptyMessage(selectedISO)}</p>
-                        <Button variant="outline" size="sm" className="mt-1 gap-1.5 text-xs" onClick={() => setAddDialogOpen(true)}>
-                          <Plus className="h-3.5 w-3.5" /> Aufgabe hinzufügen
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="divide-y">
-                        {getSortedDayTasks(selectedISO).map((t) => {
-                          const isOver = dragOverTaskId === t.id
-                          const indicatorClass =
-                            isOver && dragRef.current?.kind === "reorder"
-                              ? (dragPos === "above" ? "drag-indicator-above" : "drag-indicator-below")
-                              : ""
-
-                          return (
-                            <div
-                              key={t.id}
-                              data-task-id={t.id}
-                              className={[
-                                "task-item flex items-start gap-2 sm:gap-3 px-4 py-3 hover:bg-muted/20 transition-[opacity,transform,box-shadow] duration-200 touch-manipulation category-stripe",
-                                indicatorClass,
-                                draggingTaskId === t.id ? "task-dragging" : "",
-                                draggingTaskId && selectedTaskIds.size > 0 && selectedTaskIds.has(draggingTaskId) && selectedTaskIds.has(t.id) ? "task-dragging" : "",
-                                touchDragId === t.id ? "task-dragging" : "",
-                                selectedTaskIds.has(t.id) && !draggingTaskId ? "bg-primary/5" : ""
-                              ].join(" ")}
-                              style={{ "--stripe-color": t.category ? getCategoryColor(t.category) : "transparent" } as React.CSSProperties}
-                              onDragOver={(e) => {
-                                const p = readDragPayload(e)
-                                if (!p || p.kind !== "reorder") return
-                                if (p.fromISO !== selectedISO) return
-                                if (p.taskId === t.id) return
-
-                                e.preventDefault()
-                                e.dataTransfer.dropEffect = "move"
-
-                                const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect()
-                                const mid = rect.top + rect.height / 2
-                                const pos = e.clientY < mid ? "above" : "below"
-                                setDragOverTaskId(t.id)
-                                setDragPos(pos)
-                              }}
-                              onDragLeave={() => {
-                                if (dragOverTaskId === t.id) setDragOverTaskId("")
-                              }}
-                              onDrop={(e) => {
-                                const p = readDragPayload(e)
-                                dragRef.current = null
-                                setDragOverTaskId("")
-                                if (!p || p.kind !== "reorder") return
-                                if (p.fromISO !== selectedISO) return
-                                e.preventDefault()
-                                applyReorderWithinDay(p.taskId, t.id, dragPos)
-                              }}
-                              draggable
-                              onDragStart={(e) => {
-                                setDragPayload(e, { kind: "move", taskId: t.id, fromISO: selectedISO })
-                                setDraggingTaskId(t.id)
-                              }}
-                              onDragEnd={() => {
-                                dragRef.current = null
-                                setDragOverISO("")
-                                setDragOverTaskId("")
-                                setDraggingTaskId("")
-                              }}
-                            >
-                              {/* #8: Multi-select checkbox */}
-                              {multiSelectMode ? (
-                                <Checkbox
-                                  className="h-4 w-4 flex-shrink-0 mt-0.5"
-                                  checked={selectedTaskIds.has(t.id)}
-                                  onCheckedChange={() => {
-                                    setSelectedTaskIds(prev => {
-                                      const next = new Set(prev)
-                                      if (next.has(t.id)) next.delete(t.id)
-                                      else next.add(t.id)
-                                      return next
-                                    })
-                                  }}
-                                />
-                              ) : (
-                                <div className={bouncingId === t.id ? "check-bounce mt-0.5" : "mt-0.5"}>
-                                  <Checkbox className="h-4 w-4 flex-shrink-0" checked={t.done} onCheckedChange={() => toggleTask(t.id)} />
-                                </div>
-                              )}
-
-                              <div className="min-w-0 flex-1">
-                                <div className={[
-                                  "text-sm break-words leading-snug",
-                                  t.done ? "line-through text-muted-foreground" : "font-medium"
-                                ].join(" ")}>
-                                  {t.title}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                  {t.category && (
-                                    <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal" style={{ borderColor: getCategoryColor(t.category), color: getCategoryColor(t.category) }}>
-                                      {t.category}
-                                    </Badge>
-                                  )}
-                                  {(t.priority ?? 1) >= 2 && (
-                                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black leading-none text-white">!</span>
-                                  )}
-                                  {t.repeat_every_days && t.repeat_every_days > 0 && (
-                                    <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground"><Repeat className="h-2.5 w-2.5" /> {t.repeat_every_days === 1 ? "täglich" : t.repeat_every_days === 7 ? "wöchentlich" : `alle ${t.repeat_every_days}d`}</span>
-                                  )}
-                                </div>
-                                {t.notes && (
-                                  <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">
-                                    <FileText className="h-2.5 w-2.5 inline mr-0.5" />{t.notes}
-                                  </div>
-                                )}
-                                {/* Subtasks */}
-                                {((t.subtasks && t.subtasks.length > 0) || !t.done) && (
-                                  <div className="mt-1.5 space-y-0.5">
-                                    {(t.subtasks ?? []).map((sub, si) => (
-                                      <div key={si} className="flex items-center gap-1.5 group/sub">
-                                        <Checkbox
-                                          className="h-3 w-3 flex-shrink-0"
-                                          checked={sub.done}
-                                          onCheckedChange={() => toggleSubtask(t, si)}
-                                        />
-                                        <span className={["text-[11px] flex-1 leading-tight", sub.done ? "line-through text-muted-foreground/60" : "text-muted-foreground"].join(" ")}>{sub.title}</span>
-                                        <button
-                                          onClick={() => removeSubtask(t, si)}
-                                          className="opacity-0 group-hover/sub:opacity-60 hover:!opacity-100 text-muted-foreground transition-opacity"
-                                        >
-                                          <X className="h-2.5 w-2.5" />
-                                        </button>
-                                      </div>
-                                    ))}
-                                    {!t.done && (
-                                      <SubtaskAddInput onAdd={(title) => addSubtaskToTask(t, title)} />
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex items-center gap-0.5 flex-shrink-0 opacity-40 hover:opacity-100 transition-opacity mt-0.5">
-                                <Button variant="ghost" size="icon" onClick={() => openEditTask(t)} aria-label="Bearbeiten" className="h-7 w-7">
-                                  <Pencil className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => duplicateTask(t)} aria-label="Duplizieren" className="h-7 w-7" title="Duplizieren">
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => deleteTask(t.id)} aria-label="Löschen" className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50">
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                                <span
-                                  className="drag-handle inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted cursor-grab active:cursor-grabbing"
-                                  draggable
-                                  onDragStart={(e) => {
-                                    e.stopPropagation()
-                                    setDragPayload(e, { kind: "reorder", taskId: t.id, fromISO: selectedISO })
-                                    setDraggingTaskId(t.id)
-                                  }}
-                                  onDragEnd={() => {
-                                    dragRef.current = null
-                                    setDragOverTaskId("")
-                                    setDraggingTaskId("")
-                                  }}
-                                  onTouchStart={(e) => handleTouchStart(t.id, e)}
-                                  onTouchMove={(e) => handleTouchMove(e)}
-                                  onTouchEnd={() => handleTouchEnd()}
-                                >
-                                  <GripVertical className="h-3.5 w-3.5" />
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                    <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] rounded-xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-base sm:text-lg">Task bearbeiten</DialogTitle>
-                      </DialogHeader>
-
-                      <div className="grid gap-3">
-                        <div className="grid gap-2">
-                          <Label className="text-sm">Titel</Label>
-                          <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Titel" className="h-10" />
-                        </div>
-
-                        <div className="grid gap-2">
-                          <Label className="text-sm">Kategorie (optional)</Label>
-                          <Select value={editCategory} onValueChange={setEditCategory}>
-                            <SelectTrigger className="h-10">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="__none__">– keine –</SelectItem>
-                              {categories.map((c) => (
-                                <SelectItem key={c} value={c}>
-                                  {c}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          {/* Neue Kategorie direkt im Edit-Dialog erstellen */}
-                          <div className="flex gap-2 mt-1">
-                            <Input
-                              value={newCategoryName}
-                              onChange={(e) => setNewCategoryName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault()
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-9 px-3 text-sm flex-shrink-0"
+                                disabled={!newCategoryName.trim()}
+                                onClick={() => {
                                   const name = normalizeCategory(newCategoryName)
                                   if (name) {
                                     ensureCategory(name)
                                     setEditCategory(name)
                                     setNewCategoryName("")
                                   }
-                                }
-                              }}
-                              placeholder="Neue Kategorie erstellen…"
-                              className="h-9 text-sm flex-1"
+                                }}
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} className="h-4 w-4" />
+                            <span className="text-sm">Hohe Priorit&auml;t</span>
+                          </div>
+
+                          {/* #10: Notes field in edit dialog */}
+                          <div className="grid gap-2">
+                            <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
+                            <textarea
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              placeholder="z.B. Kapitel 3-5 lesen"
+                              className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                              rows={2}
                             />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="h-9 px-3 text-sm flex-shrink-0"
-                              disabled={!newCategoryName.trim()}
-                              onClick={() => {
-                                const name = normalizeCategory(newCategoryName)
-                                if (name) {
-                                  ensureCategory(name)
-                                  setEditCategory(name)
-                                  setNewCategoryName("")
-                                }
-                              }}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </Button>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <Checkbox checked={editHighPriority} onCheckedChange={(v) => setEditHighPriority(Boolean(v))} className="h-4 w-4" />
-                          <span className="text-sm">Hohe Priorit&auml;t</span>
-                        </div>
+                        <DialogFooter className="sm:justify-end">
+                          <Button onClick={saveEditTask} disabled={editTitle.trim().length === 0} className="w-full sm:w-auto">
+                            Speichern
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </Card>
 
-                        {/* #10: Notes field in edit dialog */}
-                        <div className="grid gap-2">
-                          <Label className="text-sm flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Notizen (optional)</Label>
-                          <textarea
-                            value={editNotes}
-                            onChange={(e) => setEditNotes(e.target.value)}
-                            placeholder="z.B. Kapitel 3-5 lesen"
-                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                            rows={2}
-                          />
-                        </div>
+                  {/* Fortschritt nach Fach */}
+                  {categoryStats.rows.length > 0 && (
+                    <Card className="rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+                      <div className="bg-muted/40 px-4 sm:px-5 py-3 border-b">
+                        <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Fortschritt nach Fach</h2>
                       </div>
-
-                      <DialogFooter className="sm:justify-end">
-                        <Button onClick={saveEditTask} disabled={editTitle.trim().length === 0} className="w-full sm:w-auto">
-                          Speichern
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </Card>
+                      <CardContent className="p-0">
+                        <ul className="divide-y">
+                          {categoryStats.rows.map((r) => {
+                            const tone = r.ratio >= 1 ? "bg-emerald-500" : r.ratio >= 0.5 ? "bg-amber-400" : r.total === 0 ? "bg-muted" : "bg-rose-400"
+                            return (
+                              <li key={r.label} className="px-4 sm:px-5 py-3 hover:bg-muted/20 transition-colors">
+                                <div className="flex items-center justify-between gap-3 mb-1">
+                                  <span className="text-sm font-medium truncate">{r.label}</span>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
+                                    <span className={["text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full text-white", tone].join(" ")}>
+                                      {percent(r.ratio)}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                                  <div className={["h-full rounded-full transition-all duration-500", tone].join(" ")} style={{ width: `${percent(r.ratio)}%` }} />
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
@@ -3537,37 +3572,7 @@ export default function App() {
                   </Card>
                 </div>
 
-                {/* Fortschritt nach Fach */}
-                {categoryStats.rows.length > 0 && (
-                  <Card className="rounded-2xl shadow-sm overflow-hidden">
-                    <div className="bg-muted/40 px-5 py-3 border-b">
-                      <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">Fortschritt nach Fach</h2>
-                    </div>
-                    <CardContent className="p-0">
-                      <ul className="divide-y">
-                        {categoryStats.rows.map((r) => {
-                          const tone = r.ratio >= 1 ? "bg-emerald-500" : r.ratio >= 0.5 ? "bg-amber-400" : r.total === 0 ? "bg-muted" : "bg-rose-400"
-                          return (
-                            <li key={r.label} className="px-5 py-3 hover:bg-muted/20 transition-colors">
-                              <div className="flex items-center justify-between gap-3 mb-1">
-                                <span className="text-sm font-medium truncate">{r.label}</span>
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  <span className="text-xs text-muted-foreground tabular-nums">{r.done}/{r.total}</span>
-                                  <span className={["text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full text-white", tone].join(" ")}>
-                                    {percent(r.ratio)}%
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                                <div className={["h-full rounded-full transition-all duration-500", tone].join(" ")} style={{ width: `${percent(r.ratio)}%` }} />
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                )}
+
               </div>
             </TabsContent>
 
@@ -3870,8 +3875,35 @@ export default function App() {
                   </CardContent>
                 </Card>
 
+                {/* Casino Status Banner */}
+                {!gamification.isOnBreak ? (
+                  <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2 border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50/80 to-orange-50/80 dark:from-amber-950/30 dark:to-orange-950/30">
+                    <CardContent className="py-4 px-5 flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg">🔒</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-amber-800 dark:text-amber-300">Casino nur in der Pause</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400/70">Starte eine Lernzeit und dann eine Pause, um Casino-Spiele freizuschalten.</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 dark:from-emerald-950/30 dark:to-teal-950/30">
+                    <CardContent className="py-3 px-5 flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg">🎰</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">Casino freigeschaltet!</div>
+                        <div className="text-xs text-emerald-600 dark:text-emerald-400/70">Coin-Rate: ×{gamification.coinRate} (basierend auf deiner Lernzeit)</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* 🎡 Tägliches Glücksrad */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
+                <Card className={["rounded-2xl shadow-sm overflow-hidden lg:col-span-2", !gamification.isOnBreak ? "opacity-50 pointer-events-none" : ""].join(" ")}>
                   <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
                       🎡 Tägliches Glücksrad
@@ -3917,7 +3949,7 @@ export default function App() {
                 </Card>
 
                 {/* 🎰 Slot Machine */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                <Card className={["rounded-2xl shadow-sm overflow-hidden", !gamification.isOnBreak ? "opacity-50 pointer-events-none" : ""].join(" ")}>
                   <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
                       <Dices className="h-4 w-4 text-purple-500" /> Slot Machine
@@ -3990,7 +4022,7 @@ export default function App() {
                 </Card>
 
                 {/* 🃏 Higher / Lower */}
-                <Card className="rounded-2xl shadow-sm overflow-hidden">
+                <Card className={["rounded-2xl shadow-sm overflow-hidden", !gamification.isOnBreak ? "opacity-50 pointer-events-none" : ""].join(" ")}>
                   <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
                       🃏 Higher / Lower
