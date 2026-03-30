@@ -3704,7 +3704,7 @@ export default function App() {
                         <div className="flex flex-col items-center gap-3 w-full">
                           <div className="text-xs text-muted-foreground font-medium">Lerndauer wählen:</div>
                           <div className="flex flex-wrap gap-2 justify-center">
-                            {[15, 25, 45, 60, 90, 120].map((mins) => {
+                            {[15, 30, 45, 60, 90, 120].map((mins) => {
                               const rate = mins >= 90 ? 0.333 : mins >= 45 ? 0.25 : 0.2
                               const coins = Math.round(mins * rate)
                               return (
