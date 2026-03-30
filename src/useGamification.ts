@@ -872,9 +872,7 @@ export function useGamification(userId: string | null, streak: number) {
         let winAmount = 0
         let xpWon = 0
         if (reels[0] === reels[1] && reels[1] === reels[2]) {
-            const symbolIdx = SLOT_SYMBOLS.findIndex((s) => s.symbol === reels[0])
-            const multiplier = [3, 5, 8, 12, 20, 50][symbolIdx] ?? 5
-            winAmount = bet * multiplier
+            winAmount = bet * 3
             xpWon = bet * 5
         } else if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
             winAmount = bet * 2
