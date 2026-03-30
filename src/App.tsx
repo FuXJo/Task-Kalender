@@ -3883,8 +3883,8 @@ export default function App() {
                         <span className="text-lg">🔒</span>
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-amber-800 dark:text-amber-300">Casino nur in der Pause</div>
-                        <div className="text-xs text-amber-600 dark:text-amber-400/70">Starte eine Lernzeit und dann eine Pause, um Casino-Spiele freizuschalten.</div>
+                        <div className="text-sm font-semibold text-amber-800 dark:text-amber-300">Slot Machine & Higher/Lower nur in der Pause</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400/70">Starte eine Lernzeit und dann eine Pause, um diese Spiele freizuschalten.</div>
                       </div>
                     </CardContent>
                   </Card>
@@ -3903,7 +3903,7 @@ export default function App() {
                 )}
 
                 {/* 🎡 Tägliches Glücksrad */}
-                <Card className={["rounded-2xl shadow-sm overflow-hidden lg:col-span-2", !gamification.isOnBreak ? "opacity-50 pointer-events-none" : ""].join(" ")}>
+                <Card className="rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
                   <div className="bg-gradient-to-r from-yellow-500/10 to-amber-500/10 px-5 py-3 border-b">
                     <h2 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground flex items-center gap-2">
                       🎡 Tägliches Glücksrad

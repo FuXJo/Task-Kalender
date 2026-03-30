@@ -504,7 +504,7 @@ export function useGamification(userId: string | null, streak: number) {
     // Casino is only playable during break
     const isOnBreak = !!(timerState?.type === "break" && timerState?.running)
     // Coin rate based on last study session duration
-    const coinRate = lastStudyDuration >= 90 ? 0.5 : lastStudyDuration >= 45 ? 0.33 : lastStudyDuration >= 15 ? 0.25 : 0
+    const coinRate = lastStudyDuration >= 90 ? 0.333 : lastStudyDuration >= 45 ? 0.25 : lastStudyDuration >= 15 ? 0.2 : 0
 
     const [notifications, setNotifications] = useState<Array<{ type: "level_up" | "achievement"; message: string; id: string }>>([])
 
@@ -822,7 +822,6 @@ export function useGamification(userId: string | null, streak: number) {
     const wheelAvailable = state.lastWheelSpin !== todayKey()
 
     const spinWheel = useCallback(() => {
-        if (!isOnBreak) return null
         if (state.lastWheelSpin === todayKey()) return null
         const totalWeight = WHEEL_SEGMENTS.reduce((sum, s) => sum + s.weight, 0)
         let r = Math.random() * totalWeight
@@ -853,7 +852,7 @@ export function useGamification(userId: string | null, streak: number) {
             }
         })
         return { segmentIndex: idx, segment: { ...segment, coins: segment.coins === 0 ? 0 : adjustedCoins } }
-    }, [state.lastWheelSpin, isOnBreak, coinRate, update])
+    }, [state.lastWheelSpin, coinRate, update])
 
     // ── Casino: Slot Machine ─────────────────────────────────────────────
     const spinSlots = useCallback((bet: number): SlotResult | null => {
