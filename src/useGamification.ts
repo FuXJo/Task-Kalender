@@ -1010,7 +1010,8 @@ export function useGamification(userId: string | null, streak: number) {
                 if (prev.targetSeconds && elapsed >= prev.targetSeconds) {
                     clearInterval(timerIntervalRef.current)
                     const studyMinutes = prev.targetSeconds / 60
-                    const coinsEarned = studyMinutes * state.exchangeRate
+                    const durationRate = studyMinutes >= 90 ? 0.333 : studyMinutes >= 45 ? 0.25 : 0.2
+                    const coinsEarned = Math.round(studyMinutes * durationRate)
                     const timerXP = Math.round(studyMinutes) // 1 XP per minute
                     if (userId) {
                         supabase.from("timer_sessions").insert({

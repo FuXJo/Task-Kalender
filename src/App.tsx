@@ -3643,35 +3643,13 @@ export default function App() {
                       <div className="text-2xl">🪙</div>
                       <div className="flex-1">
                         <div className="text-sm font-medium">Pausenguthaben</div>
-                        <div className="text-xs text-muted-foreground">
-                          Rate: {EXCHANGE_RATES.find((r) => r.value === gamification.exchangeRate)?.emoji ?? "⚖️"}{" "}
-                          1 Lernmin = {gamification.exchangeRate} Pausenmin
-                        </div>
                       </div>
                       <div className="text-xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
                         {gamification.coins.toFixed(1)} <span className="text-sm font-normal">min</span>
                       </div>
                     </div>
 
-                    {/* Exchange Rate Selector */}
-                    <div className="flex gap-1.5 flex-wrap">
-                      {EXCHANGE_RATES.map((r) => (
-                        <button
-                          key={r.label}
-                          onClick={() => gamification.setExchangeRate(r.value)}
-                          title={r.description}
-                          className={[
-                            "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1",
-                            gamification.exchangeRate === r.value
-                              ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-600"
-                              : "bg-muted/50 text-muted-foreground hover:bg-muted",
-                          ].join(" ")}
-                        >
-                          <span>{r.emoji}</span>
-                          <span>{r.description}</span>
-                        </button>
-                      ))}
-                    </div>
+
 
                     {/* Timer Display */}
                     <div className="flex flex-col items-center gap-3">
@@ -3726,16 +3704,20 @@ export default function App() {
                         <div className="flex flex-col items-center gap-3 w-full">
                           <div className="text-xs text-muted-foreground font-medium">Lerndauer wählen:</div>
                           <div className="flex flex-wrap gap-2 justify-center">
-                            {[15, 25, 45, 60, 90, 120].map((mins) => (
-                              <Button
-                                key={mins}
-                                onClick={() => gamification.startStudyTimer(mins)}
-                                variant="outline"
-                                className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-950"
-                              >
-                                <Play className="h-3.5 w-3.5" /> {mins} min
-                              </Button>
-                            ))}
+                            {[15, 25, 45, 60, 90, 120].map((mins) => {
+                              const rate = mins >= 90 ? 0.333 : mins >= 45 ? 0.25 : 0.2
+                              const coins = Math.round(mins * rate)
+                              return (
+                                <Button
+                                  key={mins}
+                                  onClick={() => gamification.startStudyTimer(mins)}
+                                  variant="outline"
+                                  className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:border-emerald-700 dark:hover:bg-emerald-950"
+                                >
+                                  <Play className="h-3.5 w-3.5" /> {mins} min ({coins} 🪙)
+                                </Button>
+                              )
+                            })}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
                             Coins + 1 XP/Min nur bei vollem Durchhalten!
